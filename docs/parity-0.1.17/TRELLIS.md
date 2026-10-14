@@ -37,7 +37,7 @@ Superpowers 用于头脑风暴和模块设计；Trellis 管理任务、规范、
 - [TASK-004 文档恢复](../../.trellis/tasks/archive/2026-10/10-14-document-reload-mutation/result.md)：源码修复及224项文档回归通过，completed。
 - [GAP-003 Windows质量门](../../.trellis/tasks/archive/2026-10/10-14-windows-backend-quality/result.md)：完整check/test/race/build通过，completed。
 - [TASK-002 Windows MCP](../../.trellis/tasks/archive/2026-10/10-14-windows-mcp-resolution/result.md)：双配置真实MCP与隔离后端替换/文档一致性验收通过，completed。
-- [TASK-003 ACP退出核实](../../.trellis/tasks/10-14-acp-startup-exit/prd.md)：下一项单独规划，runtime-config本次200，清理exit1仍待判断。
+- [TASK-003 ACP退出核实](../../.trellis/tasks/archive/2026-10/10-14-acp-startup-exit/result.md)：完整质量门、连续runtime-config与后代清理验收通过，completed。
 - [TASK-010 模型接入](../../.trellis/tasks/10-14-model-access/prd.md)：待评审，依赖 TASK-001，planning。
 
 其他模块暂保留在台账，推进时再创建对应任务。父子关系不自动表示依赖；依赖明确写在子任务材料中。
@@ -71,7 +71,7 @@ python -X utf8 .trellis/scripts/add_session.py --title "本次工作" --commit "
 python -X utf8 .trellis/scripts/task.py archive <已完成任务目录名> --no-commit
 ```
 
-设置 `session_auto_commit: false`；这些记录不触碰 Git 暂存区或提交。未经明确指示不提交、推送。禁止访问生产 `workspace-v2`，测试只用独立目录。
+设置 `session_auto_commit: false`；脚本不触碰 Git 暂存区或提交。按最新 REQ-044 / DEC-029，当前会话完成单项自测与架构审查、更新记录后，审阅明确路径并本地提交，再推进下一功能；不推送。`--commit "-"` 用于当前提交尚未产生时，有既有提交则记录其真实 ID；历史未提交记录保留原事实。源码、测试、配置模板及长期资料纳管，密钥/依赖/缓存/构建物/运行数据保持忽略。禁止访问生产 `workspace-v2`，测试只用独立目录。
 
 ## 自动 hooks 的边界
 

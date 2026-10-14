@@ -1,5 +1,17 @@
 # 新对话交接摘要
 
+## 最新：REQ-044 / DEC-029 开发流程与Git规则
+
+2026-10-15：TASK-161已验收归档并记录Session19，规则与日志在同一本地提交中保存。
+
+- 最新用户要求：单功能完整开发、自测功能与架构、记录并本地Git提交后，再启动下一功能；优先复用，兼顾技术与产品判断。此前“不暂存/不提交”约定已覆盖，不推送。脚本自动提交保持关闭，会话审阅明确路径提交。
+- 成品参考`E:/AI/MediaGo Drama`已确认存在；完成时分别核对页面完整性、交互及真实能力。本地个人用户非必需项保留【待开发】及原因/恢复条件，不强行实施。截图只是文档历史界面证据，不是恢复动作或新功能实施指令。
+- 历史累积源码/测试/设计/任务资料已审计，检查点`216611e`保存411个路径。敏感文件名/常见凭据模式扫描无匹配，密钥、缓存、依赖、构建物和隔离运行数据保持忽略；导入换行与两份附带Markdown空白问题已修正，提交前差异检查通过。历史产品验收沿原记录，本轮未重跑产品质量门或真实流程。
+- TASK-161规则落地已完成文档验收，结果见[本项记录](../../.trellis/tasks/archive/2026-10/10-14-iteration-git-policy/result.md)。44本地链接、台账编号唯一、文档格式、AGENTS自定义段格式及受管片段未变、忽略规则/差异检查通过；本项提交与会话归档按DEC-029执行。下一产品项先评估TASK-034剩余生命周期/扫描工作的个人必要性与真实依赖，形成单功能计划；TASK-030/034仍未完成、TASK-010待评审、TASK-170新增方案实施未定。
+- 历史运行入口`http://127.0.0.1:31431/assets?scope=all`与隔离task-001配置/数据保留；本轮未启动、替换或向运行服务发送任务。唯一开发目录framegendev，生产workspace-v2禁区、inline和外部操作边界保持。
+
+以下为历史记录，旧Git边界与旧调度默认值以本节及DEC-029为准。
+
 ## 最新：TASK-033/035/036完成，核实TASK-034剩余子项
 
 - 文件夹基础分类闭环与全局范围整页全部真实验收，Session16~18无提交归档。目录创建嵌套重命名、当前目录上传/同scope移动、global元数据与双项目隔离、URL刷新/设置返回均可用。最终前端8文件58测试/lint/format2/build、后端check/test/race/build通过；深浅/390窄短屏、80字符目录、重启SQLite/API/hash/原四文档及既有素材不变通过。
@@ -17,7 +29,7 @@
 
 ## TASK-035完成，TASK-036页面闭环续作
 
-- 后端check/test/race/build全部exit0；18次真实HTTP目录/上传/移动检查与11次重启持久化检查通过。证据.cache/parity/task-035/，失败check-final.log保留，成功为*-mirror.log。原四篇文档、既有素材和文件hash未变。
+- 后端check/test/race/build全部exit0；18次真实HTTP目录/上传/移动检查与11次重启持久化检查通过。证据.cache/parity/task-035/，失败check-final.log保留，成功为\*-mirror.log。原四篇文档、既有素材和文件hash未变。
 - 31430已替换task-035/bin/mediago-server.exe，PID7092；MCP沿task-031同级工具，配置/数据仍task-001，迁移前备份保留。31431/PID61876与CDP9223测试页保留。
 - 立即接TASK-036（已有prd/design/implement）：复用AssetLibraryWorkspace完成项目目录树、创建/重命名、分类导入/同scope移动、URL恢复/返回和窄短屏。按用户最新原则，API与页面属于同一文件夹功能，完整落地后才转其他功能。TASK-030整体未完成，目录删除/重挂父级/扫描待开发；TASK-010/170原状态和全部未提交改动保留。
 
@@ -36,7 +48,7 @@
 - TASK-031已实际完成并无提交归档，结果在.trellis/tasks/archive/2026-10/10-14-asset-library-metadata/result.md。真实tags/note/rating持久化与编辑/搜索、PUT写入scope隔离、Escape先取消编辑、窄短屏滚动；23前端测试与质量门、后端完整check/test/race/build、服务重启与四篇文档不变通过。
 - TASK-032根目录整页完成；文件夹/扫描TASK-034、全局页面TASK-033继续独立推进。TASK-010仍待评审。其他会话TASK-170设计与图片提供方待恢复材料保留，不在此会话归档或实施。
 - 当前31430使用E:/AI/framegendev/.cache/parity/task-031/bin/mediago-server.exe，最终PID71020；同级工具保留task-003/bin-accepted版本。原task-001/server.yaml与workspace不变，SQLite迁移前backup在task-031/app-before-migration.db。31431原PID61876保留。
-- 专用项目project-74a3e23fa0e87a6f，PNG asset-c1ea942689374225，标签主角/夜景、多行中文备注、评分5；重复验收PNG与期间其他JPEG均保留。证据task-031/asset-saved.json、gates.json、persistence-accepted.json与metadata-*.png。
+- 专用项目project-74a3e23fa0e87a6f，PNG asset-c1ea942689374225，标签主角/夜景、多行中文备注、评分5；重复验收PNG与期间其他JPEG均保留。证据task-031/asset-saved.json、gates.json、persistence-accepted.json与metadata-\*.png。
 - 默认32线程格式检查发生内存不足，2线程完整门通过；harness编码/JS转义/焦点与多测试页HTTP连接排队失败均如实保留，单页和正确定位后末轮无console/脚本异常。专用Chromium profile task-031/browser，PID68728/CDP9223；不要开多个同站点SSE测试页。
 - 没有Electron、登录、prompt、生成、导出或生产workspace访问。保留其他任务与所有未提交改动，不暂存/提交/推送。
 
@@ -124,7 +136,7 @@ TASK-021已归档（Session5）；TASK-022已验收归档（Session6）。TASK-0
 - InspectSessionConfig返回前完成清理；共用清理关闭stdin，等3s，再必要Kill并最多等2s；stdout保留到Wait/超时，记录purpose、stage、cleanup_reason、forced及原始wait_error。
 - Windows共用启动使用私有kill-on-close Job Object，CREATE_SUSPENDED启动、先加入Job再恢复主线程；退出/取消/超时均关闭Job，覆盖shell/Codex/MCP后代。失败则终止并回收，不静默降级。非Windows启动保持cmd.Start；使用已有x/sys版本，无新增依赖/上游二进制修改。
 - 首版500ms和仅3s版本真实后代验收失败，证据保留；官方npm1.1.2源码SHA512核验后确认Windows shell启动与2s退出兜底。没有继续放宽3s后代观察窗口，增加Job管理后才通过。
-- 原生EOF/延迟2s/已退出非零/强制、探测成功/失败/认证错误/重试/取消、真实后代EOF/强制/取消与resident回归通过。Job版本完整check/test/race/build全退出0，日志task-003/logs/*-job.log、gates-accepted.json。child GORACE仅移除人工退出sleep，race检测未关闭；无新增skip或门降级。
+- 原生EOF/延迟2s/已退出非零/强制、探测成功/失败/认证错误/重试/取消、真实后代EOF/强制/取消与resident回归通过。Job版本完整check/test/race/build全退出0，日志task-003/logs/\*-job.log、gates-accepted.json。child GORACE仅移除人工退出sleep，race检测未关闭；无新增skip或门降级。
 - 最终连续3次真实runtime-config200，3次probe_completed/forced exit1如实保留，无ACP WARN/ERROR，父进程回收且后代残留0。Windows强制Kill退出码1为主动清理结果；元数据成功仍不证明账户/Agent prompt可用。
 - 原四篇version14/2/3/2、正文hash/updatedAt完全一致，task-002/task-003-before.json与task-003-after.json相同。只读API、健康与进程观察，无登录、prompt、生成、导出或生产workspace访问。
 - 证据task-003/acceptance.json、runtime-config.json、acp-lifecycle.json、process-drain.json、processes-after.json、health.json、runtime-accepted.json、binary-hashes-accepted.json及logs/runtime-accepted.log。旧bin/bin-final及first/second/third/grace-only失败材料保留，不能重启到旧版。

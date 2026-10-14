@@ -621,3 +621,37 @@ Project asset library page accepted; continue TASK-034 folder/API research. Othe
 ### Next Steps
 
 - TASK-034剩余目录删除/重挂父级/扫描单项核实；TASK-030未完成，TASK-010待评审和TASK-170资料保留。
+
+
+## Session 19: TASK-161 最新迭代与Git提交规则
+<!-- trellis-session: v=2 fp=112f15a409c617f5 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-161 最新迭代与Git提交规则
+**Branch**: `codex/task-004-document-reload`
+
+### Summary
+
+REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统一单功能自测/架构复用/个人必要性与本地Git提交；本项规则与日志将在独立提交中保存
+
+### Main Changes
+
+- 更新AGENTS自定义段、project-workflow与parity台账/交接；历史事实保留，脚本自动提交关闭且不推送
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `216611e` | chore(parity): checkpoint verified local development and design records |
+
+### Testing
+
+- [OK] 44本地链接、编号唯一、oxfmt文档与AGENTS自定义段、受管片段未变、敏感模式/忽略路径与差异检查通过；前后端产品检查本轮未重跑
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 先评估TASK-034剩余功能个人必要性，形成单功能计划；TASK-030/034未完成、TASK-010待评审、TASK-170未定保持
