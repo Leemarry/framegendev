@@ -1,0 +1,28 @@
+{
+  "id": "windows-mcp-resolution",
+  "name": "windows-mcp-resolution",
+  "title": "TASK-002 Windows MCP executable resolution",
+  "description": "Windows suffix fixed; full backend gates pass after GAP-003. Rebuilt isolated runtime, dual-workspace real stdio acceptance and document persistence checks pass.",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-14",
+  "completedAt": "2026-10-14",
+  "branch": "codex/task-004-document-reload",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [],
+  "notes": "2026-10-14: final acceptance passed; original isolated backend replaced (31430/PID49948), frontend retained, all preserved document hashes/versions/updatedAt unchanged. No-commit archive; TASK-003 independent, TASK-010 pending review.",
+  "meta": {
+    "ledger_id": "TASK-002"
+  }
+}

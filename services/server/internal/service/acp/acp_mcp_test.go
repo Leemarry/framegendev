@@ -1,20 +1,136 @@
 package acp
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	mediamcp "github.com/mediago-dev/mediago-drama/packages/mcp/pkg/mcp"
 )
 
+func TestMCPExecutableUsesNativeBinaryNames(t *testing.T) {
+	binDir := t.TempDir()
+	withProcessExecutable(t, filepath.Join(binDir, nativeMCPTestName("mediago-server")))
+	withWorkingDir(t, t.TempDir())
+	for _, name := range []string{"mediago-document-mcp", "mediago-generation-mcp"} {
+		t.Run(name, func(t *testing.T) {
+			want := filepath.Join(binDir, nativeMCPTestName(name))
+			if err := os.WriteFile(want, []byte("test executable"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			got, err := mcpExecutable(name)
+			if err != nil || got != want {
+				t.Fatalf("mcpExecutable(%q) = %q, %v; want %q", name, got, err, want)
+			}
+		})
+	}
+}
+
+func nativeMCPTestName(name string) string {
+	if runtime.GOOS == "windows" {
+		return name + ".exe"
+	}
+	return name
+}
+
+func TestResolveMCPExecutable(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		goos       string
+		binaryName string
+		filename   string
+		location   string
+		wantError  bool
+	}{
+		{"windows document sibling", "windows", "mediago-document-mcp", "mediago-document-mcp.exe", "sibling", false},
+		{"windows generation sibling", "windows", "mediago-generation-mcp", "mediago-generation-mcp.exe", "sibling", false},
+		{"windows existing suffix", "windows", "mediago-document-mcp.exe", "mediago-document-mcp.exe", "self", false},
+		{"windows uppercase suffix", "windows", "mediago-document-mcp.EXE", "mediago-document-mcp.EXE", "sibling", false},
+		{"windows go run fallback", "windows", "mediago-document-mcp", "mediago-document-mcp.exe", "ancestor", false},
+		{"windows generation fallback", "windows", "mediago-generation-mcp", "mediago-generation-mcp.exe", "ancestor", false},
+		{"windows sibling priority", "windows", "mediago-document-mcp", "mediago-document-mcp.exe", "both", false},
+		{"windows directory fallback", "windows", "mediago-document-mcp", "mediago-document-mcp.exe", "directory-fallback", false},
+		{"windows missing", "windows", "mediago-document-mcp", "mediago-document-mcp.exe", "missing", true},
+		{"windows extensionless rejected", "windows", "mediago-document-mcp", "mediago-document-mcp", "sibling", true},
+		{"windows directory rejected", "windows", "mediago-document-mcp", "mediago-document-mcp.exe", "directory", true},
+		{"linux document sibling", "linux", "mediago-document-mcp", "mediago-document-mcp", "sibling", false},
+		{"linux generation fallback", "linux", "mediago-generation-mcp", "mediago-generation-mcp", "ancestor", false},
+		{"darwin self", "darwin", "mediago-document-mcp", "mediago-document-mcp", "self", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			siblingDir := t.TempDir()
+			withWorkingDir(t, filepath.Join(root, "services", "server"))
+			withProcessExecutable(t, filepath.Join(siblingDir, "mediago-server"))
+			sibling := filepath.Join(siblingDir, tc.filename)
+			ancestor := filepath.Join(root, "bin", tc.filename)
+			writeBinary := func(path string) {
+				t.Helper()
+				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, []byte("test executable"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+			}
+			want := sibling
+			switch tc.location {
+			case "sibling", "self", "both":
+				writeBinary(sibling)
+				if tc.location == "self" {
+					withProcessExecutable(t, sibling)
+				}
+				if tc.location == "both" {
+					writeBinary(ancestor)
+				}
+			case "ancestor", "directory-fallback":
+				writeBinary(ancestor)
+				want = ancestor
+				if tc.location == "directory-fallback" {
+					if err := os.Mkdir(sibling, 0o755); err != nil {
+						t.Fatal(err)
+					}
+				}
+			case "directory":
+				if err := os.Mkdir(sibling, 0o755); err != nil {
+					t.Fatal(err)
+				}
+			}
+			got, err := resolveMCPExecutable(tc.binaryName, tc.goos)
+			if tc.wantError {
+				if got != "" || err == nil {
+					t.Fatalf("resolveMCPExecutable() = %q, %v; want missing/directory error", got, err)
+				}
+				return
+			}
+			if err != nil || got != want {
+				t.Fatalf("resolveMCPExecutable() = %q, %v; want %q", got, err, want)
+			}
+		})
+	}
+}
+
+func TestMCPExecutableProcessLookupFailure(t *testing.T) {
+	withProcessExecutable(t, "")
+	if got, err := mcpExecutable("mediago-document-mcp"); got != "" || err != nil {
+		t.Fatalf("empty executable = %q, %v; want empty resolution", got, err)
+	}
+	want := errors.New("process executable unavailable")
+	processExecutablePath = func() (string, error) { return "", want }
+	if got, err := mcpExecutable("mediago-document-mcp"); got != "" || !errors.Is(err, want) {
+		t.Fatalf("failed executable lookup = %q, %v; want original error", got, err)
+	}
+}
+
 func TestDocumentMCPServersValidateProjectID(t *testing.T) {
 	root := t.TempDir()
 	if servers := DocumentMCPServers(root, "../project"); len(servers) != 0 {
 		t.Fatalf("servers = %#v, want none for invalid project id", servers)
 	}
-	fakeExecutable := filepath.Join(t.TempDir(), "mediago-document-mcp")
+	fakeExecutable := filepath.Join(t.TempDir(), nativeMCPTestName("mediago-document-mcp"))
 	if err := os.WriteFile(fakeExecutable, []byte("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatalf("writing fake executable: %v", err)
 	}
@@ -154,7 +270,7 @@ func TestGenerationMCPServerMountedOverStdio(t *testing.T) {
 		t.Fatalf("creating bin dir: %v", err)
 	}
 	for _, name := range []string{"mediago-document-mcp", "mediago-generation-mcp"} {
-		if err := os.WriteFile(filepath.Join(binDir, name), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		if err := os.WriteFile(filepath.Join(binDir, nativeMCPTestName(name)), []byte("#!/bin/sh\n"), 0o755); err != nil {
 			t.Fatalf("writing fake %s: %v", name, err)
 		}
 	}
@@ -174,7 +290,7 @@ func TestGenerationMCPServerMountedOverStdio(t *testing.T) {
 	if generation.Stdio.Name != MediaGoDramaGenerationMCPServerName {
 		t.Fatalf("generation server name = %q, want %q", generation.Stdio.Name, MediaGoDramaGenerationMCPServerName)
 	}
-	if filepath.Base(generation.Stdio.Command) != "mediago-generation-mcp" {
+	if filepath.Base(generation.Stdio.Command) != nativeMCPTestName("mediago-generation-mcp") {
 		t.Fatalf("generation command = %q, want mediago-generation-mcp binary", generation.Stdio.Command)
 	}
 	args := strings.Join(generation.Stdio.Args, " ")
@@ -193,7 +309,7 @@ func TestGenerationMCPServerSkippedWhenBinaryMissing(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("creating bin dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(binDir, "mediago-document-mcp"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(binDir, nativeMCPTestName("mediago-document-mcp")), []byte("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatalf("writing fake document MCP: %v", err)
 	}
 	withProcessExecutable(t, filepath.Join(binDir, "mediago-server"))
@@ -241,7 +357,7 @@ func TestDocumentMCPExecutableFallsBackToWorkspaceBinForGoRun(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("creating bin dir: %v", err)
 	}
-	fakeDocumentMCP := filepath.Join(binDir, "mediago-document-mcp")
+	fakeDocumentMCP := filepath.Join(binDir, nativeMCPTestName("mediago-document-mcp"))
 	if err := os.WriteFile(fakeDocumentMCP, []byte("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatalf("writing fake document MCP: %v", err)
 	}

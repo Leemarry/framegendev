@@ -96,7 +96,6 @@ export const SidebarScreenStack: React.FC<SidebarScreenStackProps> = ({
 							screenTransformClass(screen, activeId, activeLevel, activeTransition),
 							screenClassName,
 						)}
-						aria-hidden={!isActive}
 						inert={!isActive}
 					>
 						{screen.node}

@@ -5,10 +5,14 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestGenerationNotificationRepositoryLifecycle(t *testing.T) {
 	repo, err := NewGenerationNotificationRepository(filepath.Join(t.TempDir(), "settings.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
 	if err != nil {
 		t.Fatalf("NewGenerationNotificationRepository() error = %v", err)
 	}

@@ -3,9 +3,11 @@ package acp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +21,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	if os.Getenv("MEDIAGO_ACP_PROCESS_FIXTURE") == "1" {
+		os.Exit(runACPProcessFixture())
+	}
 	dir, err := os.MkdirTemp("", "acp-tests-*")
 	if err != nil {
 		panic(err)
@@ -31,7 +36,18 @@ func TestMain(m *testing.M) {
 	serviceprompt.SetPromptTemplateStore(prompttemplates.NewServiceFromRepository(repos.Instructions, nil))
 	serviceskill.SetPromptPackStore(store)
 	code := m.Run()
-	_ = os.RemoveAll(dir)
+	sqlDB, err := repos.DB.DB()
+	if err == nil {
+		err = sqlDB.Close()
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "closing test settings database:", err)
+		code = 1
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		fmt.Fprintln(os.Stderr, "removing test settings directory:", err)
+		code = 1
+	}
 	os.Exit(code)
 }
 
@@ -374,6 +390,21 @@ func TestMergedProcessEnvBypassesProxiesForLoopback(t *testing.T) {
 		{name: "no_proxy", want: []string{"localhost", "legacy.example", "127.0.0.1", "::1"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			if runtime.GOOS == "windows" {
+				// Windows keeps one inherited key spelling when Setenv replaces its value.
+				prefix := ""
+				for _, item := range os.Environ() {
+					key, value, _ := strings.Cut(item, "=")
+					if key == test.name {
+						prefix = value
+					}
+				}
+				if prefix == "" {
+					test.want = []string{"127.0.0.1", "localhost", "::1"}
+				} else {
+					test.want = []string{"localhost", "legacy.example", "127.0.0.1", "::1"}
+				}
+			}
 			got := strings.Split(envValue(env, test.name), ",")
 			if strings.Join(got, ",") != strings.Join(test.want, ",") {
 				t.Fatalf("%s = %q, want %q", test.name, got, test.want)

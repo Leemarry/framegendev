@@ -7,15 +7,17 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestGenerationPreferenceServiceRequiresExplicitDBPath(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(homeDir, ".config"))
 	t.Setenv("APPDATA", filepath.Join(homeDir, "AppData", "Roaming"))
 
-	service := NewGenerationPreferenceService("")
+	service := newTestGenerationPreferenceService(t, "")
 	if _, err := service.GetPreference("agent"); err == nil || !strings.Contains(err.Error(), "path is required") {
 		t.Fatalf("GetPreference() error = %v, want required path error", err)
 	}
@@ -32,7 +34,7 @@ func TestGenerationPreferenceServiceRequiresExplicitDBPath(t *testing.T) {
 
 func TestGenerationPreferenceServicePersistToSQLite(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "settings.db")
-	service := NewGenerationPreferenceService(dbPath)
+	service := newTestGenerationPreferenceService(t, dbPath)
 
 	empty, err := service.GetPreference("project-alpha")
 	if err != nil {
@@ -57,7 +59,7 @@ func TestGenerationPreferenceServicePersistToSQLite(t *testing.T) {
 		t.Fatalf("saved timestamps = created %q updated %q, want values", saved.CreatedAt, saved.UpdatedAt)
 	}
 
-	restarted := NewGenerationPreferenceService(dbPath)
+	restarted := newTestGenerationPreferenceService(t, dbPath)
 	got, err := restarted.GetPreference("project-alpha")
 	if err != nil {
 		t.Fatalf("getting persisted preference: %v", err)
@@ -92,6 +94,7 @@ func TestGenerationPreferenceServicePersistToSQLite(t *testing.T) {
 
 func TestGenerationPreferenceForProjectMergesScopes(t *testing.T) {
 	repos, err := repository.OpenSettingsRepositories(filepath.Join(t.TempDir(), "settings.db"))
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("opening settings repositories: %v", err)
 	}

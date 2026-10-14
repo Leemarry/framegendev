@@ -5,10 +5,14 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestAgentModelProfileRepositoryCRUDAndDefault(t *testing.T) {
 	repo, err := NewAgentModelProfileRepository(filepath.Join(t.TempDir(), "settings.sqlite"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
 	if err != nil {
 		t.Fatalf("NewAgentModelProfileRepository returned error: %v", err)
 	}

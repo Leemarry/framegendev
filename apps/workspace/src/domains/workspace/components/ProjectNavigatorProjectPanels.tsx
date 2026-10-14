@@ -1,6 +1,7 @@
 import {
 	Archive,
 	ChevronLeft,
+	ChevronRight,
 	FilePlus2,
 	Folder,
 	FolderPlus,
@@ -8,10 +9,11 @@ import {
 	LayoutDashboard,
 	LayoutList,
 	Loader2,
+	MessageCircleQuestion,
 	Pencil,
 	RotateCcw,
 	Search,
-	SquarePen,
+	SlidersHorizontal,
 	Trash2,
 } from "lucide-react";
 import type React from "react";
@@ -20,6 +22,7 @@ import type { WorkspaceProject } from "@/domains/projects/api/projects";
 import type { DocumentCategory } from "@/domains/documents/stores";
 import type { GenerationSuccessNotification } from "@/domains/generation/stores/generation-notifications";
 import { Button } from "@/shared/components/ui/button";
+import { WorkspaceUserMenu } from "./WorkspaceUserMenu";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -31,10 +34,6 @@ import {
 	type ProjectDocumentDeleteHandler,
 } from "@/domains/workspace/components/ProjectDirectory";
 import { ProjectDirectoryTree } from "@/domains/workspace/components/ProjectDirectoryTree";
-import {
-	GitHubHelpButton,
-	SettingsButton,
-} from "@/domains/workspace/components/ProjectNavigatorPanels";
 import { GenerationNotificationButton } from "@/domains/workspace/components/GenerationNotificationButton";
 import { GlobalToolboxButton } from "@/domains/workspace/components/GlobalToolboxDrawer";
 import { AssetLibraryButton } from "@/domains/workspace/components/AssetLibraryButton";
@@ -59,57 +58,42 @@ export const ProjectsSidebarPanel: React.FC<{
 	onOpenGenerationNotification?: (notification: GenerationSuccessNotification) => void;
 	onOpenSearch: (scope: "global" | "project") => void;
 	onOpenSettings: () => void;
+	onOpenSkills: () => void;
+	onOpenProjects?: () => void;
 	onRetry?: () => void;
 	projectAction?: { kind: "archive" | "trash" | "rename"; projectId: string } | null;
 	projects: WorkspaceProject[];
 }> = ({
 	error,
-	isCreating,
 	isLoading,
 	locationPathname,
 	onArchiveProject,
-	onCreateProject,
 	onRequestDeleteProject,
 	onRenameProject,
 	onOpenGenerationNotification,
 	onOpenProject,
 	onOpenSearch,
 	onOpenSettings,
+	onOpenSkills,
+	onOpenProjects,
 	onRetry,
 	projectAction = null,
 	projects,
 }) => (
-	<div className="flex h-full flex-col">
-		<Button
+	<div className="projects-root-sidebar flex h-full flex-col">
+		<button
 			type="button"
-			variant="ghost"
-			className="h-8 w-full justify-start gap-2 rounded-sm px-2 text-sm font-normal text-ide-sidebar-foreground hover:bg-ide-list-hover hover:text-foreground"
-			onClick={onCreateProject}
-			disabled={isCreating}
+			onClick={() => onOpenSearch("global")}
+			className="projects-root-search"
+			aria-label="全局搜索"
+			title="全局搜索"
 		>
-			{isCreating ? <Loader2 className="animate-spin" /> : <SquarePen />}
-			<span className="min-w-0 flex-1 truncate text-left">新项目</span>
-			<span className="rounded-sm border border-border bg-ide-toolbar px-1.5 py-0.5 text-2xs leading-none text-muted-foreground">
-				⌘N
-			</span>
-		</Button>
-
-		<div className="mt-2">
-			<button
-				type="button"
-				onClick={() => onOpenSearch("global")}
-				className="flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-sm text-ide-sidebar-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground"
-			>
-				<Search className="size-4 shrink-0 text-muted-foreground" />
-				<span className="min-w-0 flex-1 truncate">全局搜索</span>
-				<span className="rounded-sm border border-border bg-ide-toolbar px-1.5 py-0.5 text-2xs leading-none text-muted-foreground">
-					⌘K
-				</span>
-			</button>
-		</div>
-
-		<div className="mt-5 flex min-h-0 flex-1 flex-col">
-			<div className="mb-2 px-2 text-xs font-medium text-muted-foreground">项目</div>
+			<Search />
+			<span>全局搜索</span>
+			<kbd>⌘K</kbd>
+		</button>
+		<div className="projects-root-recent mt-6 hidden min-h-0 flex-1 flex-col min-[701px]:flex">
+			<div className="mb-3 px-2 text-sm font-medium text-muted-foreground">最近项目</div>
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				{projects.length > 0 ? (
 					projects.map((project) => (
@@ -149,11 +133,40 @@ export const ProjectsSidebarPanel: React.FC<{
 			</div>
 		</div>
 
-		<SidebarFooterActions
-			settingsActive={locationPathname.startsWith("/settings")}
-			onOpenGenerationNotification={onOpenGenerationNotification}
-			onOpenSettings={onOpenSettings}
-		/>
+		<div className="mt-auto space-y-0.5 pt-2">
+			<button
+				type="button"
+				className="projects-root-nav"
+				disabled
+				title="Drami · 待接入"
+				aria-label="Drami（待接入）"
+			>
+				<MessageCircleQuestion />
+				<span className="nav-label">Drami</span>
+				<span className="projects-root-pending">待接入</span>
+				<ChevronRight />
+			</button>
+			<button
+				type="button"
+				className="projects-root-nav"
+				aria-current={locationPathname === "/" ? "page" : undefined}
+				aria-label="项目管理"
+				title="项目管理"
+				onClick={onOpenProjects}
+			>
+				<LayoutList />
+				<span className="nav-label">项目管理</span>
+				<ChevronRight />
+			</button>
+			<AssetLibraryButton variant="navigation" />
+			<GlobalToolboxButton variant="navigation" />
+			<div className="projects-root-user">
+				<WorkspaceUserMenu onOpenSettings={onOpenSettings} onOpenSkills={onOpenSkills} />
+				{onOpenGenerationNotification ? (
+					<GenerationNotificationButton onOpenNotification={onOpenGenerationNotification} />
+				) : null}
+			</div>
+		</div>
 	</div>
 );
 
@@ -183,7 +196,7 @@ const ProjectsSidebarProjectItem: React.FC<{
 				<button
 					type="button"
 					onClick={() => onOpenProject(project)}
-					className="mb-0.5 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-sm text-ide-sidebar-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground"
+					className="mb-0.5 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-base text-ide-sidebar-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground"
 				>
 					<Folder className="size-4 shrink-0 text-muted-foreground" />
 					<span className="min-w-0 flex-1 truncate">{project.name}</span>
@@ -239,6 +252,8 @@ export const ProjectSidebarPanel: React.FC<{
 	onOpenSearch: (scope: "global" | "project") => void;
 	onOpenSettings: () => void;
 	showActiveSelection?: boolean;
+	onOpenGlobalSettings?: () => void;
+	onOpenSkills?: () => void;
 }> = ({
 	displayProject,
 	documentsProjectId,
@@ -259,6 +274,8 @@ export const ProjectSidebarPanel: React.FC<{
 	onOpenSearch,
 	onOpenSettings,
 	showActiveSelection = true,
+	onOpenGlobalSettings = onOpenSettings,
+	onOpenSkills = onOpenGlobalSettings,
 }) => {
 	const documentViewMode = useDocumentViewStore((state) => state.mode);
 	const setDocumentViewMode = useDocumentViewStore((state) => state.setMode);
@@ -274,12 +291,12 @@ export const ProjectSidebarPanel: React.FC<{
 	}, []);
 
 	return (
-		<div className="flex h-full flex-col">
+		<div className="project-workspace-sidebar flex h-full flex-col">
 			<div className="flex min-h-0 flex-1 flex-col">
 				<div className="min-h-0 flex-1 overflow-y-auto">
 					{displayProject ? (
 						<div className="space-y-1">
-							<div className="flex items-center justify-between gap-2 px-2 pb-1">
+							<div className="project-sidebar-toolbar flex items-center justify-between gap-2 px-2 pb-1">
 								<button
 									type="button"
 									className={sidebarToolbarIconButtonClassName}
@@ -299,6 +316,20 @@ export const ProjectSidebarPanel: React.FC<{
 										aria-label="搜索当前项目"
 									>
 										<Search className="size-3.5" />
+									</button>
+									<button
+										type="button"
+										className={cn(
+											sidebarToolbarIconButtonClassName,
+											showActiveSelection &&
+												isOverviewActive &&
+												"bg-ide-list-active text-ide-list-active-foreground",
+										)}
+										onClick={() => onOpenOverview(displayProject)}
+										aria-label="项目概览"
+										title="项目概览"
+									>
+										<LayoutDashboard className="size-3.5" />
 									</button>
 									<button
 										type="button"
@@ -328,19 +359,6 @@ export const ProjectSidebarPanel: React.FC<{
 									/>
 								</div>
 							</div>
-							<button
-								type="button"
-								onClick={() => onOpenOverview(displayProject)}
-								className={cn(
-									"flex h-7 w-full items-center gap-1.5 rounded-sm px-2 text-left text-xs transition-colors",
-									showActiveSelection && isOverviewActive
-										? "bg-ide-list-active text-ide-list-active-foreground"
-										: "text-muted-foreground hover:bg-ide-list-hover hover:text-foreground",
-								)}
-							>
-								<LayoutDashboard className="size-3.5 shrink-0" />
-								<span className="min-w-0 flex-1 truncate">项目概览</span>
-							</button>
 							{documentViewMode === "directory" ? (
 								<ProjectDirectoryTree
 									key={displayProject.id}
@@ -398,24 +416,46 @@ export const ProjectSidebarPanel: React.FC<{
 
 			<SidebarFooterActions
 				settingsActive={isProjectSettingsRoute(locationPathname, locationSearch)}
+				projectId={displayProject?.id}
 				onOpenGenerationNotification={onOpenGenerationNotification}
 				onOpenSettings={onOpenSettings}
+				onOpenGlobalSettings={onOpenGlobalSettings}
+				onOpenSkills={onOpenSkills}
 			/>
 		</div>
 	);
 };
 
 const SidebarFooterActions: React.FC<{
+	projectId?: string;
 	onOpenGenerationNotification?: (notification: GenerationSuccessNotification) => void;
 	onOpenSettings: () => void;
+	onOpenGlobalSettings: () => void;
+	onOpenSkills: () => void;
 	settingsActive: boolean;
-}> = ({ onOpenGenerationNotification, onOpenSettings, settingsActive }) => (
-	<div className="mt-auto pt-2">
-		<div className="flex items-center justify-end gap-1">
-			<SettingsButton isActive={settingsActive} onClick={onOpenSettings} />
-			<GitHubHelpButton />
-			<AssetLibraryButton />
-			<GlobalToolboxButton />
+}> = ({
+	projectId,
+	onOpenGenerationNotification,
+	onOpenSettings,
+	onOpenGlobalSettings,
+	onOpenSkills,
+	settingsActive,
+}) => (
+	<div className="project-sidebar-footer mt-auto pt-2">
+		<AssetLibraryButton variant="navigation" label="项目素材库" />
+		<GlobalToolboxButton variant="navigation" label="项目生成历史" projectId={projectId} />
+		<button
+			type="button"
+			className="projects-root-nav"
+			aria-current={settingsActive ? "page" : undefined}
+			onClick={onOpenSettings}
+		>
+			<SlidersHorizontal />
+			<span className="nav-label">项目设置</span>
+			<ChevronRight />
+		</button>
+		<div className="projects-root-user">
+			<WorkspaceUserMenu onOpenSettings={onOpenGlobalSettings} onOpenSkills={onOpenSkills} />
 			{onOpenGenerationNotification ? (
 				<GenerationNotificationButton onOpenNotification={onOpenGenerationNotification} />
 			) : null}

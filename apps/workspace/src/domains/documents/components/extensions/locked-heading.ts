@@ -122,6 +122,8 @@ const imprintLockedHeadings = (view: EditorView, plan: LockedHeadingPlan) => {
 	}
 	if (!changed) return;
 	transaction.setMeta(lockedHeadingPluginKey, { imprint: true });
+	// Lock attributes are editor metadata, not a user edit to persist.
+	transaction.setMeta("preventUpdate", true);
 	view.dispatch(transaction);
 };
 

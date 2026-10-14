@@ -5,11 +5,13 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 	"gorm.io/gorm"
 )
 
 func TestBillingRepositoryListUsageBucketsAggregatesTokenColumns(t *testing.T) {
 	repos, err := OpenWorkspaceRepositories(filepath.Join(t.TempDir(), "workspace.sqlite"))
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -24,12 +25,18 @@ func newTestChatStore(t *testing.T) *Service {
 func newTestChatStoreWithDB(t *testing.T) (*Service, *gorm.DB) {
 	t.Helper()
 	db, err := repository.OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("opening workspace db: %v", err)
 	}
 	workspaceDir := t.TempDir()
 	projects := testProjectProvider{root: workspaceDir, db: db}
 	store := NewService(workspaceDir, repository.NewAgentSessionRepository(db), projects, nil)
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Errorf("closing chat test store: %v", err)
+		}
+	})
 	return store, db
 }
 

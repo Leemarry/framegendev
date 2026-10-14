@@ -1,5 +1,7 @@
 import type React from "react";
 import { useLocation } from "react-router-dom";
+import useSWR from "swr";
+import { getProjects, projectsKey } from "@/domains/projects/api/projects";
 import { AgentStateSync } from "@/domains/agent/components/AgentStateSync";
 import { AgentCompletionNotificationSync } from "@/domains/agent/components/AgentCompletionNotificationSync";
 import { AgentPanel } from "@/domains/agent/components/AgentPanel";
@@ -41,6 +43,10 @@ export const App: React.FC = () => {
 	const isProjectRoute = isAgentRoute(location.pathname) && Boolean(routeProjectId);
 	const isEpisodeRoute = isAgentDocumentRoute(location.pathname, location.search);
 	const routeIsSettings = isSettingsRoute(location.pathname);
+	const projectWorkspace = Boolean(routeProjectId) && (isProjectRoute || routeIsSettings);
+	const { data: projectsData } = useSWR(projectWorkspace ? projectsKey : null, getProjects);
+	const projectTitle =
+		projectsData?.projects.find((project) => project.id === routeProjectId)?.name ?? "加载项目";
 	const showProjectWorkspaceFrame = isProjectRoute && !routeIsSettings;
 	const routeWorkbenchMode = workbenchModeForRoute(location.pathname, workMode);
 	const forceDocumentWorkbench = shouldForceDocumentWorkbench(location.pathname, location.search);
@@ -66,7 +72,7 @@ export const App: React.FC = () => {
 	const headerActions = showWorkbenchTabs ? (
 		<AgentWorkbenchHeaderActions mode={routeWorkbenchMode} showTabs={!forceDocumentWorkbench} />
 	) : null;
-	if (location.pathname === "/prompt-pack-editor") {
+	if (location.pathname === "/prompt-pack-editor" || location.pathname === "/assets") {
 		return (
 			<>
 				<AnalyticsRouteSync />
@@ -95,8 +101,15 @@ export const App: React.FC = () => {
 
 			<AppLayout
 				headerActions={headerActions}
-				headerTitle={routeDescriptor.title}
-				showHeader={!isEpisodeRoute && !routeIsSettings}
+				headerTitle={projectWorkspace ? projectTitle : routeDescriptor.title}
+				showHeader={
+					!isEpisodeRoute &&
+					(!routeIsSettings || projectWorkspace) &&
+					routeDescriptor.sidebarScreen !== "projects"
+				}
+				projectManagement={routeDescriptor.sidebarScreen === "projects"}
+				projectWorkspace={projectWorkspace}
+				navigationKey={location.pathname + location.search}
 				sidebar={<ProjectNavigator activeProjectId={routeProjectId} />}
 				sidebarHidden={routeDescriptor.sidebarHidden}
 			>

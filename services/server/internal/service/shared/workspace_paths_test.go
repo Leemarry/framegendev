@@ -12,6 +12,7 @@ import (
 func TestResolveWorkspaceDirUsesAppDataWorkspaceByDefault(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(homeDir, ".config"))
 	t.Setenv("APPDATA", filepath.Join(homeDir, "AppData", "Roaming"))
 
@@ -33,6 +34,7 @@ func TestResolveWorkspaceDirUsesAppDataWorkspaceByDefault(t *testing.T) {
 func TestDefaultUserDataDirUsesUserConfigDir(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(homeDir, ".config"))
 	t.Setenv("APPDATA", filepath.Join(homeDir, "AppData", "Roaming"))
 
@@ -52,6 +54,7 @@ func TestDefaultUserDataDirFallsBackToWorkingDirectory(t *testing.T) {
 	cwd := t.TempDir()
 	t.Chdir(cwd)
 	t.Setenv("HOME", "")
+	t.Setenv("USERPROFILE", "")
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("APPDATA", "")
 
@@ -65,6 +68,7 @@ func TestDefaultUserDataDirFallsBackToWorkingDirectory(t *testing.T) {
 func TestResolveWorkspaceDirExpandsHomePath(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
 
 	got := ResolveWorkspaceDir("~/MediaGo Workspace")
 	want := filepath.Join(homeDir, "MediaGo Workspace")

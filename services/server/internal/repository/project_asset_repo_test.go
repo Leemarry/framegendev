@@ -6,10 +6,14 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestProjectAssetRepositoryLifecycle(t *testing.T) {
 	repo, err := NewProjectAssetRepository(filepath.Join(t.TempDir(), "workspace.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
 	if err != nil {
 		t.Fatalf("NewProjectAssetRepository() error = %v", err)
 	}

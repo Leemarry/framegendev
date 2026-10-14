@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestDocumentSectionRepositoryUpsertAndMarkMissing(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -96,6 +98,7 @@ func TestDocumentSectionRepositoryUpsertAndMarkMissing(t *testing.T) {
 
 func TestDocumentSectionRepositoryUpsertPreservesDeletedStatus(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}

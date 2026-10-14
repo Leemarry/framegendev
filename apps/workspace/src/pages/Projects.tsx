@@ -2,7 +2,10 @@ import {
 	Archive,
 	FolderOpen,
 	Loader2,
+	MoreVertical,
 	Pencil,
+	SquarePen,
+	Upload,
 	RotateCcw,
 	Trash2,
 	type LucideIcon,
@@ -13,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import useSWR, { useSWRConfig } from "swr";
 import {
 	archiveProject,
+	createProject,
 	deleteProject,
 	getProjects,
 	permanentlyDeleteProject,
@@ -25,7 +29,14 @@ import {
 import { openProjectRenameDialog } from "@/domains/projects/components/ProjectRenameDialog";
 import { useProjectStore } from "@/domains/projects/stores";
 import { agentProjectPath, agentProjectRouteState } from "@/domains/workspace/lib/workbench-route";
-import { Badge } from "@/shared/components/ui/badge";
+import { useDesktopWindowDrag } from "@/domains/workspace/lib/desktop-window-drag";
+import { openAgentProjectCreateDialog } from "@/domains/workspace/components/AgentProjectCreateDialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import { Button } from "@/shared/components/ui/button";
 import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import {
@@ -81,12 +92,14 @@ const tabMeta: Record<
 };
 
 export const Projects: React.FC = () => {
+	const startWindowDrag = useDesktopWindowDrag();
 	const navigate = useNavigate();
 	const toast = useToast();
 	const { mutate } = useSWRConfig();
 	const setActiveProjectId = useProjectStore((state) => state.setActiveProjectId);
 	const [activeTab, setActiveTab] = useState<ProjectManagementTab>("active");
 	const [action, setAction] = useState<{ kind: ProjectAction; projectId: string } | null>(null);
+	const [isCreating, setIsCreating] = useState(false);
 	const swrKey = projectsKeyForStatus(activeTab);
 	const {
 		data,
@@ -118,6 +131,24 @@ export const Projects: React.FC = () => {
 			mutate(projectsKeyForStatus("archived")),
 			mutate(projectsKeyForStatus("trashed")),
 		]);
+	};
+
+	const createNewProject = async () => {
+		if (isCreating) return;
+		setIsCreating(true);
+		try {
+			const name = await openAgentProjectCreateDialog();
+			if (!name) return;
+			const project = await createProject({ name });
+			await refreshProjectLists();
+			openProject(project);
+		} catch (err) {
+			toast.error("创建项目失败", {
+				description: projectManagementErrorMessage(err, "创建项目失败。"),
+			});
+		} finally {
+			setIsCreating(false);
+		}
 	};
 
 	const restoreCurrentProject = async (project: WorkspaceProject) => {
@@ -240,38 +271,42 @@ export const Projects: React.FC = () => {
 	};
 
 	return (
-		<div className="flex h-full min-h-0 flex-col overflow-hidden bg-ide-editor text-ide-editor-foreground">
-			<div className="border-b border-border/70 px-5 py-4">
-				<div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-					<div className="min-w-0">
-						<h1 className="text-base font-semibold text-foreground">项目管理</h1>
-						<p className="mt-1 text-xs leading-5 text-muted-foreground">{meta.description}</p>
-					</div>
-					<div className="inline-grid grid-cols-3 rounded-sm border border-border bg-ide-toolbar p-0.5">
-						{projectTabs.map((tab) => (
-							<button
-								key={tab.status}
-								type="button"
-								onClick={() => setActiveTab(tab.status)}
-								className={cn(
-									"h-7 min-w-16 rounded-sm px-3 text-xs font-medium transition-colors",
-									activeTab === tab.status
-										? "bg-ide-editor text-foreground shadow-sm"
-										: "text-muted-foreground hover:bg-ide-list-hover hover:text-foreground",
-								)}
-							>
-								{tab.label}
-							</button>
-						))}
-					</div>
+		<div className="project-management-page flex h-full min-h-0 flex-col overflow-hidden bg-ide-editor text-ide-editor-foreground">
+			<header
+				className="project-management-header"
+				data-desktop-drag-region
+				onPointerDown={startWindowDrag}
+			>
+				<h1>项目管理</h1>
+				<div className="project-management-tabs" aria-label="项目状态" data-desktop-no-drag>
+					{projectTabs.map((tab) => (
+						<button
+							key={tab.status}
+							type="button"
+							aria-pressed={activeTab === tab.status}
+							onClick={() => setActiveTab(tab.status)}
+						>
+							{tab.label}
+						</button>
+					))}
 				</div>
-			</div>
-
-			<div className="min-h-0 flex-1 overflow-auto px-5 py-4">
+			</header>
+			<div className="project-management-body">
+				{activeTab === "active" ? (
+					<div className="project-management-toolbar">
+						<button type="button" disabled title="待接入" aria-label="导入项目（待接入）">
+							<Upload />
+							<span>导入项目</span>
+						</button>
+						<button type="button" disabled title="待接入" aria-label="打开已有项目目录（待接入）">
+							<FolderOpen />
+							<span>打开已有项目目录</span>
+						</button>
+					</div>
+				) : null}
 				{isLoading && projects.length === 0 ? (
 					<ProjectManagementCenterState icon={Loader2} title="加载项目列表" spin />
 				) : null}
-
 				{!isLoading && error && projects.length === 0 ? (
 					<ProjectManagementCenterState
 						icon={FolderOpen}
@@ -285,24 +320,41 @@ export const Projects: React.FC = () => {
 						}
 					/>
 				) : null}
-
-				{!isLoading && !error && projects.length === 0 ? (
-					<ProjectManagementCenterState
-						icon={meta.icon}
-						title={meta.emptyTitle}
-						description={meta.emptyDescription}
-					/>
+				{!isLoading && !error && projects.length === 0 && activeTab !== "active" ? (
+					<div className="project-management-empty">
+						<img
+							src={
+								activeTab === "archived" ? "/parity/archive-empty.png" : "/parity/trash-empty.png"
+							}
+							alt=""
+							width="220"
+							height="220"
+						/>
+						<p>{meta.emptyTitle}</p>
+					</div>
 				) : null}
-
-				{projects.length > 0 ? (
-					<div className="mx-auto flex w-full max-w-5xl flex-col gap-2">
+				{projects.length > 0 || (!isLoading && !error && activeTab === "active") ? (
+					<div className="project-management-grid">
+						{activeTab === "active" ? (
+							<button
+								type="button"
+								className="project-create-card"
+								aria-label="创建新项目"
+								disabled={isCreating}
+								onClick={() => void createNewProject()}
+							>
+								<span className="project-create-icon">
+									{isCreating ? <Loader2 className="animate-spin" /> : <SquarePen />}
+								</span>
+								<span>创建新项目</span>
+							</button>
+						) : null}
 						{projects.map((project) => (
 							<ProjectManagementRow
 								key={project.id}
 								action={action}
 								activeTab={activeTab}
 								project={project}
-								statusLabel={meta.statusLabel}
 								onArchive={() => void archiveCurrentProject(project)}
 								onRequestDelete={() => confirmDeleteProject(project)}
 								onOpen={openProject}
@@ -328,7 +380,6 @@ const ProjectManagementRow: React.FC<{
 	onRequestPermanentDelete: () => void;
 	onRestore: () => void;
 	project: WorkspaceProject;
-	statusLabel: string;
 }> = ({
 	action,
 	activeTab,
@@ -339,160 +390,106 @@ const ProjectManagementRow: React.FC<{
 	onRequestPermanentDelete,
 	onRestore,
 	project,
-	statusLabel,
 }) => {
-	const isArchiving = action?.kind === "archive" && action.projectId === project.id;
-	const isTrashing = action?.kind === "trash" && action.projectId === project.id;
-	const isRestoring = action?.kind === "restore" && action.projectId === project.id;
-	const isDeleting = action?.kind === "permanent" && action.projectId === project.id;
-	const isRenaming = action?.kind === "rename" && action.projectId === project.id;
-	const Icon = tabMeta[activeTab].icon;
-	const path = project.originalProjectDir || project.projectDir || project.relativeDir || "";
-	const timestamp = projectLifecycleTimestamp(project, activeTab);
 	const hasAction = Boolean(action);
-	const canOpenProject = activeTab === "active";
-	const openFromRow = () => {
-		if (!canOpenProject) return;
-		onOpen(project);
-	};
-	const openFromKeyboard = (event: React.KeyboardEvent<HTMLDivElement>) => {
-		if (!canOpenProject || (event.key !== "Enter" && event.key !== " ")) return;
-		event.preventDefault();
-		onOpen(project);
-	};
-	const openFromButton = (event: React.MouseEvent<HTMLButtonElement>) => {
-		event.stopPropagation();
-		onOpen(project);
-	};
-
+	const busy = action?.projectId === project.id;
+	const canOpen = activeTab === "active";
+	const timestamp =
+		projectLifecycleTimestamp(project, activeTab)?.value ??
+		formatProjectTimestamp(project.updatedAt || project.createdAt);
+	const menuActions = canOpen
+		? [
+				{ label: "打开", icon: FolderOpen, run: () => onOpen(project) },
+				{ label: "重命名", icon: Pencil, run: onRename },
+				{ label: "归档", icon: Archive, run: onArchive },
+				{ label: "移到垃圾箱", icon: Trash2, run: onRequestDelete, destructive: true },
+			]
+		: [
+				{ label: "恢复", icon: RotateCcw, run: onRestore },
+				...(activeTab === "trashed"
+					? [{ label: "永久删除", icon: Trash2, run: onRequestPermanentDelete, destructive: true }]
+					: []),
+			];
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
-				<div
-					role={canOpenProject ? "button" : undefined}
-					tabIndex={canOpenProject ? 0 : undefined}
-					className={cn(
-						"grid gap-3 rounded-sm border border-border/70 bg-ide-panel px-3 py-3 text-ide-panel-foreground md:grid-cols-[minmax(0,1fr)_auto] md:items-center",
-						canOpenProject &&
-							"cursor-pointer transition-colors hover:bg-ide-list-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-					)}
-					onClick={openFromRow}
-					onKeyDown={openFromKeyboard}
-				>
-					<div className="flex min-w-0 gap-3">
-						<div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-ide-toolbar text-muted-foreground">
-							<Icon className="size-4" />
-						</div>
-						<div className="min-w-0">
-							<div className="flex min-w-0 flex-wrap items-center gap-2">
-								<p className="truncate text-sm font-medium text-foreground">{project.name}</p>
-								<Badge variant="secondary">{statusLabel}</Badge>
-								{project.documentCount > 0 ? (
-									<span className="text-xs text-muted-foreground">
-										{project.documentCount} 个文档
-									</span>
+				<article className="project-management-card" aria-busy={busy}>
+					{canOpen ? (
+						<button
+							type="button"
+							className="project-card-open"
+							aria-label={project.name}
+							disabled={hasAction}
+							onClick={() => onOpen(project)}
+						>
+							<span className="project-card-caption">
+								<strong title={project.name}>{project.name}</strong>
+								<time>{timestamp}</time>
+							</span>
+						</button>
+					) : (
+						<div className="project-card-caption project-card-inactive">
+							<strong title={project.name}>{project.name}</strong>
+							<time>{timestamp}</time>
+							<div className="mt-3 flex flex-wrap gap-2">
+								<Button type="button" variant="secondary" onClick={onRestore} disabled={hasAction}>
+									<RotateCcw />
+									<span>恢复</span>
+								</Button>
+								{activeTab === "trashed" ? (
+									<Button
+										type="button"
+										variant="destructive"
+										onClick={onRequestPermanentDelete}
+										disabled={hasAction}
+									>
+										<Trash2 />
+										<span>永久删除</span>
+									</Button>
 								) : null}
 							</div>
-							{path ? <p className="mt-1 truncate text-xs text-muted-foreground">{path}</p> : null}
-							{timestamp ? (
-								<p className="mt-1 text-xs text-muted-foreground">
-									{timestamp.label}：{timestamp.value}
-								</p>
-							) : null}
 						</div>
-					</div>
-					<div className="flex min-w-0 flex-wrap items-center gap-2 md:justify-end">
-						{activeTab === "active" ? (
-							<Button type="button" variant="secondary" onClick={openFromButton}>
-								<FolderOpen />
-								<span>打开</span>
-							</Button>
-						) : null}
-
-						{activeTab === "archived" || activeTab === "trashed" ? (
-							<Button type="button" variant="secondary" onClick={onRestore} disabled={hasAction}>
-								{isRestoring ? <Loader2 className="animate-spin" /> : <RotateCcw />}
-								<span>恢复</span>
-							</Button>
-						) : null}
-
-						{activeTab === "trashed" ? (
-							<Button
+					)}
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<button
 								type="button"
-								variant="destructive"
-								onClick={onRequestPermanentDelete}
+								className="project-card-menu"
+								aria-label={`项目操作：${project.name}`}
+								title="项目操作"
 								disabled={hasAction}
 							>
-								{isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
-								<span>永久删除</span>
-							</Button>
-						) : null}
-					</div>
-				</div>
+								{busy ? <Loader2 className="animate-spin" /> : <MoreVertical />}
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							{menuActions.map(({ label, icon: Icon, run, destructive }) => (
+								<DropdownMenuItem
+									key={label}
+									disabled={hasAction}
+									onSelect={run}
+									className={destructive ? "text-destructive" : undefined}
+								>
+									<Icon />
+									<span>{label}</span>
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</article>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
-				{activeTab === "active" ? (
-					<>
-						<ContextMenuItem disabled={hasAction} onSelect={() => onOpen(project)}>
-							<FolderOpen className="size-4" />
-							<span>打开</span>
-						</ContextMenuItem>
-						<ContextMenuItem disabled={hasAction} onSelect={onRename}>
-							{isRenaming ? (
-								<Loader2 className="size-4 animate-spin" />
-							) : (
-								<Pencil className="size-4" />
-							)}
-							<span>{isRenaming ? "正在重命名" : "重命名"}</span>
-						</ContextMenuItem>
-						<ContextMenuItem disabled={hasAction} onSelect={onArchive}>
-							{isArchiving ? (
-								<Loader2 className="size-4 animate-spin" />
-							) : (
-								<Archive className="size-4" />
-							)}
-							<span>{isArchiving ? "正在归档" : "归档"}</span>
-						</ContextMenuItem>
-						<ContextMenuItem
-							className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
-							disabled={hasAction}
-							onSelect={onRequestDelete}
-						>
-							{isTrashing ? (
-								<Loader2 className="size-4 animate-spin" />
-							) : (
-								<Trash2 className="size-4" />
-							)}
-							<span>{isTrashing ? "正在移入" : "移到垃圾箱"}</span>
-						</ContextMenuItem>
-					</>
-				) : null}
-
-				{activeTab === "archived" || activeTab === "trashed" ? (
-					<ContextMenuItem disabled={hasAction} onSelect={onRestore}>
-						{isRestoring ? (
-							<Loader2 className="size-4 animate-spin" />
-						) : (
-							<RotateCcw className="size-4" />
-						)}
-						<span>{isRestoring ? "正在恢复" : "恢复"}</span>
-					</ContextMenuItem>
-				) : null}
-
-				{activeTab === "trashed" ? (
+				{menuActions.map(({ label, icon: Icon, run, destructive }) => (
 					<ContextMenuItem
-						className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
+						key={label}
 						disabled={hasAction}
-						onSelect={onRequestPermanentDelete}
+						onSelect={run}
+						className={destructive ? "text-destructive" : undefined}
 					>
-						{isDeleting ? (
-							<Loader2 className="size-4 animate-spin" />
-						) : (
-							<Trash2 className="size-4" />
-						)}
-						<span>{isDeleting ? "正在删除" : "永久删除"}</span>
+						<Icon className="size-4" />
+						<span>{label}</span>
 					</ContextMenuItem>
-				) : null}
+				))}
 			</ContextMenuContent>
 		</ContextMenu>
 	);

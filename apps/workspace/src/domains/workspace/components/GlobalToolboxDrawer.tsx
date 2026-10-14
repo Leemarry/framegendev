@@ -1,6 +1,8 @@
 import {
 	AudioLines,
 	ChevronDown,
+	ChevronRight,
+	Sparkles,
 	FileText,
 	Film,
 	History,
@@ -63,13 +65,15 @@ const toolboxConversationGroups: Array<{
 
 interface GlobalToolboxButtonProps {
 	className?: string;
+	label?: string;
 	kind?: StudioTab;
 	projectId?: string;
-	variant?: "icon" | "inline";
+	variant?: "icon" | "inline" | "navigation";
 }
 
 export const GlobalToolboxButton: React.FC<GlobalToolboxButtonProps> = ({
 	className,
+	label = "生成历史",
 	kind,
 	projectId,
 	variant = "icon",
@@ -109,18 +113,34 @@ export const GlobalToolboxButton: React.FC<GlobalToolboxButtonProps> = ({
 							aria-label={open ? "关闭生成历史" : "打开生成历史"}
 							aria-expanded={open}
 							className={cn(
-								"flex size-8 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+								variant === "navigation"
+									? "projects-root-nav"
+									: "flex size-8 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 								open && "bg-ide-list-active text-ide-list-active-foreground",
 							)}
 							onClick={() => setOpen((current) => !current)}
 						>
-							<History className="size-4" />
+							{variant === "navigation" ? (
+								<>
+									<Sparkles />
+									<span className="nav-label">{label}</span>
+									<ChevronRight />
+								</>
+							) : (
+								<History className="size-4" />
+							)}
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top">生成历史</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
-			<GlobalToolboxDrawer kind={kind} open={open} projectId={projectId} onOpenChange={setOpen} />
+			<GlobalToolboxDrawer
+				kind={kind}
+				open={open}
+				projectId={projectId}
+				projectOnly={variant === "navigation" && Boolean(projectId)}
+				onOpenChange={setOpen}
+			/>
 		</div>
 	);
 };
@@ -130,7 +150,8 @@ const GlobalToolboxDrawer: React.FC<{
 	onOpenChange: (open: boolean) => void;
 	open: boolean;
 	projectId?: string;
-}> = ({ kind, onOpenChange, open, projectId }) => {
+	projectOnly?: boolean;
+}> = ({ kind, onOpenChange, open, projectId, projectOnly = false }) => {
 	const [activeConversation, setActiveConversation] = useState<GenerationConversation | null>(null);
 	const [historyOpen, setHistoryOpen] = useState(false);
 	const [isCreatingConversation, setIsCreatingConversation] = useState(false);
@@ -157,10 +178,27 @@ const GlobalToolboxDrawer: React.FC<{
 		[kind, projectId],
 	);
 
-	const videoConversations = useToolboxConversations("video", open && isKindVisible("video"));
-	const imageConversations = useToolboxConversations("image", open && isKindVisible("image"));
-	const textConversations = useToolboxConversations("text", open && isKindVisible("text"));
-	const audioConversations = useToolboxConversations("audio", open && isKindVisible("audio"));
+	const historyProjectId = projectOnly ? projectId : undefined;
+	const videoConversations = useToolboxConversations(
+		"video",
+		open && isKindVisible("video"),
+		historyProjectId,
+	);
+	const imageConversations = useToolboxConversations(
+		"image",
+		open && isKindVisible("image"),
+		historyProjectId,
+	);
+	const textConversations = useToolboxConversations(
+		"text",
+		open && isKindVisible("text"),
+		historyProjectId,
+	);
+	const audioConversations = useToolboxConversations(
+		"audio",
+		open && isKindVisible("audio"),
+		historyProjectId,
+	);
 	const conversationStateByKind = useMemo(
 		() => ({
 			video: videoConversations,
@@ -187,6 +225,12 @@ const GlobalToolboxDrawer: React.FC<{
 	);
 	const selectedConversation = useMemo(() => {
 		if (!activeConversation) return null;
+		if (
+			historyProjectId &&
+			activeConversation.id !==
+				projectGenerationConversation(historyProjectId, activeConversation.kind)?.conversationId
+		)
+			return null;
 		return (
 			allConversations.find(
 				(conversation) =>
@@ -194,12 +238,18 @@ const GlobalToolboxDrawer: React.FC<{
 					conversation.id === activeConversation.id,
 			) ?? activeConversation
 		);
-	}, [activeConversation, allConversations]);
+	}, [activeConversation, allConversations, historyProjectId]);
 	const isLoadingConversations =
 		videoConversations.isLoading ||
 		imageConversations.isLoading ||
 		textConversations.isLoading ||
 		audioConversations.isLoading;
+	const hasConversationError = Boolean(
+		videoConversations.error ||
+		imageConversations.error ||
+		textConversations.error ||
+		audioConversations.error,
+	);
 	const preferredConversation = useMemo(() => {
 		if (projectConversation) {
 			return (
@@ -307,7 +357,9 @@ const GlobalToolboxDrawer: React.FC<{
 				>
 					<header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-ide-panel px-3">
 						<SheetHeader className="min-w-0">
-							<SheetTitle className="truncate">生成历史</SheetTitle>
+							<SheetTitle className="truncate">
+								{projectOnly ? "项目生成历史" : "生成历史"}
+							</SheetTitle>
 							<SheetDescription className="mt-0.5 truncate text-2xs">
 								{selectedConversation
 									? selectedConversation.title || "未命名会话"
@@ -369,20 +421,22 @@ const GlobalToolboxDrawer: React.FC<{
 									</div>
 								</PopoverContent>
 							</Popover>
-							<Button
-								type="button"
-								variant="ghost"
-								className="h-8 rounded-sm px-2.5 text-xs font-semibold"
-								disabled={isCreatingConversation}
-								onClick={() => void openCreateDialog()}
-							>
-								{isCreatingConversation ? (
-									<Loader2 className="size-3.5 animate-spin" />
-								) : (
-									<Plus className="size-3.5" />
-								)}
-								<span>新建会话</span>
-							</Button>
+							{!projectOnly ? (
+								<Button
+									type="button"
+									variant="ghost"
+									className="h-8 rounded-sm px-2.5 text-xs font-semibold"
+									disabled={isCreatingConversation}
+									onClick={() => void openCreateDialog()}
+								>
+									{isCreatingConversation ? (
+										<Loader2 className="size-3.5 animate-spin" />
+									) : (
+										<Plus className="size-3.5" />
+									)}
+									<span>新建会话</span>
+								</Button>
+							) : null}
 							<SheetClose asChild>
 								<button
 									type="button"
@@ -413,7 +467,9 @@ const GlobalToolboxDrawer: React.FC<{
 									initialKind={selectedConversation.kind}
 									lockKind
 									onOpenSettings={() => onOpenChange(false)}
-									projectHistory={false}
+									projectHistory={projectOnly}
+									projectId={historyProjectId}
+									historyScopeId={historyProjectId ? selectedConversation.id : undefined}
 									requireConversation
 									uploadIdPrefix={`global-toolbox-${selectedConversation.kind}`}
 								/>
@@ -422,12 +478,20 @@ const GlobalToolboxDrawer: React.FC<{
 							<div className="flex h-full items-center justify-center px-6 text-center">
 								<div className="max-w-xs">
 									<p className="text-sm font-medium text-foreground">
-										{isLoadingConversations ? "加载会话" : "选择或新建会话"}
+										{isLoadingConversations
+											? "加载会话"
+											: projectOnly
+												? hasConversationError
+													? "项目生成历史加载失败"
+													: "暂无项目生成记录"
+												: "选择或新建会话"}
 									</p>
 									<p className="mt-2 text-xs leading-5 text-muted-foreground">
-										{isLoadingConversations
-											? "正在同步生成会话。"
-											: "使用顶部新建会话开始生成，或从历史会话中恢复上下文。"}
+										{projectOnly
+											? null
+											: isLoadingConversations
+												? "正在同步生成会话。"
+												: "使用顶部新建会话开始生成，或从历史会话中恢复上下文。"}
 									</p>
 									{isLoadingConversations ? (
 										<Loader2 className="mx-auto mt-3 size-4 animate-spin text-muted-foreground" />
@@ -442,7 +506,7 @@ const GlobalToolboxDrawer: React.FC<{
 	);
 };
 
-const useToolboxConversations = (kind: StudioTab, enabled: boolean) => {
+const useToolboxConversations = (kind: StudioTab, enabled: boolean, projectId?: string) => {
 	const queryKey = enabled
 		? generationConversationsQueryKey(kind, globalToolboxScopeId, { allScopes: true })
 		: null;
@@ -450,8 +514,14 @@ const useToolboxConversations = (kind: StudioTab, enabled: boolean) => {
 		getGenerationConversations(kind, globalToolboxScopeId, { allScopes: true }),
 	);
 	const conversations = useMemo(
-		() => (data?.conversations ?? []).filter((conversation) => isToolboxKind(conversation.kind)),
-		[data?.conversations],
+		() =>
+			(data?.conversations ?? []).filter(
+				(conversation) =>
+					isToolboxKind(conversation.kind) &&
+					(!projectId ||
+						conversation.id === projectGenerationConversation(projectId, kind)?.conversationId),
+			),
+		[data?.conversations, projectId, kind],
 	);
 
 	return useMemo(

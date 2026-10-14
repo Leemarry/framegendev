@@ -6,6 +6,10 @@ export interface MediaAsset {
 	id: string;
 	kind: MediaAssetKind;
 	filename: string;
+	tags?: string[];
+	note?: string;
+	rating?: number;
+	folderId?: string;
 	mimeType: string;
 	sizeBytes: number;
 	url: string;
@@ -56,9 +60,14 @@ export const getMediaAssets = async (filters: MediaAssetFilters = {}) => {
 	return response.data;
 };
 
-export const uploadMediaAsset = async (file: File, projectId?: string | null) => {
+export const uploadMediaAsset = async (
+	file: File,
+	projectId?: string | null,
+	folderId?: string,
+) => {
 	const formData = new FormData();
 	formData.append("file", file);
+	if (folderId !== undefined) formData.append("folderId", folderId);
 
 	const response = await httpClient.post<MediaAsset>(mediaAssetsPath(projectId), formData, {
 		headers: {
@@ -76,9 +85,31 @@ export const deleteMediaAsset = async (id: string, projectId?: string) => {
 };
 
 export const updateMediaAsset = async (id: string, filename: string, projectId?: string | null) => {
+	return updateMediaAssetFields(id, { filename }, projectId);
+};
+
+export interface MediaAssetMetadataUpdate {
+	tags: string[];
+	note: string;
+	rating: number;
+}
+
+export const updateMediaAssetMetadata = async (
+	id: string,
+	payload: MediaAssetMetadataUpdate,
+	projectId?: string | null,
+) => {
+	return updateMediaAssetFields(id, payload, projectId);
+};
+
+export const updateMediaAssetFields = async (
+	id: string,
+	payload: Partial<MediaAssetMetadataUpdate> & { filename?: string; folderId?: string },
+	projectId?: string | null,
+) => {
 	const response = await httpClient.put<MediaAsset>(
 		`${mediaAssetsPath(projectId)}/${encodeURIComponent(id)}`,
-		{ filename },
+		payload,
 	);
 	return response.data;
 };

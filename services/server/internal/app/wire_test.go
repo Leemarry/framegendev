@@ -15,12 +15,13 @@ import (
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	serviceacp "github.com/mediago-dev/mediago-drama/services/server/internal/service/acp"
 	serviceshared "github.com/mediago-dev/mediago-drama/services/server/internal/service/shared"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestNewHandlerRequiresSidecarToken(t *testing.T) {
 	const token = "sidecar-token-with-at-least-thirty-two-bytes"
 	workspaceDir := filepath.Join(t.TempDir(), "workspace")
-	handler := NewHandlerWithConfig(
+	handler := newIsolatedHandler(t,
 		fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 		Config{
 			WorkspaceDir:            workspaceDir,
@@ -56,6 +57,7 @@ func TestNewHandlerDefaultsSettingsDBToWorkspaceDatabaseDir(t *testing.T) {
 	workspaceDir := filepath.Join(t.TempDir(), "workspace")
 	paths := serviceshared.WorkspacePathsFor(workspaceDir)
 	legacyRepos, err := repository.OpenSettingsRepositories(paths.DatabasePath())
+	testutil.CloseDB(t, legacyRepos.DB)
 	if err != nil {
 		t.Fatalf("opening legacy settings database: %v", err)
 	}
@@ -63,7 +65,7 @@ func TestNewHandlerDefaultsSettingsDBToWorkspaceDatabaseDir(t *testing.T) {
 		t.Fatalf("writing legacy API key: %v", err)
 	}
 
-	handler := NewHandlerWithConfig(
+	handler := newIsolatedHandler(t,
 		fstest.MapFS{
 			"index.html": {
 				Data: []byte("<html>workspace</html>"),
@@ -117,7 +119,7 @@ func TestHealthIsNotReadyWhenRepositoryInitializationFails(t *testing.T) {
 	if err := os.WriteFile(blockedParent, []byte("not a directory"), 0o600); err != nil {
 		t.Fatalf("creating blocked settings parent: %v", err)
 	}
-	handler := NewHandlerWithConfig(
+	handler := newIsolatedHandler(t,
 		fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 		Config{
 			WorkspaceDir:            filepath.Join(root, "workspace"),
@@ -361,7 +363,7 @@ func TestNewHandlerWiresFixedInstructionsIntoCodexProcessConfig(t *testing.T) {
 	t.Setenv("CODEX_CONFIG", `{"model":"gpt-parent","developer_instructions":"parent"}`)
 	workspaceDir := filepath.Join(t.TempDir(), "workspace")
 	runner := &processConfigCapturingRunner{}
-	handler := NewHandlerWithConfig(
+	handler := newIsolatedHandler(t,
 		fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 		Config{
 			WorkspaceDir:            workspaceDir,

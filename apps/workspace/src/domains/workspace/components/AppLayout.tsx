@@ -1,4 +1,6 @@
 import type React from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Menu, X } from "lucide-react";
 import {
 	SidebarContentLayout,
 	useWorkspaceSidebarWidth,
@@ -11,6 +13,9 @@ interface AppLayoutProps {
 	headerActions?: React.ReactNode;
 	headerTitle: React.ReactNode;
 	showHeader?: boolean;
+	projectManagement?: boolean;
+	projectWorkspace?: boolean;
+	navigationKey?: string;
 	sidebar: React.ReactNode;
 	sidebarHidden?: boolean;
 }
@@ -25,27 +30,121 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 	headerActions,
 	headerTitle,
 	showHeader = true,
+	projectManagement = false,
+	projectWorkspace = false,
+	navigationKey = "",
 	sidebar,
 	sidebarHidden = false,
 }) => {
 	const [navigatorWidth, setNavigatorWidth] = useWorkspaceSidebarWidth();
+	const narrow = useSyncExternalStore(subscribeNarrowViewport, isNarrowViewport, () => false);
+	const [mobileNavigation, setMobileNavigation] = useState({ key: navigationKey, open: false });
+	const mobileOpen =
+		projectWorkspace && narrow && mobileNavigation.key === navigationKey && mobileNavigation.open;
+	const toggleRef = useRef<HTMLButtonElement>(null);
+	const sidebarRef = useRef<HTMLDivElement>(null);
+	const closeNavigation = () => {
+		setMobileNavigation({ key: navigationKey, open: false });
+		toggleRef.current?.focus();
+	};
+	useEffect(() => {
+		if (mobileOpen) sidebarRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+	}, [mobileOpen]);
+	const effectiveSidebarHidden = sidebarHidden || (projectWorkspace && narrow && !mobileOpen);
 
 	return (
 		<SidebarContentLayout
-			className="desktop-window-frame h-screen w-screen"
+			className={`desktop-window-frame h-screen w-screen${projectManagement ? " project-management-shell" : ""}${projectWorkspace ? " project-workspace-shell" : ""}`}
 			contentInset={!sidebarHidden}
 			maxSidebarWidth={workspaceSidebarWidth.max}
 			minSidebarWidth={workspaceSidebarWidth.min}
 			resizeStep={workspaceSidebarWidth.resizeStep}
 			showDesktopDragRegion
-			sidebar={sidebar}
+			sidebar={
+				projectWorkspace ? (
+					<div
+						ref={sidebarRef}
+						className="h-full"
+						role={mobileOpen ? "dialog" : undefined}
+						aria-modal={mobileOpen || undefined}
+						aria-label={mobileOpen ? "项目导航" : undefined}
+						onKeyDown={(event) => {
+							if (!mobileOpen || !event.currentTarget.contains(event.target as Node)) return;
+							if (event.key === "Escape") {
+								event.stopPropagation();
+								closeNavigation();
+							}
+							if (event.key === "Tab") {
+								const buttons = Array.from(
+									event.currentTarget.querySelectorAll<HTMLElement>(
+										'button:not(:disabled), input, [tabindex="0"]',
+									),
+								).filter(
+									(element) => !element.closest("[inert]") && element.getClientRects().length > 0,
+								);
+								const first = buttons[0],
+									last = buttons.at(-1);
+								if (event.shiftKey && document.activeElement === first) {
+									event.preventDefault();
+									last?.focus();
+								} else if (!event.shiftKey && document.activeElement === last) {
+									event.preventDefault();
+									first?.focus();
+								}
+							}
+						}}
+					>
+						{mobileOpen ? (
+							<button
+								type="button"
+								className="project-sidebar-close"
+								aria-label="关闭项目导航"
+								onClick={closeNavigation}
+							>
+								<X />
+							</button>
+						) : null}
+						{sidebar}
+					</div>
+				) : (
+					sidebar
+				)
+			}
 			sidebarClassName="text-ide-sidebar-foreground"
-			sidebarHidden={sidebarHidden}
-			sidebarWidth={navigatorWidth}
-			onSidebarWidthChange={setNavigatorWidth}
+			sidebarHidden={effectiveSidebarHidden}
+			sidebarWidth={projectManagement || projectWorkspace ? 325 : navigatorWidth}
+			onSidebarWidthChange={projectManagement || projectWorkspace ? undefined : setNavigatorWidth}
 		>
 			<div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-ide-editor text-ide-editor-foreground">
-				{showHeader ? <AppHeader title={headerTitle} actions={headerActions} /> : null}
+				{showHeader ? (
+					<AppHeader
+						title={headerTitle}
+						actions={headerActions}
+						navigationToggle={
+							projectWorkspace && narrow ? (
+								<button
+									ref={toggleRef}
+									type="button"
+									className="project-header-icon"
+									aria-label="打开项目导航"
+									aria-expanded={mobileOpen}
+									onClick={() => setMobileNavigation({ key: navigationKey, open: true })}
+								>
+									<Menu />
+								</button>
+							) : null
+						}
+					/>
+				) : null}
+				{mobileOpen ? (
+					<button
+						type="button"
+						tabIndex={-1}
+						aria-label="关闭项目导航遮罩"
+						className="project-sidebar-backdrop"
+						onClick={closeNavigation}
+					/>
+				) : null}
 				<div className="min-h-0 flex-1 overflow-hidden">{children}</div>
 			</div>
 		</SidebarContentLayout>
@@ -55,21 +154,23 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 interface AppHeaderProps {
 	actions?: React.ReactNode;
 	title: React.ReactNode;
+	navigationToggle?: React.ReactNode;
 }
 
 /**
  * AppHeader is the draggable title bar for the right content area.
  * Interactive actions opt out of the drag region so they remain clickable.
  */
-export const AppHeader: React.FC<AppHeaderProps> = ({ actions, title }) => {
+export const AppHeader: React.FC<AppHeaderProps> = ({ actions, title, navigationToggle }) => {
 	const startWindowDrag = useDesktopWindowDragHandler();
 
 	return (
 		<header
-			className="flex h-11 shrink-0 items-center justify-between gap-3 border-b border-border bg-ide-toolbar/95 px-3 text-ide-toolbar-foreground"
+			className="workspace-app-header flex h-11 shrink-0 items-center justify-between gap-3 border-b border-border bg-ide-toolbar/95 px-3 text-ide-toolbar-foreground"
 			data-desktop-drag-region
 			onPointerDown={startWindowDrag}
 		>
+			{navigationToggle ? <div data-desktop-no-drag>{navigationToggle}</div> : null}
 			<div className="flex h-full min-w-0 flex-1 items-center">
 				<h1 className="min-w-0 truncate text-sm font-medium text-foreground">{title}</h1>
 			</div>
@@ -83,3 +184,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ actions, title }) => {
 };
 
 export { useDesktopWindowDrag } from "@/domains/workspace/lib/desktop-window-drag";
+
+const isNarrowViewport = () => window.matchMedia?.("(max-width: 700px)").matches ?? false;
+const subscribeNarrowViewport = (callback: () => void) => {
+	const query = window.matchMedia?.("(max-width: 700px)");
+	query?.addEventListener("change", callback);
+	return () => query?.removeEventListener("change", callback);
+};

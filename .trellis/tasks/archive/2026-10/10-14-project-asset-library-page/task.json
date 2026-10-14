@@ -1,0 +1,28 @@
+{
+  "id": "project-asset-library-page",
+  "name": "project-asset-library-page",
+  "title": "TASK-032 项目素材库根目录整页与导入",
+  "description": "REQ-012：官方30根目录整页、真实导入搜索详情及返回；文件夹/扫描/全局范围独立后续",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-14",
+  "completedAt": "2026-10-14",
+  "branch": "codex/task-004-document-reload",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "ledger_id": "TASK-032"
+  }
+}

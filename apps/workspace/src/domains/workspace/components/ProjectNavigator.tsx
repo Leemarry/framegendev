@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import useSWR, { mutate as mutateSWR } from "swr";
@@ -52,7 +52,13 @@ import {
 	studioTabPath,
 } from "@/domains/workspace/lib/workbench-route";
 import { useAgentLayoutStore } from "@/lib/stores/agent-layout";
-import { projectSettingsGeneralTab, useSettingsNavigationStore } from "@/lib/stores/settings";
+import {
+	projectSettingsSkillsTab,
+	resolveProjectSettingsTab,
+	useSettingsNavigationStore,
+} from "@/lib/stores/settings";
+import { useLastDocumentStore } from "@/lib/stores/last-document";
+import { resolveSettingsReturn } from "@/domains/workspace/lib/settings-return";
 import { useWorkModeStore } from "@/lib/stores/work-mode";
 import { openAgentProjectCreateDialog } from "./AgentProjectCreateDialog";
 import { openNewDocumentDialog, type NewDocumentDialogChoice } from "./NewDocumentDialog";
@@ -99,7 +105,6 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchScope, setSearchScope] = useState<"global" | "project">("global");
 	const [displayProjectId, setDisplayProjectId] = useState(activeProjectId);
-	const previousProjectSettingsIdRef = useRef<string | null>(null);
 
 	const projects = useMemo(
 		() => [...(data?.projects ?? [])].sort(compareProjectsByCreatedAtDesc),
@@ -118,7 +123,6 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 	});
 	const isProjectSettingsMode = isProjectSettingsRoute(location.pathname, location.search);
 	const routeWorkMode = workModeForScreen(activeScreen);
-	const activeWorkMode = routeWorkMode ?? workMode;
 	const studioSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
 	const activeStudioTab = studioTabFromPath(location.pathname);
 	const activeStudioConversationId = studioSearchParams.get("conversation") ?? "";
@@ -388,28 +392,37 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 	}, [navigate, setActiveProjectId]);
 
 	const returnFromSettings = useCallback(() => {
-		if (window.history.length > 1) {
-			navigate(-1);
-		} else if (isProjectSettingsMode && visibleProjectId) {
-			navigate(agentProjectPath(visibleProjectId), {
-				state: agentProjectRouteState("overview"),
-			});
-		} else if (activeWorkMode === "studio") {
-			navigate("/");
-		} else {
-			navigate("/");
-		}
-	}, [activeWorkMode, isProjectSettingsMode, navigate, visibleProjectId]);
+		const target = resolveSettingsReturn(
+			location.state,
+			isProjectSettingsMode ? visibleProjectId : null,
+			visibleProjectId ? useLastDocumentStore.getState().getLastDocumentId(visibleProjectId) : null,
+		);
+		navigate(target.path, { state: target.state });
+	}, [location.state, isProjectSettingsMode, navigate, visibleProjectId]);
+	const settingsReturnState = {
+		settingsReturn: { path: location.pathname + location.search, state: location.state },
+	};
 
 	const openGlobalSettings = useCallback(() => {
 		setActiveSettingsTab("appearance");
-		navigate("/settings");
-	}, [navigate, setActiveSettingsTab]);
+		navigate("/settings", { state: settingsReturnState });
+	}, [navigate, setActiveSettingsTab, location.pathname, location.search, location.state]);
+	const openGlobalSkills = useCallback(() => {
+		setActiveSettingsTab("prompt-packs");
+		navigate("/settings", { state: settingsReturnState });
+	}, [navigate, setActiveSettingsTab, location.pathname, location.search, location.state]);
 
 	const openProjectSettings = useCallback(() => {
-		setActiveSettingsTab(projectSettingsGeneralTab);
-		navigate(projectSettingsPath);
-	}, [navigate, projectSettingsPath, setActiveSettingsTab]);
+		setActiveSettingsTab(projectSettingsSkillsTab);
+		navigate(projectSettingsPath, { state: settingsReturnState });
+	}, [
+		navigate,
+		projectSettingsPath,
+		setActiveSettingsTab,
+		location.pathname,
+		location.search,
+		location.state,
+	]);
 
 	const selectStudioConversation = useCallback(
 		(kind: StudioTab, conversationId: string) => {
@@ -558,11 +571,7 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 	}, [isProjectMode, openAgentCreateDialog, openSearch]);
 
 	useEffect(() => {
-		const projectSettingsId = isProjectSettingsMode ? getRouteProjectId(location.search) : null;
-		if (projectSettingsId && previousProjectSettingsIdRef.current !== projectSettingsId) {
-			setActiveSettingsTab(projectSettingsGeneralTab);
-		}
-		previousProjectSettingsIdRef.current = projectSettingsId;
+		if (isProjectSettingsMode) setActiveSettingsTab(resolveProjectSettingsTab(location.search));
 	}, [isProjectSettingsMode, location.search, setActiveSettingsTab]);
 
 	return (
@@ -593,6 +602,8 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 										onOpenProject={openProject}
 										onOpenSearch={openSearch}
 										onOpenSettings={openGlobalSettings}
+										onOpenSkills={openGlobalSkills}
+										onOpenProjects={() => navigate("/")}
 										onRetry={() => void mutate()}
 									/>
 								),
@@ -623,6 +634,8 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 										onOpenOverview={openOverview}
 										onOpenSearch={openSearch}
 										onOpenSettings={openProjectSettings}
+										onOpenGlobalSettings={openGlobalSettings}
+										onOpenSkills={openGlobalSkills}
 									/>
 								),
 							},
@@ -656,11 +669,24 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 								node: (
 									<SettingsSidebarPanel
 										activeAgentBackendId={agentBackends?.activeId ?? "codex"}
-										activeTab={activeSettingsTab}
+										activeTab={
+											isProjectSettingsMode
+												? resolveProjectSettingsTab(location.search)
+												: activeSettingsTab
+										}
 										isProjectSettings={settingsScreenIsProjectSettings}
 										onBack={returnFromSettings}
 										onOpenGenerationNotification={openGenerationNotification}
-										onSelectTab={setActiveSettingsTab}
+										onOpenGlobalSettings={openGlobalSettings}
+										onOpenSkills={openGlobalSkills}
+										onSelectTab={(tab) => {
+											setActiveSettingsTab(tab);
+											if (isProjectSettingsMode) {
+												const params = new URLSearchParams(location.search);
+												params.set("tab", tab);
+												navigate(`/settings?${params}`, { replace: true, state: location.state });
+											}
+										}}
 									/>
 								),
 							},

@@ -23,7 +23,7 @@ export const WritingWorkspace: React.FC = () => {
 					<ProjectAssetPreviewPane asset={activeAsset} projectId={projectId} />
 				) : (
 					<>
-						<WritingEditor />
+						<WritingEditor showHeaderActions={false} />
 						<CommentsGutter />
 					</>
 				)}

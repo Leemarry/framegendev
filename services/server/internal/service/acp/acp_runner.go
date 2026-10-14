@@ -190,7 +190,7 @@ func (runner *acpAgentRunner) SetProcessConfigProvider(provider ProcessConfigPro
 }
 
 // InspectSessionConfig probes ACP runtime config for a project.
-func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectID string, projectDir string) (agentRuntimeConfigResponse, error) {
+func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectID string, projectDir string) (config agentRuntimeConfigResponse, inspectErr error) {
 	command, args := runner.activeCommandArgv()
 	workspaceDir := runner.absoluteWorkspaceDir()
 	request := agentRunRequest{
@@ -206,6 +206,7 @@ func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectI
 		}
 	}
 	logArgs := []any{
+		"purpose", "config_probe",
 		"command", command,
 		"arg_count", len(args),
 		"workspace", workspaceDir,
@@ -213,6 +214,12 @@ func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectI
 		"project_id", diagnosticProjectID(projectID),
 	}
 	acpLog().Debug("acp config probe starting", logArgs...)
+	stage := "prepare"
+	defer func() {
+		if inspectErr != nil {
+			acpLog().Warn("acp config probe failed", append(logArgs, "stage", stage, "error", inspectErr)...)
+		}
+	}()
 
 	processConfig, err := runner.prepareProcessConfig(ctx, command, args, request)
 	if err != nil {
@@ -231,9 +238,14 @@ func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectI
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
+		_ = stdin.Close()
 		return agentRuntimeConfigResponse{}, fmt.Errorf("opening ACP stdout: %w", err)
 	}
-	if err := cmd.Start(); err != nil {
+	stage = "start"
+	closeProcessTree, err := startACPProcess(cmd)
+	if err != nil {
+		_ = stdin.Close()
+		_ = stdout.Close()
 		return agentRuntimeConfigResponse{}, fmt.Errorf("starting ACP agent %q: %w", command, err)
 	}
 	startedAt := time.Now()
@@ -242,8 +254,15 @@ func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectI
 		pid = cmd.Process.Pid
 	}
 	defer func() {
-		go cleanupACPProcess(cmd, stdin, stdout, logArgs, pid, startedAt)
+		reason := "probe_completed"
+		if inspectErr != nil {
+			reason = "probe_failed"
+		}
+		// Reap before HTTP request completion cancels CommandContext and races
+		// this cleanup with a second Kill.
+		cleanupACPProcess(cmd, stdin, stdout, append(logArgs, "cleanup_reason", reason), pid, startedAt, closeProcessTree)
 	}()
+	acpLog().Debug("acp config probe process started", append(logArgs, "pid", pid)...)
 
 	client := &acpClient{
 		publish:      func(agentEvent) {},
@@ -252,6 +271,7 @@ func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectI
 	conn := acp.NewClientSideConnection(client, stdin, stdout)
 	conn.SetLogger(acpLog())
 
+	stage = "initialize"
 	if _, err := conn.Initialize(ctx, acp.InitializeRequest{
 		ProtocolVersion: acp.ProtocolVersionNumber,
 		ClientInfo: &acp.Implementation{
@@ -274,6 +294,7 @@ func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectI
 	if mcpServers == nil {
 		mcpServers = []acp.McpServer{}
 	}
+	stage = "session_new"
 	session, err := conn.NewSession(ctx, acp.NewSessionRequest{
 		Cwd:        runDir,
 		McpServers: mcpServers,
@@ -281,7 +302,7 @@ func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectI
 	if err != nil {
 		return agentRuntimeConfigResponse{}, fmt.Errorf("creating ACP config probe session: %w", err)
 	}
-	config := agentRuntimeConfigFromACPSession(session, agentRuntimeModelFilter{
+	config = agentRuntimeConfigFromACPSession(session, agentRuntimeModelFilter{
 		Restrict:         processConfig.RestrictModelValues,
 		AllowedValues:    processConfig.AllowedModelValues,
 		AllowedProviders: processConfig.AllowedModelProviders,

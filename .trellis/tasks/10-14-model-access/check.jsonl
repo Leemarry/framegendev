@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/project-workflow.md", "reason": "Project requirements, authorization and isolation"}
+{"file": "docs/parity-0.1.17/TASKS.md", "reason": "Stable product tasks and explicit dependencies"}
+{"file": "docs/superpowers/specs/2026-10-14-model-access-design.md", "reason": "Single existing design, pending review"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend guideline discovery"}

@@ -15,6 +15,7 @@ import (
 	instructionpack "github.com/mediago-dev/mediago-drama/packages/instructions/pkg/pack"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/service/promptpack"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 type deniedPromptPackImporter struct{}
@@ -562,6 +563,7 @@ func TestPromptPacksHandlerExplainsProtectedAccess(t *testing.T) {
 func newPromptPackHandlerTestStore(t *testing.T) *promptpack.Service {
 	t.Helper()
 	repositories, err := repository.OpenSettingsRepositories(filepath.Join(t.TempDir(), "settings.db"))
+	testutil.CloseDB(t, repositories.DB)
 	if err != nil {
 		t.Fatalf("OpenSettingsRepositories() error = %v", err)
 	}

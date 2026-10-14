@@ -108,6 +108,8 @@ const createMarkdownSchemaExtensions = (
 	StarterKit.configure({
 		heading: false,
 		horizontalRule: false,
+		// Loading Markdown must not append the schema's default section media node.
+		trailingNode: false,
 		link: {
 			autolink: true,
 			defaultProtocol: "https",

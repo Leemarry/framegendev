@@ -13,6 +13,7 @@ import (
 	"github.com/mediago-dev/mediago-drama/packages/instructions/pkg/pack/codec"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 	"gorm.io/gorm"
 )
 
@@ -1598,6 +1599,7 @@ func newTestService(t *testing.T) *Service {
 	t.Helper()
 	dbName := strings.NewReplacer("/", "_", " ", "_").Replace(t.Name() + "_" + filepath.Base(t.TempDir()))
 	db, err := gorm.Open(sqlite.Open("file:"+dbName+"?mode=memory&cache=shared"), &gorm.Config{})
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("opening sqlite: %v", err)
 	}

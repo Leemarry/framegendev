@@ -179,7 +179,7 @@ export const ProjectDirectory: React.FC<{
 	);
 
 	return (
-		<div className="space-y-1">
+		<div className="project-category-directory space-y-1">
 			{isLoading ? (
 				<div className="flex h-6 items-center gap-1.5 px-2 text-xs text-muted-foreground">
 					<Loader2 className="size-3.5 animate-spin" />

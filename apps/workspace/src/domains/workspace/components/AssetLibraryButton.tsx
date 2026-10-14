@@ -2,6 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
 	AudioLines,
 	Check,
+	ChevronRight,
 	Copy,
 	Download,
 	File,
@@ -17,10 +18,16 @@ import {
 	Trash2,
 	UploadCloud,
 	X,
+	ArrowUp,
+	FolderPlus,
+	Info,
+	RefreshCw,
+	SlidersHorizontal,
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
+import { Link, useLocation } from "react-router-dom";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import {
@@ -41,6 +48,9 @@ import {
 	getMediaAssets,
 	mediaAssetsKey,
 	updateMediaAsset,
+	updateMediaAssetMetadata,
+	updateMediaAssetFields,
+	type MediaAssetMetadataUpdate,
 	uploadMediaAsset,
 } from "@/domains/workspace/api/media";
 import {
@@ -51,6 +61,7 @@ import {
 	type AssetLibraryResourceType,
 	type AssetLibrarySource,
 	type AssetLibrarySourceFilter,
+	type AssetLibrarySort,
 	buildAssetLibraryItems,
 	filterAssetLibraryItems,
 } from "@/domains/workspace/lib/asset-library";
@@ -64,6 +75,7 @@ import { Button } from "@/shared/components/ui/button";
 import { DialogClose } from "@/shared/components/ui/dialog-dismiss";
 import { dialogContentMotion } from "@/shared/components/ui/dialog-motion";
 import { Input } from "@/shared/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import {
 	Select,
 	SelectContent,
@@ -80,6 +92,9 @@ import {
 import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import { apiResourceURL } from "@/shared/lib/api-base";
 import { cn } from "@/shared/lib/utils";
+import { AssetLibraryMetadataEditor } from "./AssetLibraryMetadataEditor";
+import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
+import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
 
 const kindOptions: Array<{ label: string; value: AssetLibraryKindFilter }> = [
 	{ label: "全部", value: "all" },
@@ -108,9 +123,14 @@ const resourceOptions: Array<{ label: string; value: AssetLibraryResourceFilter 
 
 const globalProjectValue = "__global__";
 
-export const AssetLibraryButton: React.FC = () => {
+export const AssetLibraryButton: React.FC<{ variant?: "icon" | "navigation"; label?: string }> = ({
+	variant = "icon",
+	label = "素材库",
+}) => {
 	const [open, setOpen] = useState(false);
 	const projectId = getRouteProjectId(browserLocationSearch());
+	if (variant === "navigation")
+		return <ProjectAssetLibraryLink projectId={projectId} label={label} />;
 
 	return (
 		<div className="relative shrink-0">
@@ -133,18 +153,45 @@ export const AssetLibraryButton: React.FC = () => {
 					<TooltipContent side="top">素材库</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
-			<AssetLibraryDialog open={open} projectId={projectId} onOpenChange={setOpen} />
+			<AssetLibraryWorkspace open={open} projectId={projectId} onOpenChange={setOpen} />
 		</div>
 	);
 };
 
 const browserLocationSearch = () => (typeof window === "undefined" ? "" : window.location.search);
 
-const AssetLibraryDialog: React.FC<{
+const ProjectAssetLibraryLink = ({
+	projectId,
+	label,
+}: {
+	projectId: string | null;
+	label: string;
+}) => {
+	const location = useLocation();
+	return (
+		<Link
+			className="projects-root-nav"
+			to={projectId ? `/assets?projectId=${encodeURIComponent(projectId)}` : "/assets?scope=all"}
+			state={{
+				assetReturnTo: location.pathname + location.search,
+				assetReturnState: location.state,
+			}}
+			aria-label={projectId ? "打开项目素材库" : "打开全局素材库"}
+		>
+			<LibraryBig className="size-4" />
+			<span className="nav-label">{label}</span>
+			<ChevronRight />
+		</Link>
+	);
+};
+
+export const AssetLibraryWorkspace: React.FC<{
 	onOpenChange: (open: boolean) => void;
 	open: boolean;
 	projectId: string | null;
-}> = ({ onOpenChange, open, projectId }) => {
+	presentation?: "dialog" | "page";
+	folderControls?: AssetLibraryFolderControls;
+}> = ({ onOpenChange, open, projectId, presentation = "dialog", folderControls }) => {
 	const toast = useToast();
 	const mediaUploadRef = useRef<HTMLInputElement | null>(null);
 	const gridRef = useRef<HTMLElement | null>(null);
@@ -156,6 +203,10 @@ const AssetLibraryDialog: React.FC<{
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
 	const [uploading, setUploading] = useState<"media" | null>(null);
+	const isPage = presentation === "page";
+	const [sort, setSort] = useState<AssetLibrarySort>(isPage ? "createdDesc" : "updatedDesc");
+	const [thumbnailSize, setThumbnailSize] = useState(190);
+	const [showDetails, setShowDetails] = useState(!isPage);
 	const projectMode = Boolean(selectedProjectId);
 	const mediaProjectId = selectedProjectId;
 	const { data: projectsData, isLoading: isProjectsLoading } = useSWR(
@@ -183,6 +234,7 @@ const AssetLibraryDialog: React.FC<{
 		data: documentsData,
 		error: documentsError,
 		isLoading: isDocumentsLoading,
+		mutate: mutateDocuments,
 	} = useSWR(documentsQueryKey, () => getWorkspaceDocuments(selectedProjectId));
 	const projects = useMemo(() => projectsData?.projects ?? [], [projectsData?.projects]);
 	const selectedProject = useMemo(
@@ -208,22 +260,47 @@ const AssetLibraryDialog: React.FC<{
 			}),
 		[documentsData?.documents, mediaData?.assets, projectMode, selectedData?.assets],
 	);
+	const folderId = folderControls?.folderId || "";
+	const folderItems = useMemo(
+		() =>
+			folderControls
+				? items.filter((item) => {
+						const asset = item.mediaAsset;
+						if (!asset || (asset.projectId || "") !== selectedProjectId) return !folderId;
+						return (asset.folderId || "") === folderId;
+					})
+				: items,
+		[folderControls, folderId, items, selectedProjectId],
+	);
+	const folderPath = libraryFolderPath(folderControls?.folders ?? [], folderId);
+	const childFolders = (folderControls?.folders ?? []).filter(
+		(folder) =>
+			folder.parentId === folderId &&
+			(!query || folder.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())),
+	);
+	const folderUnavailable = Boolean(
+		folderControls && (folderControls.loading || folderControls.error),
+	);
 	const filteredItems = useMemo(
 		() =>
-			filterAssetLibraryItems(items, {
+			filterAssetLibraryItems(folderItems, {
 				kind: kindFilter,
 				query,
 				resourceType: projectMode ? resourceFilter : "all",
 				source: projectMode ? sourceFilter : "all",
+				sort,
 			}),
-		[items, kindFilter, projectMode, query, resourceFilter, sourceFilter],
+		[folderItems, kindFilter, projectMode, query, resourceFilter, sourceFilter, sort],
 	);
 	const activeItem = useMemo(
 		() => filteredItems.find((item) => item.key === activeKey) ?? filteredItems[0] ?? null,
 		[activeKey, filteredItems],
 	);
-	const isLoading = isMediaLoading || (projectMode && (isSelectedLoading || isDocumentsLoading));
-	const error = mediaError ?? selectedError ?? documentsError;
+	const isLoading =
+		isMediaLoading ||
+		folderControls?.loading ||
+		(projectMode && (isSelectedLoading || isDocumentsLoading));
+	const error = mediaError ?? selectedError ?? documentsError ?? folderControls?.error;
 
 	useEffect(() => {
 		if (!open) return;
@@ -248,11 +325,13 @@ const AssetLibraryDialog: React.FC<{
 	const uploadMediaFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.currentTarget.files?.[0] ?? null;
 		event.currentTarget.value = "";
-		if (!file || uploading) return;
+		if (!file || uploading || folderUnavailable) return;
 
 		setUploading("media");
 		try {
-			const asset = await uploadMediaAsset(file, selectedProjectId || null);
+			const asset = folderControls
+				? await uploadMediaAsset(file, selectedProjectId || null, folderId)
+				: await uploadMediaAsset(file, selectedProjectId || null);
 			await mutateMediaAssets();
 			setActiveKey(`media:${asset.id}`);
 			toast.success(projectMode ? "媒体素材已上传" : "素材已上传", {
@@ -282,11 +361,8 @@ const AssetLibraryDialog: React.FC<{
 		setBusyKey(item.key);
 		try {
 			if (item.sourceType === "media" && item.mediaAsset) {
-				const nextAssets = await deleteMediaAsset(
-					item.mediaAsset.id,
-					selectedProjectId || undefined,
-				);
-				await mutateMediaAssets(nextAssets, false);
+				await deleteMediaAsset(item.mediaAsset.id, item.mediaAsset.projectId || undefined);
+				await mutateMediaAssets();
 			} else {
 				await unselectGenerationAssets(item.selectedAssets);
 			}
@@ -332,7 +408,7 @@ const AssetLibraryDialog: React.FC<{
 		if (busyKey) return false;
 		setBusyKey(item.key);
 		try {
-			await updateMediaAsset(asset.id, trimmed, selectedProjectId || undefined);
+			await updateMediaAsset(asset.id, trimmed, asset.projectId || undefined);
 			await mutateMediaAssets();
 			toast.success("素材已重命名", { description: trimmed });
 			return true;
@@ -350,6 +426,36 @@ const AssetLibraryDialog: React.FC<{
 			assets.map((asset) => deleteSelectedGenerationAsset(selectedProjectId, asset.id)),
 		);
 		await mutateSelectedAssets();
+	};
+
+	const saveMetadata = async (item: AssetLibraryItem, payload: MediaAssetMetadataUpdate) => {
+		const asset = item.mediaAsset;
+		if (!asset || busyKey) throw new Error("素材暂时无法编辑，请稍后重试。");
+		setBusyKey(item.key);
+		try {
+			await updateMediaAssetMetadata(asset.id, payload, asset.projectId || undefined);
+			await mutateMediaAssets();
+			toast.success("素材元数据已保存");
+		} finally {
+			setBusyKey("");
+		}
+	};
+	const moveItem = async (item: AssetLibraryItem, destination: string) => {
+		const asset = item.mediaAsset;
+		if (!asset || busyKey || folderUnavailable || (asset.projectId || "") !== selectedProjectId)
+			throw new Error("素材暂时无法移动，请稍后重试。");
+		setBusyKey(item.key);
+		try {
+			await updateMediaAssetFields(
+				asset.id,
+				{ folderId: destination },
+				asset.projectId || undefined,
+			);
+			await mutateMediaAssets();
+			toast.success("素材已移动");
+		} finally {
+			setBusyKey("");
+		}
 	};
 
 	const moveActiveItem = (offset: number) => {
@@ -387,171 +493,459 @@ const AssetLibraryDialog: React.FC<{
 		moveActiveItem(offset);
 	};
 
-	return (
+	const fileInput = (
+		<input
+			ref={mediaUploadRef}
+			type="file"
+			aria-label="上传素材"
+			accept="image/*,video/*,audio/*,text/*,.txt,.md,.json"
+			className="sr-only"
+			disabled={Boolean(uploading) || folderUnavailable}
+			onChange={(event) => void uploadMediaFile(event)}
+		/>
+	);
+	const importButton = (
+		<Button
+			type="button"
+			size="sm"
+			disabled={Boolean(uploading) || folderUnavailable}
+			onClick={() => mediaUploadRef.current?.click()}
+		>
+			{uploading ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
+			{isPage ? "导入文件" : "上传"}
+		</Button>
+	);
+	const refresh = async () => {
+		try {
+			await Promise.all([
+				mutateMediaAssets(),
+				...(folderControls ? [folderControls.onRefresh()] : []),
+				...(projectMode ? [mutateSelectedAssets(), mutateDocuments()] : []),
+			]);
+		} catch (err) {
+			toast.error("刷新失败", { description: errorMessage(err, "素材列表刷新失败。") });
+		}
+	};
+	const content = (
 		<>
-			<input
-				ref={mediaUploadRef}
-				type="file"
-				aria-label="上传素材"
-				accept="image/*,video/*,audio/*,text/*,.txt,.md,.json"
-				className="sr-only"
-				disabled={Boolean(uploading)}
-				onChange={(event) => void uploadMediaFile(event)}
-			/>
-			<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-				<DialogPrimitive.Portal>
-					<DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/30 p-4 backdrop-blur-sm data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 duration-200" />
-					<DialogPrimitive.Content
-						aria-describedby="asset-library-description"
-						className={cn(
-							"fixed left-1/2 top-1/2 z-50 flex h-[min(46rem,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-7xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl outline-none",
-							dialogContentMotion,
+			{isPage ? (
+				<header className="asset-library-header">
+					<div className="asset-library-breadcrumb">
+						<h1>{projectMode ? "项目素材" : "素材库"}</h1>
+						<span>{projectMode ? selectedProject?.name || "加载项目" : "全局素材"} /</span>
+						{folderControls ? (
+							<nav aria-label="文件夹路径" className="asset-library-folder-path">
+								<button type="button" onClick={() => folderControls.onNavigate("")}>
+									素材库根目录
+								</button>
+								{folderPath.map((folder) => (
+									<button
+										type="button"
+										key={folder.id}
+										aria-current={folder.id === folderId ? "page" : undefined}
+										title={folder.name}
+										onClick={() => folderControls.onNavigate(folder.id)}
+									>
+										<ChevronRight className="size-3 shrink-0" />
+										<span>{folder.name}</span>
+									</button>
+								))}
+							</nav>
+						) : (
+							<span>素材库根目录</span>
 						)}
-						onKeyDown={handleDialogKeyDown}
+						{folderId && folderControls ? (
+							<Button
+								size="icon"
+								variant="ghost"
+								aria-label="返回上级文件夹"
+								title="返回上级文件夹"
+								onClick={() => folderControls.onNavigate(folderPath.at(-1)?.parentId || "")}
+							>
+								<ArrowUp className="size-4" />
+							</Button>
+						) : null}
+					</div>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						aria-label="刷新素材"
+						title="刷新素材"
+						disabled={isLoading || Boolean(uploading)}
+						onClick={() => void refresh()}
 					>
-						<header className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
-							<div className="min-w-0">
-								<DialogPrimitive.Title className="truncate text-sm font-semibold text-foreground">
-									{projectMode ? "项目素材库" : "全局素材库"}
-								</DialogPrimitive.Title>
-								<DialogPrimitive.Description
-									id="asset-library-description"
-									className="mt-1 truncate text-xs text-muted-foreground"
-								>
-									{projectMode
-										? `管理${selectedProject?.name || "当前项目"}的生成素材、上传素材和已选生成资源。`
-										: "管理可在生成历史中复用的全局素材。"}
-								</DialogPrimitive.Description>
-							</div>
-							<DialogClose asChild>
-								<Button
-									type="button"
-									variant="ghost"
-									size="icon"
-									className="shrink-0"
-									aria-label="关闭素材库"
-								>
-									<X className="size-4" />
-								</Button>
-							</DialogClose>
-						</header>
-
-						<div
-							className={cn(
-								"grid shrink-0 gap-2 border-b border-border bg-card px-4 py-3",
-								projectMode
-									? "lg:grid-cols-[minmax(16rem,18rem)_minmax(10rem,14rem)_auto_auto_auto_auto]"
-									: "lg:grid-cols-[minmax(16rem,18rem)_minmax(10rem,14rem)_auto_auto]",
-							)}
+						<RefreshCw className="size-4" />
+					</Button>
+					{importButton}
+				</header>
+			) : (
+				<header className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+					<div className="min-w-0">
+						<DialogPrimitive.Title className="truncate text-sm font-semibold text-foreground">
+							{projectMode ? "项目素材库" : "全局素材库"}
+						</DialogPrimitive.Title>
+						<DialogPrimitive.Description
+							id="asset-library-description"
+							className="mt-1 truncate text-xs text-muted-foreground"
 						>
-							<div className="relative min-w-0">
-								<Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-								<Input
-									value={query}
-									onChange={(event) => setQuery(event.target.value)}
-									placeholder="搜索素材"
-									className="h-8 rounded-md pl-8 text-xs text-foreground"
-								/>
-							</div>
-							<AssetLibrarySelect
-								label="项目"
-								value={selectedProjectId || globalProjectValue}
-								options={projectOptions}
-								loading={isProjectsLoading}
-								onValueChange={(value) =>
-									setSelectedProjectId(value === globalProjectValue ? "" : value)
-								}
-							/>
+							{projectMode
+								? `管理${selectedProject?.name || "当前项目"}的生成素材、上传素材和已选生成资源。`
+								: "管理可在生成历史中复用的全局素材。"}
+						</DialogPrimitive.Description>
+					</div>
+					<DialogClose asChild>
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							className="shrink-0"
+							aria-label="关闭素材库"
+						>
+							<X className="size-4" />
+						</Button>
+					</DialogClose>
+				</header>
+			)}
+
+			{isPage ? (
+				<div className="asset-library-toolbar">
+					{folderControls ? (
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							disabled={folderUnavailable}
+							aria-label="新建文件夹"
+							title="新建文件夹"
+							onClick={folderControls.onCreate}
+						>
+							<FolderPlus className="size-4" />
+						</Button>
+					) : null}
+					<div className="asset-library-search">
+						<Search className="size-4" />
+						<Input
+							aria-label="搜索素材"
+							placeholder="搜索名称、标签、备注和关联对象"
+							value={query}
+							onChange={(event) => setQuery(event.target.value)}
+						/>
+					</div>
+					<AssetLibrarySelect
+						label="排序"
+						value={sort}
+						options={[
+							{ label: "最近添加", value: "createdDesc" },
+							{ label: "最近修改", value: "updatedDesc" },
+							{ label: "名称", value: "nameAsc" },
+							{ label: "文件大小", value: "sizeDesc" },
+						]}
+						onValueChange={(value) => setSort(value as AssetLibrarySort)}
+					/>
+					<Popover>
+						<PopoverTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								aria-label="筛选素材"
+								title="筛选素材"
+							>
+								<SlidersHorizontal className="size-4" />
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent className="grid w-64 gap-2" align="end">
 							<AssetLibrarySelect
 								label="类型"
 								value={kindFilter}
 								options={kindOptions}
 								onValueChange={(value) => setKindFilter(value as AssetLibraryKindFilter)}
 							/>
-							{projectMode ? (
-								<>
-									<AssetLibrarySelect
-										label="来源"
-										value={sourceFilter}
-										options={projectSourceOptions}
-										onValueChange={(value) => setSourceFilter(value as AssetLibrarySourceFilter)}
-									/>
-									<AssetLibrarySelect
-										label="标签"
-										value={resourceFilter}
-										options={resourceOptions}
-										onValueChange={(value) =>
-											setResourceFilter(value as AssetLibraryResourceFilter)
-										}
-									/>
-								</>
-							) : null}
-							<Button
-								type="button"
-								size="sm"
-								className="h-8 shrink-0 rounded-md px-2.5 text-xs"
-								disabled={Boolean(uploading)}
-								onClick={() => mediaUploadRef.current?.click()}
-							>
-								{uploading ? (
-									<Loader2 className="size-3.5 animate-spin" />
-								) : (
-									<UploadCloud className="size-3.5" />
-								)}
-								<span>上传</span>
-							</Button>
-						</div>
-
-						{error ? (
-							<div className="shrink-0 border-b border-error-border bg-error-surface px-4 py-2 text-xs text-error-foreground">
-								素材库加载失败：{errorMessage(error, "请稍后重试。")}
-							</div>
-						) : null}
-
-						<div className="grid min-h-0 flex-1 bg-ide-editor lg:grid-cols-[minmax(0,1fr)_22rem]">
-							<div className="min-h-0 overflow-y-auto p-4">
-								{isLoading ? (
-									<div className="grid min-h-56 place-items-center border border-border bg-card">
-										<div className="flex items-center gap-2 text-sm text-muted-foreground">
-											<Loader2 className="size-4 animate-spin" />
-											<span>正在加载素材</span>
-										</div>
-									</div>
-								) : filteredItems.length === 0 ? (
-									<AssetLibraryEmpty projectMode={projectMode} />
-								) : (
-									<section
-										ref={gridRef}
-										className="grid grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))] gap-3"
-									>
-										{filteredItems.map((item) => (
-											<AssetLibraryCard
-												key={item.key}
-												active={item.key === activeItem?.key}
-												busy={busyKey === item.key}
-												item={item}
-												onDelete={() => void deleteItem(item)}
-												onDownload={() => void downloadItem(item)}
-												onPreview={() => setActiveKey(item.key)}
-											/>
-										))}
-									</section>
-								)}
-							</div>
-							<AssetLibraryPreview
-								busy={Boolean(activeItem && busyKey === activeItem.key)}
-								item={activeItem}
-								onDelete={() => {
-									if (activeItem) void deleteItem(activeItem);
-								}}
-								onDownload={() => {
-									if (activeItem) void downloadItem(activeItem);
-								}}
-								onRename={(filename) =>
-									activeItem ? renameItem(activeItem, filename) : Promise.resolve(false)
-								}
+							<AssetLibrarySelect
+								label="来源"
+								value={sourceFilter}
+								options={projectSourceOptions}
+								onValueChange={(value) => setSourceFilter(value as AssetLibrarySourceFilter)}
 							/>
+							<AssetLibrarySelect
+								label="关联对象"
+								value={resourceFilter}
+								options={resourceOptions}
+								onValueChange={(value) => setResourceFilter(value as AssetLibraryResourceFilter)}
+							/>
+						</PopoverContent>
+					</Popover>
+					<input
+						type="range"
+						min={120}
+						max={300}
+						step={10}
+						value={thumbnailSize}
+						aria-label="缩略图大小"
+						onChange={(event) => setThumbnailSize(Number(event.target.value))}
+					/>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						aria-label={showDetails ? "隐藏素材详情" : "显示素材详情"}
+						title={showDetails ? "隐藏素材详情" : "显示素材详情"}
+						aria-pressed={showDetails}
+						onClick={() => setShowDetails(!showDetails)}
+					>
+						<Info className="size-4" />
+					</Button>
+				</div>
+			) : (
+				<div
+					className={cn(
+						"grid shrink-0 gap-2 border-b border-border bg-card px-4 py-3",
+						projectMode
+							? "lg:grid-cols-[minmax(16rem,18rem)_minmax(10rem,14rem)_auto_auto_auto_auto]"
+							: "lg:grid-cols-[minmax(16rem,18rem)_minmax(10rem,14rem)_auto_auto]",
+					)}
+				>
+					<div className="relative min-w-0">
+						<Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+						<Input
+							value={query}
+							onChange={(event) => setQuery(event.target.value)}
+							placeholder="搜索素材"
+							className="h-8 rounded-md pl-8 text-xs text-foreground"
+						/>
+					</div>
+					<AssetLibrarySelect
+						label="项目"
+						value={selectedProjectId || globalProjectValue}
+						options={projectOptions}
+						loading={isProjectsLoading}
+						onValueChange={(value) =>
+							setSelectedProjectId(value === globalProjectValue ? "" : value)
+						}
+					/>
+					<AssetLibrarySelect
+						label="类型"
+						value={kindFilter}
+						options={kindOptions}
+						onValueChange={(value) => setKindFilter(value as AssetLibraryKindFilter)}
+					/>
+					{projectMode ? (
+						<>
+							<AssetLibrarySelect
+								label="来源"
+								value={sourceFilter}
+								options={projectSourceOptions}
+								onValueChange={(value) => setSourceFilter(value as AssetLibrarySourceFilter)}
+							/>
+							<AssetLibrarySelect
+								label="标签"
+								value={resourceFilter}
+								options={resourceOptions}
+								onValueChange={(value) => setResourceFilter(value as AssetLibraryResourceFilter)}
+							/>
+						</>
+					) : null}
+					<Button
+						type="button"
+						size="sm"
+						className="h-8 shrink-0 rounded-md px-2.5 text-xs"
+						disabled={Boolean(uploading)}
+						onClick={() => mediaUploadRef.current?.click()}
+					>
+						{uploading ? (
+							<Loader2 className="size-3.5 animate-spin" />
+						) : (
+							<UploadCloud className="size-3.5" />
+						)}
+						<span>上传</span>
+					</Button>
+				</div>
+			)}
+
+			{error ? (
+				<div className="shrink-0 border-b border-error-border bg-error-surface px-4 py-2 text-xs text-error-foreground">
+					素材库加载失败：{errorMessage(error, "请稍后重试。")}
+				</div>
+			) : null}
+
+			<div
+				className={
+					isPage
+						? "asset-library-body"
+						: "grid min-h-0 shrink-0 bg-ide-editor lg:flex-1 lg:shrink lg:grid-cols-[minmax(0,1fr)_22rem]"
+				}
+				data-details={showDetails}
+			>
+				<div
+					className={
+						isPage ? "asset-library-items" : "max-h-72 min-h-0 overflow-y-auto p-4 lg:max-h-none"
+					}
+				>
+					{!isLoading && !error && childFolders.length ? (
+						<div className="asset-library-child-folders">
+							{childFolders.map((folder) => (
+								<div key={folder.id} className="asset-library-child-folder">
+									<button
+										type="button"
+										aria-label={`打开文件夹 ${folder.name}`}
+										onClick={() => folderControls?.onNavigate(folder.id)}
+									>
+										<FolderOpen className="size-5 shrink-0" />
+										<span>{folder.name}</span>
+									</button>
+									<Button
+										variant="ghost"
+										size="icon"
+										aria-label={`重命名子文件夹 ${folder.name}`}
+										title="重命名文件夹"
+										onClick={() => folderControls?.onRename(folder)}
+									>
+										<PencilLine className="size-3.5" />
+									</Button>
+								</div>
+							))}
 						</div>
+					) : null}
+					{isLoading ? (
+						<div className="grid min-h-56 place-items-center border border-border bg-card">
+							<div className="flex items-center gap-2 text-sm text-muted-foreground">
+								<Loader2 className="size-4 animate-spin" />
+								<span>正在加载素材</span>
+							</div>
+						</div>
+					) : error ? null : filteredItems.length === 0 && childFolders.length === 0 ? (
+						isPage ? (
+							<div className="asset-library-page-empty">
+								<File className="size-10 text-muted-foreground" />
+								<h2>
+									{query ||
+									kindFilter !== "all" ||
+									sourceFilter !== "all" ||
+									resourceFilter !== "all"
+										? "暂无匹配素材"
+										: "这里还没有素材"}
+								</h2>
+								<div>
+									{folderControls ? (
+										<Button
+											type="button"
+											variant="outline"
+											disabled={folderUnavailable}
+											onClick={folderControls.onCreate}
+										>
+											<FolderPlus className="size-4" />
+											新建文件夹
+										</Button>
+									) : null}
+									{importButton}
+								</div>
+							</div>
+						) : (
+							<AssetLibraryEmpty projectMode={projectMode} />
+						)
+					) : (
+						<section
+							ref={gridRef}
+							className="grid grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))] gap-3"
+							style={
+								isPage
+									? {
+											gridTemplateColumns: `repeat(auto-fill,minmax(min(${thumbnailSize}px,100%),1fr))`,
+										}
+									: undefined
+							}
+						>
+							{filteredItems.map((item) => (
+								<AssetLibraryCard
+									key={item.key}
+									active={item.key === activeItem?.key}
+									busy={busyKey === item.key}
+									item={item}
+									onDelete={() => void deleteItem(item)}
+									onDownload={() => void downloadItem(item)}
+									onPreview={() => {
+										setActiveKey(item.key);
+										if (isPage) setShowDetails(true);
+									}}
+								/>
+							))}
+						</section>
+					)}
+				</div>
+				{showDetails ? (
+					<AssetLibraryPreview
+						onSaveMetadata={(payload) =>
+							activeItem
+								? saveMetadata(activeItem, payload)
+								: Promise.reject(new Error("请选择素材"))
+						}
+						busy={Boolean(activeItem && busyKey === activeItem.key)}
+						folderActions={
+							folderControls &&
+							activeItem?.mediaAsset &&
+							(activeItem.mediaAsset.projectId || "") === selectedProjectId &&
+							!folderUnavailable ? (
+								<AssetLibraryMove
+									key={activeItem.key + (activeItem.mediaAsset.folderId || "")}
+									asset={activeItem.mediaAsset}
+									folders={folderControls.folders}
+									busy={Boolean(busyKey)}
+									onMove={(id) => moveItem(activeItem, id)}
+								/>
+							) : undefined
+						}
+						item={activeItem}
+						onDelete={() => {
+							if (activeItem) void deleteItem(activeItem);
+						}}
+						onDownload={() => {
+							if (activeItem) void downloadItem(activeItem);
+						}}
+						onRename={(filename) =>
+							activeItem ? renameItem(activeItem, filename) : Promise.resolve(false)
+						}
+					/>
+				) : null}
+			</div>
+			{isPage ? (
+				<footer className="asset-library-status">
+					已加载 {childFolders.length} 个文件夹，{filteredItems.length} 个文件
+					{query ? `（共 ${folderItems.length} 个素材）` : ""}
+				</footer>
+			) : null}
+		</>
+	);
+	if (presentation === "page")
+		return (
+			<section className="asset-library-workspace" onKeyDown={handleDialogKeyDown}>
+				{fileInput}
+				{content}
+			</section>
+		);
+	return (
+		<>
+			{" "}
+			{fileInput}
+			<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+				<DialogPrimitive.Portal>
+					<DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/30 p-4 backdrop-blur-sm data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 duration-200" />
+					<DialogPrimitive.Content
+						aria-describedby="asset-library-description"
+						className={cn(
+							"fixed left-1/2 top-1/2 z-50 flex h-[min(46rem,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-7xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-lg border border-border bg-card text-card-foreground shadow-2xl outline-none lg:overflow-hidden",
+							dialogContentMotion,
+						)}
+						onKeyDown={handleDialogKeyDown}
+						onEscapeKeyDown={(event) => {
+							if (
+								event.target instanceof HTMLElement &&
+								event.target.closest("[data-asset-metadata-editor]")
+							)
+								event.preventDefault();
+						}}
+					>
+						{content}
 					</DialogPrimitive.Content>
 				</DialogPrimitive.Portal>
 			</DialogPrimitive.Root>
@@ -646,7 +1040,9 @@ const AssetLibraryPreview: React.FC<{
 	onDelete: () => void;
 	onDownload: () => void;
 	onRename: (filename: string) => Promise<boolean>;
-}> = ({ busy, item, onDelete, onDownload, onRename }) => {
+	onSaveMetadata: (payload: MediaAssetMetadataUpdate) => Promise<void>;
+	folderActions?: React.ReactNode;
+}> = ({ busy, item, onDelete, onDownload, onRename, onSaveMetadata, folderActions }) => {
 	const toast = useToast();
 	const [draftName, setDraftName] = useState<string | null>(null);
 	const source = item ? assetLibraryItemSource(item) : "";
@@ -856,6 +1252,17 @@ const AssetLibraryPreview: React.FC<{
 				) : null}
 			</div>
 			<AssetTagList tags={tags} className="shrink-0 gap-1.5" />
+			{folderActions}
+			{item.mediaAsset ? (
+				<AssetLibraryMetadataEditor
+					key={item.key}
+					tags={item.mediaAsset.tags ?? []}
+					note={item.mediaAsset.note ?? ""}
+					rating={item.mediaAsset.rating ?? 0}
+					disabled={busy}
+					onSave={onSaveMetadata}
+				/>
+			) : null}
 		</aside>
 	);
 };

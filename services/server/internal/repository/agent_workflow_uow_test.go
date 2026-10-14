@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestAgentExecutionWorkflowEnvelopeCASAllowsOneActiveWorkflow(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.sqlite"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -96,6 +98,7 @@ func TestAgentExecutionWorkflowEnvelopeCASAllowsOneActiveWorkflow(t *testing.T) 
 
 func TestAgentExecutionWorkflowEnvelopeReplayReturnsFirstResultAfterTermination(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.sqlite"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -132,6 +135,7 @@ func TestAgentExecutionWorkflowEnvelopeReplayReturnsFirstResultAfterTermination(
 
 func TestAgentExecutionWorkflowReplaceIsAtomicAndIdempotent(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.sqlite"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -230,6 +234,7 @@ func TestAgentExecutionWorkflowReplaceIsAtomicAndIdempotent(t *testing.T) {
 
 func TestAgentExecutionWorkflowTerminateIsAtomicAndIdempotent(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.sqlite"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}

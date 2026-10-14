@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestGenerationNotificationServicePublishesCompletedTask(t *testing.T) {
@@ -19,11 +20,12 @@ func TestGenerationNotificationServicePublishesCompletedTask(t *testing.T) {
 		Status:    "completed",
 		Assets:    []GenerationAsset{{Kind: "image", URL: "/api/v1/media-assets/image-1/content"}},
 	}
-	taskService := NewGenerationTaskService(dbPath, nil)
+	taskService := newTestGenerationTaskService(t, dbPath, nil)
 	if err := taskService.Upsert(task); err != nil {
 		t.Fatalf("Upsert(task) error = %v", err)
 	}
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -94,11 +96,12 @@ func TestGenerationNotificationServicePublishesCompletedVideoTask(t *testing.T) 
 		Status:    "completed",
 		Assets:    []GenerationAsset{{Kind: "video", URL: "/api/v1/media-assets/video-1/content"}},
 	}
-	taskService := NewGenerationTaskService(dbPath, nil)
+	taskService := newTestGenerationTaskService(t, dbPath, nil)
 	if err := taskService.Upsert(task); err != nil {
 		t.Fatalf("Upsert(task) error = %v", err)
 	}
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -149,11 +152,12 @@ func TestGenerationTaskStartedTransitionAnnouncesActiveCycles(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "workspace.db")
 	seedGenerationTaskProject(t, dbPath, "project-a")
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
 	notifications := NewGenerationNotificationServiceFromRepository(repos.GenerationNotifications, nil, nil)
-	tasks := NewGenerationTaskService(dbPath, nil)
+	tasks := newTestGenerationTaskService(t, dbPath, nil)
 	workflow := NewGenerationService(nil, tasks, nil)
 	workflow.SetGenerationNotifications(notifications)
 	events, unsubscribe := notifications.Subscribe()
@@ -217,12 +221,13 @@ func TestGenerationTaskStartedTransitionAnnouncesActiveCycles(t *testing.T) {
 func TestGenerationTaskCompletionTransitionAnnouncesUntrackedTasks(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "workspace.db")
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
 	seedGenerationTaskProject(t, dbPath, "project-a")
 	notifications := NewGenerationNotificationServiceFromRepository(repos.GenerationNotifications, nil, nil)
-	tasks := NewGenerationTaskService(dbPath, nil)
+	tasks := newTestGenerationTaskService(t, dbPath, nil)
 	tasks.SetTaskCompletionListener(notifications.AnnounceTaskCompletion)
 	events, unsubscribe := notifications.Subscribe()
 	defer unsubscribe()
@@ -281,12 +286,13 @@ func TestGenerationTaskCompletionTransitionAnnouncesUntrackedTasks(t *testing.T)
 func TestAnnounceTaskCompletionSkipsTrackedTasks(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "workspace.db")
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
 	seedGenerationTaskProject(t, dbPath, "project-a")
 	notifications := NewGenerationNotificationServiceFromRepository(repos.GenerationNotifications, nil, nil)
-	tasks := NewGenerationTaskService(dbPath, nil)
+	tasks := newTestGenerationTaskService(t, dbPath, nil)
 	task := GenerationTaskRecord{ID: "task-tracked", ProjectID: "project-a", Kind: "image", Status: "completed"}
 	if err := tasks.Upsert(task); err != nil {
 		t.Fatalf("Upsert(task) error = %v", err)
@@ -315,11 +321,12 @@ func TestTrackedSynchronousCompletionPublishesOnlyRichNotification(t *testing.T)
 	seedGenerationTaskProject(t, dbPath, "project-a")
 	seedGenerationTaskAsset(t, dbPath, "image-1", "image", "project-a")
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
 	notifications := NewGenerationNotificationServiceFromRepository(repos.GenerationNotifications, nil, nil)
-	tasks := NewGenerationTaskService(dbPath, nil)
+	tasks := newTestGenerationTaskService(t, dbPath, nil)
 	tasks.SetTaskCompletionListener(notifications.AnnounceTaskCompletion)
 	events, unsubscribe := notifications.Subscribe()
 	defer unsubscribe()

@@ -55,33 +55,37 @@ type MediaAssets struct {
 }
 
 type MediaAsset struct {
-	ID                string  `json:"id"`
-	Kind              string  `json:"kind"`
-	Filename          string  `json:"filename"`
-	MIMEType          string  `json:"mimeType"`
-	SizeBytes         int64   `json:"sizeBytes"`
-	URL               string  `json:"url"`
-	SourceURL         string  `json:"sourceUrl,omitempty"`
-	ContentHash       string  `json:"-"`
-	ProjectID         string  `json:"projectId,omitempty"`
-	Source            string  `json:"source,omitempty"`
-	ConversationID    string  `json:"conversationId,omitempty"`
-	SectionID         string  `json:"sectionId,omitempty"`
-	RelativePath      string  `json:"relativePath,omitempty"`
-	DownloadPath      string  `json:"downloadPath,omitempty"`
-	DurationSeconds   float64 `json:"durationSeconds,omitempty"`
-	Width             int     `json:"width,omitempty"`
-	Height            int     `json:"height,omitempty"`
-	PosterURL         string  `json:"posterUrl,omitempty"`
-	MetadataStatus    string  `json:"metadataStatus,omitempty"`
-	MetadataError     string  `json:"metadataError,omitempty"`
-	MetadataUpdatedAt string  `json:"metadataUpdatedAt,omitempty"`
-	StorageStatus     string  `json:"storageStatus,omitempty"`
-	StorageError      string  `json:"storageError,omitempty"`
-	CreatedAt         string  `json:"createdAt"`
-	UpdatedAt         string  `json:"updatedAt"`
-	FilePath          string  `json:"-"`
-	PosterPath        string  `json:"-"`
+	ID                string   `json:"id"`
+	Kind              string   `json:"kind"`
+	Filename          string   `json:"filename"`
+	Tags              []string `json:"tags"`
+	Note              string   `json:"note"`
+	Rating            int      `json:"rating"`
+	FolderID          string   `json:"folderId"`
+	MIMEType          string   `json:"mimeType"`
+	SizeBytes         int64    `json:"sizeBytes"`
+	URL               string   `json:"url"`
+	SourceURL         string   `json:"sourceUrl,omitempty"`
+	ContentHash       string   `json:"-"`
+	ProjectID         string   `json:"projectId,omitempty"`
+	Source            string   `json:"source,omitempty"`
+	ConversationID    string   `json:"conversationId,omitempty"`
+	SectionID         string   `json:"sectionId,omitempty"`
+	RelativePath      string   `json:"relativePath,omitempty"`
+	DownloadPath      string   `json:"downloadPath,omitempty"`
+	DurationSeconds   float64  `json:"durationSeconds,omitempty"`
+	Width             int      `json:"width,omitempty"`
+	Height            int      `json:"height,omitempty"`
+	PosterURL         string   `json:"posterUrl,omitempty"`
+	MetadataStatus    string   `json:"metadataStatus,omitempty"`
+	MetadataError     string   `json:"metadataError,omitempty"`
+	MetadataUpdatedAt string   `json:"metadataUpdatedAt,omitempty"`
+	StorageStatus     string   `json:"storageStatus,omitempty"`
+	StorageError      string   `json:"storageError,omitempty"`
+	CreatedAt         string   `json:"createdAt"`
+	UpdatedAt         string   `json:"updatedAt"`
+	FilePath          string   `json:"-"`
+	PosterPath        string   `json:"-"`
 }
 
 type MediaAssetsResponse struct {
@@ -89,16 +93,21 @@ type MediaAssetsResponse struct {
 }
 
 type MediaAssetUpdateRequest struct {
-	Filename string `json:"filename"`
+	Filename *string   `json:"filename,omitempty"`
+	Tags     *[]string `json:"tags,omitempty"`
+	Note     *string   `json:"note,omitempty"`
+	Rating   *int      `json:"rating,omitempty"`
+	FolderID *string   `json:"folderId,omitempty"`
 }
 
 // MediaAssetSaveOptions describes where a new media asset should live.
 type MediaAssetSaveOptions struct {
-	ProjectID      string
-	Source         string
-	ConversationID string
-	SectionID      string
-	Filename       string
+	ProjectID       string
+	LibraryFolderID string
+	Source          string
+	ConversationID  string
+	SectionID       string
+	Filename        string
 }
 
 type mediaAssetModel = domain.AssetModel
@@ -366,9 +375,16 @@ func (store *MediaAssets) FindByContentHashAndScope(contentHash string, kind str
 	return asset, true, nil
 }
 
-func (store *MediaAssets) SaveMultipartFile(header *multipart.FileHeader, projectID string) (MediaAsset, error) {
+// SaveMultipartFile validates folder ownership before persisting an uploaded file.
+func (store *MediaAssets) SaveMultipartFile(ctx context.Context, header *multipart.FileHeader, projectID, folderID string) (MediaAsset, error) {
 	if store.initErr != nil {
 		return MediaAsset{}, store.initErr
+	}
+	folderID = strings.TrimSpace(folderID)
+	if folderID != "" {
+		if _, err := store.repo.GetLibraryFolder(ctx, folderID, domain.CleanProjectID(projectID)); err != nil {
+			return MediaAsset{}, libraryFolderError(err)
+		}
 	}
 
 	file, err := header.Open()
@@ -382,7 +398,12 @@ func (store *MediaAssets) SaveMultipartFile(header *multipart.FileHeader, projec
 		return MediaAsset{}, err
 	}
 
-	return store.saveBytesForProject(data, header.Filename, header.Header.Get("Content-Type"), "", projectID, MediaSourceUpload)
+	if err := ctx.Err(); err != nil {
+		return MediaAsset{}, err
+	}
+	return store.saveBytesWithOptions(data, header.Filename, header.Header.Get("Content-Type"), "", MediaAssetSaveOptions{
+		ProjectID: projectID, LibraryFolderID: folderID, Source: MediaSourceUpload,
+	})
 }
 
 func (store *MediaAssets) SaveReader(ctx context.Context, reader io.Reader, filename string, contentType string, sourceURL string) (MediaAsset, error) {
@@ -589,6 +610,7 @@ func (store *MediaAssets) SaveLinkedAssetWithOptions(kind string, assetURL strin
 	now := timestamp.NowRFC3339Nano()
 	asset := MediaAsset{
 		ID:             id,
+		Tags:           []string{},
 		Kind:           kind,
 		Filename:       filename,
 		MIMEType:       mimeType,
@@ -663,6 +685,10 @@ func (store *MediaAssets) saveBytes(data []byte, filename string, contentType st
 }
 
 func (store *MediaAssets) saveBytesForProject(data []byte, filename string, contentType string, sourceURL string, projectID string, source string) (MediaAsset, error) {
+	return store.saveBytesWithOptions(data, filename, contentType, sourceURL, MediaAssetSaveOptions{ProjectID: projectID, Source: source})
+}
+
+func (store *MediaAssets) saveBytesWithOptions(data []byte, filename, contentType, sourceURL string, options MediaAssetSaveOptions) (MediaAsset, error) {
 	mimeType := strings.TrimSpace(strings.Split(contentType, ";")[0])
 	if mimeType == "" || mimeType == "application/octet-stream" {
 		mimeType = http.DetectContentType(data)
@@ -672,10 +698,7 @@ func (store *MediaAssets) saveBytesForProject(data []byte, filename string, cont
 		return MediaAsset{}, unsupportedMediaAssetKindError()
 	}
 
-	return store.saveBytesWithKind(data, kind, filename, mimeType, sourceURL, MediaAssetSaveOptions{
-		ProjectID: projectID,
-		Source:    source,
-	})
+	return store.saveBytesWithKind(data, kind, filename, mimeType, sourceURL, options)
 }
 
 func (store *MediaAssets) saveBytesWithKind(data []byte, kind string, filename string, mimeType string, sourceURL string, options MediaAssetSaveOptions) (MediaAsset, error) {
@@ -742,6 +765,8 @@ func (store *MediaAssets) saveBytesWithKind(data []byte, kind string, filename s
 
 	asset := MediaAsset{
 		ID:             id,
+		Tags:           []string{},
+		FolderID:       options.LibraryFolderID,
 		Kind:           kind,
 		Filename:       filename,
 		MIMEType:       mimeType,
@@ -771,6 +796,7 @@ func (store *MediaAssets) saveBytesWithKind(data []byte, kind string, filename s
 		ID:              asset.ID,
 		Kind:            asset.Kind,
 		Filename:        asset.Filename,
+		LibraryFolderID: asset.FolderID,
 		MIMEType:        asset.MIMEType,
 		SizeBytes:       asset.SizeBytes,
 		RelPath:         asset.RelativePath,
@@ -824,6 +850,18 @@ func mediaAssetContentHash(data []byte) string {
 
 func unsupportedMediaAssetKindError() error {
 	return fmt.Errorf("only image, video, audio, and text assets are supported")
+}
+
+// DeleteInScope removes a physical asset only when the API scope owns it.
+func (store *MediaAssets) DeleteInScope(id, projectID string) (bool, error) {
+	asset, found, err := store.Get(id)
+	if err != nil || !found {
+		return false, err
+	}
+	if asset.ProjectID != domain.CleanProjectID(projectID) {
+		return false, nil
+	}
+	return store.Delete(id)
 }
 
 func (store *MediaAssets) Delete(id string) (bool, error) {
@@ -898,6 +936,8 @@ func FilterMediaAssets(assets []MediaAsset, kind string, query string) []MediaAs
 		}
 		if query != "" &&
 			!strings.Contains(strings.ToLower(asset.Filename), query) &&
+			!strings.Contains(strings.ToLower(strings.Join(asset.Tags, " ")), query) &&
+			!strings.Contains(strings.ToLower(asset.Note), query) &&
 			!strings.Contains(strings.ToLower(asset.SourceURL), query) &&
 			!strings.Contains(strings.ToLower(asset.RelativePath), query) &&
 			!strings.Contains(strings.ToLower(asset.MIMEType), query) {
@@ -993,6 +1033,10 @@ func (store *MediaAssets) mediaAssetRecordFromModel(model mediaAssetModel) Media
 		ID:              model.ID,
 		Kind:            model.Kind,
 		Filename:        model.Filename,
+		Tags:            libraryTagsFromJSON(model.TagsJSON),
+		Note:            model.Note,
+		Rating:          model.Rating,
+		FolderID:        model.LibraryFolderID,
 		MIMEType:        model.MIMEType,
 		SizeBytes:       model.SizeBytes,
 		URL:             model.URL,

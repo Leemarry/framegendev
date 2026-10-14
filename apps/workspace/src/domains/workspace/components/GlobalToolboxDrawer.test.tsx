@@ -50,6 +50,30 @@ vi.mock("@/domains/generation/components/GenerationWorkspace", () => ({
 }));
 
 describe("GlobalToolboxButton", () => {
+	it("restricts project navigation history to the current project", async () => {
+		vi.mocked(getGenerationConversations).mockImplementation(async (kind) => ({
+			conversations:
+				kind === "image"
+					? [
+							generationConversation("project-a-image", "image", "当前项目图片", "agent"),
+							generationConversation("project-b-image", "image", "其他项目图片", "agent"),
+							generationConversation("global-image", "image", "全局图片", "studio"),
+						]
+					: [],
+		}));
+		render(
+			<SWRConfig value={{ provider: () => new Map() }}>
+				<GlobalToolboxButton variant="navigation" projectId="project-a" label="项目生成历史" />
+			</SWRConfig>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "打开生成历史" }));
+		expect(await screen.findByRole("dialog", { name: "项目生成历史" })).toBeTruthy();
+		await screen.findByTestId("global-generation-workspace");
+		fireEvent.click(screen.getByRole("button", { name: "历史会话" }));
+		expect(await screen.findByRole("button", { name: "当前项目图片" })).toBeTruthy();
+		expect(screen.queryByText("其他项目图片")).toBeNull();
+		expect(screen.queryByText("全局图片")).toBeNull();
+	});
 	afterEach(() => {
 		vi.clearAllMocks();
 		cleanup();

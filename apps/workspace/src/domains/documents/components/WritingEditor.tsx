@@ -49,9 +49,13 @@ export const prewarmWritingEditorDocument = (
 
 interface WritingEditorProps {
 	onOpenDocumentList?: () => void;
+	showHeaderActions?: boolean;
 }
 
-export const WritingEditor: React.FC<WritingEditorProps> = ({ onOpenDocumentList }) => {
+export const WritingEditor: React.FC<WritingEditorProps> = ({
+	onOpenDocumentList,
+	showHeaderActions = true,
+}) => {
 	const [selectionCoords, setSelectionCoords] = useState<SelectionCoords | null>(null);
 	const [selectionRange, setSelectionRange] = useState<InlineDecorationRange | null>(null);
 	const [commentOffsets, setCommentOffsets] = useState<Record<string, number>>({});
@@ -197,61 +201,63 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({ onOpenDocumentList
 	return (
 		<>
 			<main ref={mainRef} className="relative h-full min-h-0 flex-1 overflow-y-auto bg-ide-editor">
-				<div className="mx-auto min-h-full w-full max-w-6xl px-4 py-4 transition-[padding-bottom] duration-200 ease-out">
+				<div className="project-writing-page mx-auto min-h-full w-full max-w-6xl px-4 py-4 transition-[padding-bottom] duration-200 ease-out">
 					<section className="min-w-0">
-						<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-							<div className="flex flex-wrap items-center gap-1.5">
-								<p className="text-xs text-muted-foreground">
-									更新于 {new Date(activeDocument.updatedAt).toLocaleTimeString("zh-CN")}
-								</p>
+						{showHeaderActions ? (
+							<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+								<div className="flex flex-wrap items-center gap-1.5">
+									<p className="text-xs text-muted-foreground">
+										更新于 {new Date(activeDocument.updatedAt).toLocaleTimeString("zh-CN")}
+									</p>
+								</div>
+								<div className="flex items-center gap-1.5">
+									{onOpenDocumentList ? (
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											className="md:hidden"
+											aria-label="打开文档列表"
+											onClick={onOpenDocumentList}
+										>
+											<Menu />
+										</Button>
+									) : null}
+									{!showComments ? (
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											aria-label="展开批注"
+											onClick={() => setShowComments(true)}
+										>
+											<MessageSquare />
+										</Button>
+									) : (
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											aria-label="收起批注"
+											onClick={() => setShowComments(false)}
+										>
+											<MessageSquareOff />
+										</Button>
+									)}
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										aria-label="查看变更记录"
+										title="变更记录"
+										disabled={!projectId}
+										onClick={() => setHistoryOpen(true)}
+									>
+										<History />
+									</Button>
+								</div>
 							</div>
-							<div className="flex items-center gap-1.5">
-								{onOpenDocumentList ? (
-									<Button
-										type="button"
-										variant="ghost"
-										size="icon"
-										className="md:hidden"
-										aria-label="打开文档列表"
-										onClick={onOpenDocumentList}
-									>
-										<Menu />
-									</Button>
-								) : null}
-								{!showComments ? (
-									<Button
-										type="button"
-										variant="ghost"
-										size="icon"
-										aria-label="展开批注"
-										onClick={() => setShowComments(true)}
-									>
-										<MessageSquare />
-									</Button>
-								) : (
-									<Button
-										type="button"
-										variant="ghost"
-										size="icon"
-										aria-label="收起批注"
-										onClick={() => setShowComments(false)}
-									>
-										<MessageSquareOff />
-									</Button>
-								)}
-								<Button
-									type="button"
-									variant="ghost"
-									size="icon"
-									aria-label="查看变更记录"
-									title="变更记录"
-									disabled={!projectId}
-									onClick={() => setHistoryOpen(true)}
-								>
-									<History />
-								</Button>
-							</div>
-						</div>
+						) : null}
 
 						<input
 							value={activeDocument.title}

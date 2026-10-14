@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { MarkdownDocument } from "@/domains/documents/stores";
 import type { SelectedGenerationAsset } from "@/domains/generation/api/generation";
 import type { MediaAsset } from "@/domains/workspace/api/media";
+
+it("searches saved media tags and notes", () => {
+	const items = buildAssetLibraryItems({
+		mediaAssets: [mediaAsset({ tags: ["夜景"], note: "雨夜主角" })],
+	});
+	expect(filterAssetLibraryItems(items, { query: " 夜景 " })).toHaveLength(1);
+	expect(filterAssetLibraryItems(items, { query: "雨夜" })).toHaveLength(1);
+	expect(filterAssetLibraryItems(items, { query: "不存在" })).toHaveLength(0);
+});
 import {
 	buildAssetLibraryItems,
 	filterAssetLibraryItems,

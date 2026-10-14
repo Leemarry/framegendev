@@ -16,7 +16,7 @@ import { useAgentLayoutStore, type AgentLayoutTab } from "@/lib/stores/agent-lay
 import { OVERVIEW_SENTINEL, useLastDocumentStore } from "@/lib/stores/last-document";
 import { useWorkModeStore, type WorkMode } from "@/lib/stores/work-mode";
 import { Button } from "@/shared/components/ui/button";
-import { cn } from "@/shared/lib/utils";
+import { DocumentHeaderActions } from "@/domains/documents/components/DocumentHeaderActions";
 
 const tabs: Array<{
 	value: AgentLayoutTab;
@@ -113,12 +113,14 @@ export const AgentWorkbenchHeaderActions: React.FC<AgentWorkbenchTopBarProps> = 
 
 	return (
 		<div
-			className="flex h-8 items-center rounded-sm border border-border bg-ide-toolbar p-0.5"
+			className="flex items-center gap-1"
 			data-desktop-no-drag
 			aria-label="工作台内容"
 			role="group"
 		>
+			{tab === "document" && projectId ? <DocumentHeaderActions projectId={projectId} /> : null}
 			{tabs.map((item) => {
+				if (item.value === "document" && tab === "document") return null;
 				const Icon = item.icon;
 				const isActive = tab === item.value;
 				const label = item.label;
@@ -128,17 +130,13 @@ export const AgentWorkbenchHeaderActions: React.FC<AgentWorkbenchTopBarProps> = 
 						type="button"
 						variant="ghost"
 						size="sm"
-						className={cn(
-							"h-7 rounded-control px-2 text-muted-foreground hover:bg-ide-list-hover hover:text-foreground",
-							isActive && "bg-ide-list-active text-ide-list-active-foreground",
-						)}
+						className="project-header-icon"
 						onClick={() => selectTab(item.value)}
 						aria-pressed={isActive}
 						aria-label={label}
 						title={label}
 					>
 						<Icon className="size-3.5" />
-						<span>{label}</span>
 					</Button>
 				);
 			})}

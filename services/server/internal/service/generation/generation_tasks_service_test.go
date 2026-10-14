@@ -11,6 +11,7 @@ import (
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/service/media"
 	serviceshared "github.com/mediago-dev/mediago-drama/services/server/internal/service/shared"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 	"gorm.io/gorm/clause"
 )
 
@@ -20,7 +21,7 @@ func TestGenerationTaskServicePersistToSQLite(t *testing.T) {
 	seedGenerationTaskAsset(t, dbPath, "asset-test", "image", "")
 	seedGenerationTaskAsset(t, dbPath, "video-test", "video", "")
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:                taskID,
 		BatchID:           "batch-persisted",
@@ -55,7 +56,7 @@ func TestGenerationTaskServicePersistToSQLite(t *testing.T) {
 		t.Fatalf("upserting task: %v", err)
 	}
 
-	restarted := NewGenerationTaskService(dbPath, nil)
+	restarted := newTestGenerationTaskService(t, dbPath, nil)
 	task, ok, err := restarted.Get(taskID)
 	if err != nil {
 		t.Fatalf("getting task: %v", err)
@@ -163,10 +164,11 @@ func TestGenerationTaskForClientOmitsInternalParams(t *testing.T) {
 func TestGenerationTaskServiceDefaultDBPathUsesWorkspaceAppDB(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("USERPROFILE", homeDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(homeDir, ".config"))
 	t.Setenv("APPDATA", filepath.Join(homeDir, "AppData", "Roaming"))
 
-	service := NewGenerationTaskService("", nil)
+	service := newTestGenerationTaskService(t, "", nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:     "task-default-workspace-db",
 		Kind:   "text",
@@ -194,6 +196,7 @@ func TestGenerationTaskServiceHydratesVideoPosterURL(t *testing.T) {
 	seedGenerationTaskAsset(t, dbPath, assetID, "video", "")
 
 	db, err := repository.OpenWorkspaceDB(dbPath)
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -206,7 +209,7 @@ func TestGenerationTaskServiceHydratesVideoPosterURL(t *testing.T) {
 		t.Fatalf("updating asset poster fixture: %v", err)
 	}
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:     taskID,
 		Kind:   "video",
@@ -237,7 +240,7 @@ func TestGenerationTaskServiceDeleteAssetIncludesAttemptsWithoutDeadlock(t *test
 	seedGenerationTaskAsset(t, dbPath, "image-a", "image", "")
 	seedGenerationTaskAsset(t, dbPath, "image-b", "image", "")
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:     taskID,
 		Kind:   "image",
@@ -297,7 +300,7 @@ func TestGenerationTaskServiceDeleteFailedPlaceholderPersistsWithoutAssetRow(t *
 	dbPath := filepath.Join(t.TempDir(), "settings.db")
 	taskID := "task-delete-failed-placeholder"
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:      taskID,
 		Kind:    "image",
@@ -323,7 +326,7 @@ func TestGenerationTaskServiceDeleteFailedPlaceholderPersistsWithoutAssetRow(t *
 		t.Fatalf("deleted slots = %#v, want slot 0", task.DeletedAssetSlots)
 	}
 
-	restarted := NewGenerationTaskService(dbPath, nil)
+	restarted := newTestGenerationTaskService(t, dbPath, nil)
 	reloaded, ok, err := restarted.Get(taskID)
 	if err != nil {
 		t.Fatalf("getting reloaded task: %v", err)
@@ -352,7 +355,7 @@ func TestGenerationTaskServiceUpdateAssetSelectionPersists(t *testing.T) {
 	seedGenerationTaskAsset(t, dbPath, "image-a", "image", "")
 	seedGenerationTaskAsset(t, dbPath, "image-b", "image", "")
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:     taskID,
 		Kind:   "image",
@@ -383,7 +386,7 @@ func TestGenerationTaskServiceUpdateAssetSelectionPersists(t *testing.T) {
 		t.Fatalf("task = %+v, want selected character asset with title", task)
 	}
 
-	restarted := NewGenerationTaskService(dbPath, nil)
+	restarted := newTestGenerationTaskService(t, dbPath, nil)
 	reloaded, ok, err := restarted.Get(taskID)
 	if err != nil {
 		t.Fatalf("getting task: %v", err)
@@ -409,7 +412,7 @@ func TestGenerationTaskServiceAutoSelectsFirstCompletedProjectResourceImage(t *t
 	seedGenerationTaskAsset(t, dbPath, "image-a", "image", projectID)
 	seedGenerationTaskAsset(t, dbPath, "image-b", "image", projectID)
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:           taskID,
 		ProjectID:    projectID,
@@ -459,7 +462,7 @@ func TestGenerationTaskServiceSwitchesSelectionToNewGenerationOverExistingSelect
 	seedGenerationTaskAsset(t, dbPath, "image-a", "image", projectID)
 	seedGenerationTaskAsset(t, dbPath, "image-b", "image", projectID)
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if _, ok, err := service.UpsertSelectedAsset(projectID, UpdateSelectedGenerationAssetRequest{
 		ResourceType:     "character",
 		ResourceID:       "section-lintong",
@@ -518,7 +521,7 @@ func TestGenerationTaskServiceSwitchesSelectionToLatestGeneration(t *testing.T) 
 		seedGenerationTaskAsset(t, dbPath, id, "image", projectID)
 	}
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	completeImageTask := func(taskID, first, second string) {
 		if err := service.Upsert(GenerationTaskRecord{
 			ID:           taskID,
@@ -562,7 +565,7 @@ func TestGenerationServiceListSelectedGenerationAssets(t *testing.T) {
 	seedGenerationTaskAsset(t, dbPath, "scene", "image", projectID)
 	seedGenerationTaskAsset(t, dbPath, "video", "video", projectID)
 	seedGenerationTaskAsset(t, dbPath, "generic", "image", projectID)
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	workflow := &GenerationService{generationTasks: service}
 
 	if err := service.Upsert(GenerationTaskRecord{
@@ -669,7 +672,7 @@ func TestGenerationServiceSelectedGenerationAssetReplacesSameResourceKind(t *tes
 	seedGenerationTaskProject(t, dbPath, projectID)
 	seedGenerationTaskAsset(t, dbPath, "video-a", "video", projectID)
 	seedGenerationTaskAsset(t, dbPath, "video-b", "video", projectID)
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	workflow := &GenerationService{generationTasks: service}
 	for _, task := range []GenerationTaskRecord{
 		{
@@ -761,7 +764,7 @@ func TestGenerationServiceUpdateSelectedGenerationAssetFromTask(t *testing.T) {
 	taskID := "task-select-source"
 	seedGenerationTaskProject(t, dbPath, projectID)
 	seedGenerationTaskAsset(t, dbPath, "image-a", "image", projectID)
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	workflow := &GenerationService{generationTasks: service}
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:         taskID,
@@ -849,7 +852,7 @@ func TestGenerationServiceUpdateSelectedGenerationAssetWithMissingTaskSource(t *
 	taskID := "task-select-missing"
 	seedGenerationTaskProject(t, dbPath, projectID)
 	seedGenerationTaskAsset(t, dbPath, "scene-direct", "image", projectID)
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	workflow := &GenerationService{generationTasks: service}
 
 	selected := true
@@ -891,8 +894,8 @@ func TestGenerationServiceUpdateSelectedGenerationAssetFromVoicePreview(t *testi
 	projectID := "project-selected-voice-preview"
 	previewURL := "/api/v1/generation/voice-previews/official.minimax-speech/warm-bestie"
 	seedGenerationTaskProject(t, dbPath, projectID)
-	service := NewGenerationTaskService(dbPath, nil)
-	mediaAssets := media.NewMediaAssets(dbPath, t.TempDir())
+	service := newTestGenerationTaskService(t, dbPath, nil)
+	mediaAssets := newTestMediaAssets(t, dbPath, t.TempDir())
 	workflow := &GenerationService{generationTasks: service, mediaAssets: mediaAssets}
 
 	selected := true
@@ -957,7 +960,7 @@ func TestGenerationTaskServiceUpsertSelectedAssetWithoutTask(t *testing.T) {
 	projectID := "project-selected-direct"
 	seedGenerationTaskProject(t, dbPath, projectID)
 	seedGenerationTaskAsset(t, dbPath, "media-direct", "image", projectID)
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 
 	asset, ok, err := service.UpsertSelectedAsset(projectID, UpdateSelectedGenerationAssetRequest{
 		ResourceType:  "character",
@@ -1007,7 +1010,7 @@ func TestGenerationTaskServiceDeleteAssetSlotPersistsAsMissingRow(t *testing.T) 
 		seedGenerationTaskAsset(t, dbPath, id, "image", "")
 	}
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:     taskID,
 		Kind:   "image",
@@ -1062,7 +1065,7 @@ func TestGenerationTaskServiceDeleteAssetSlotRemovesSelectedAssetBySourceSlot(t 
 	seedGenerationTaskProject(t, dbPath, projectID)
 	seedGenerationTaskAsset(t, dbPath, "image-a", "image", projectID)
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:           taskID,
 		ProjectID:    projectID,
@@ -1113,7 +1116,7 @@ func TestGenerationTaskServiceDeleteAssetSlotRemovesSelectedAssetBySourceSlot(t 
 }
 
 func TestGenerationTaskServiceRejectsGeneratedAssetWithoutAssetID(t *testing.T) {
-	service := NewGenerationTaskService(filepath.Join(t.TempDir(), "settings.db"), nil)
+	service := newTestGenerationTaskService(t, filepath.Join(t.TempDir(), "settings.db"), nil)
 
 	err := service.Upsert(GenerationTaskRecord{
 		ID:     "task-missing-asset-id",
@@ -1139,6 +1142,7 @@ func seedGenerationTaskProject(t *testing.T, dbPath string, projectID string) {
 		return
 	}
 	db, err := repository.OpenWorkspaceDB(dbPath)
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -1163,6 +1167,7 @@ func seedGenerationTaskAsset(t *testing.T, dbPath string, id string, kind string
 	}
 	seedGenerationTaskProject(t, dbPath, projectID)
 	db, err := repository.OpenWorkspaceDB(dbPath)
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -1215,7 +1220,7 @@ func generationTaskAssetMIMEType(kind string) string {
 
 func TestGenerationTaskServiceUpsertExistingDoesNotResurrectDeletedTask(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "settings.db")
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 
 	taskID := "task-generating"
 	if err := service.Upsert(GenerationTaskRecord{
@@ -1281,7 +1286,7 @@ func TestGenerationTaskServiceManualSelectReplacesOtherTaskSelectionForResource(
 	seedGenerationTaskAsset(t, dbPath, "new-image-a", "image", projectID)
 	seedGenerationTaskAsset(t, dbPath, "new-image-b", "image", projectID)
 
-	service := NewGenerationTaskService(dbPath, nil)
+	service := newTestGenerationTaskService(t, dbPath, nil)
 	if err := service.Upsert(GenerationTaskRecord{
 		ID:           "task-old-pick",
 		ProjectID:    projectID,

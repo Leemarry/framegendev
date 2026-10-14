@@ -6,10 +6,12 @@ import (
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestWorkspaceRepositoryProjectAndOperationLogLifecycle(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -100,6 +102,7 @@ func TestWorkspaceRepositoryProjectAndOperationLogLifecycle(t *testing.T) {
 
 func TestWorkspaceRepositoryProjectLifecycleFieldsMigrate(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -130,6 +133,7 @@ func TestWorkspaceRepositoryProjectLifecycleFieldsMigrate(t *testing.T) {
 
 func TestWorkspaceRepositoryProjectStatusLifecycle(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -240,6 +244,7 @@ func TestWorkspaceRepositoryProjectStatusLifecycle(t *testing.T) {
 
 func TestWorkspaceRepositoryDeletesDeprecatedStudioCapabilityProjects(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}
@@ -326,6 +331,7 @@ func TestWorkspaceRepositoryDeletesDeprecatedStudioCapabilityProjects(t *testing
 
 func TestWorkspaceRepositoryUpdatesProjectStorageLocation(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}

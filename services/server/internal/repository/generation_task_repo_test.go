@@ -7,10 +7,14 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestGenerationTaskRepositoryLifecycle(t *testing.T) {
 	repo, err := NewGenerationTaskRepository(filepath.Join(t.TempDir(), "workspace.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
 	if err != nil {
 		t.Fatalf("NewGenerationTaskRepository() error = %v", err)
 	}
@@ -212,6 +216,9 @@ func TestGenerationTaskRepositoryLifecycle(t *testing.T) {
 
 func TestGenerationTaskRepositoryListDefaultLimitAndOffset(t *testing.T) {
 	repo, err := NewGenerationTaskRepository(filepath.Join(t.TempDir(), "workspace.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
 	if err != nil {
 		t.Fatalf("NewGenerationTaskRepository() error = %v", err)
 	}
@@ -308,6 +315,9 @@ func generationTaskModelIDs(tasks []domain.GenerationTaskModel) []string {
 
 func TestGenerationTaskRepositoryListsBatchInItemOrder(t *testing.T) {
 	repo, err := NewGenerationTaskRepository(filepath.Join(t.TempDir(), "workspace.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
 	if err != nil {
 		t.Fatalf("NewGenerationTaskRepository() error = %v", err)
 	}

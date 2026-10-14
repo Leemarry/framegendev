@@ -1,5 +1,12 @@
 @layer theme {
 	:root {
+		--user-menu-surface: var(--slate-0);
+		--project-sidebar-surface: var(--slate-25);
+		--project-card-surface: var(--slate-0);
+		--project-create-surface: var(--slate-0);
+		--project-create-accent: var(--blue-100);
+		--project-navigation-active: var(--blue-100);
+		--project-search-surface: var(--blue-50);
 		/* ============================================================
 		   原始 Token · 调色板  PRIMITIVE / Palette
 		   只描述「值」;语义层一律通过 var() 引用,换肤只改这里。
@@ -367,6 +374,13 @@
 	}
 
 	:root[data-theme="dark"] {
+		--user-menu-surface: var(--ink-700);
+		--project-sidebar-surface: rgb(25 27 27);
+		--project-card-surface: rgb(38 41 46);
+		--project-create-surface: rgb(26 29 30);
+		--project-create-accent: rgb(35 55 91);
+		--project-navigation-active: rgb(31 47 76);
+		--project-search-surface: rgb(31 40 58);
 		/* ===== 原始 Token · 暗色专用调色板(深色中性 ink + 暗色强调) ===== */
 		--ink-100: rgb(223 230 237);
 		--ink-200: rgb(189 194 201);

@@ -11,6 +11,7 @@ import (
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/platform/timestamp"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestProjectAssetFolderPathByIDUsesFilesystemFolderIDs(t *testing.T) {
@@ -28,6 +29,7 @@ func TestProjectAssetFolderPathByIDUsesFilesystemFolderIDs(t *testing.T) {
 
 func TestProjectAssetsSaveListUpdateDelete(t *testing.T) {
 	repos, err := repository.OpenWorkspaceRepositories(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -136,6 +138,7 @@ func requireProjectAssetTestProject(t *testing.T, repo *repository.WorkspaceRepo
 
 func TestProjectAssetsSaveReaderStoresOriginalBasename(t *testing.T) {
 	repos, err := repository.OpenWorkspaceRepositories(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -191,6 +194,7 @@ func TestProjectAssetsSaveReaderStoresOriginalBasename(t *testing.T) {
 func TestProjectAssetsSaveReaderUsesPersistedProjectDir(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "workspace.db")
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -239,6 +243,7 @@ func TestProjectAssetsSaveReaderUsesPersistedProjectDir(t *testing.T) {
 func TestProjectAssetsListImportsLocalWorkFiles(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "workspace.db")
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -281,6 +286,7 @@ func TestProjectAssetsListImportsLocalWorkFiles(t *testing.T) {
 func TestProjectAssetsUpdateFolderMovesLocalWorkFile(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "workspace.db")
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -358,6 +364,7 @@ func TestProjectAssetsUpdateFolderMovesLocalWorkFile(t *testing.T) {
 func TestProjectAssetsListPrunesMissingFiles(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "workspace.db")
 	repos, err := repository.OpenWorkspaceRepositories(dbPath)
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -400,6 +407,7 @@ func TestProjectAssetsListPrunesMissingFiles(t *testing.T) {
 
 func TestProjectAssetsSaveReaderInDirUsesRegisteredProject(t *testing.T) {
 	repos, err := repository.OpenWorkspaceRepositories(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}

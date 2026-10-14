@@ -2,37 +2,58 @@ package acp
 
 import (
 	"bytes"
+	"errors"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
 )
 
-func cleanupACPProcess(cmd *exec.Cmd, stdin io.Closer, stdout io.Closer, logArgs []any, pid int, startedAt time.Time) {
+func cleanupACPProcess(cmd *exec.Cmd, stdin io.Closer, stdout io.Closer, logArgs []any, pid int, startedAt time.Time, closeProcessTree func() error) {
+	if closeProcessTree != nil {
+		defer func() {
+			if err := closeProcessTree(); err != nil {
+				acpLog().Warn("acp process job close failed", append(processLogAttrs(logArgs, pid, startedAt), "error", err)...)
+			}
+		}()
+	}
+	acpLog().Debug("acp process cleanup starting", processLogAttrs(logArgs, pid, startedAt)...)
 	_ = stdin.Close()
-	_ = stdout.Close()
-	if cmd.Process != nil {
-		if err := cmd.Process.Kill(); err != nil {
-			acpLog().Warn("acp process kill failed", append(processLogAttrs(logArgs, pid, startedAt), "error", err)...)
-		}
-	}
-
-	done := make(chan struct{})
+	defer func() { _ = stdout.Close() }()
+	// Keep stdout available to the protocol reader until EOF/Wait. Killing
+	// immediately after closing stdin races agents already exiting on EOF.
+	done := make(chan error, 1)
 	go func() {
-		waitErr := cmd.Wait()
-		attrs := processLogAttrs(logArgs, pid, startedAt)
-		if waitErr != nil {
-			attrs = append(attrs, "wait_error", waitErr)
-		}
-		acpLog().Info("acp process cleaned up", attrs...)
-		close(done)
+		done <- cmd.Wait()
 	}()
-
+	// codex-acp 1.1.2 gives its app-server 2s after stdin closes. Allow that
+	// shutdown to finish before terminating the adapter itself.
+	grace := time.NewTimer(3 * time.Second)
+	defer grace.Stop()
+	var waitErr error
+	forced := false
 	select {
-	case <-done:
-	case <-time.After(2 * time.Second):
-		acpLog().Warn("acp process cleanup still waiting", processLogAttrs(logArgs, pid, startedAt)...)
+	case waitErr = <-done:
+	case <-grace.C:
+		if cmd.Process != nil {
+			forced = true
+			if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+				acpLog().Warn("acp process kill failed", append(processLogAttrs(logArgs, pid, startedAt), "error", err)...)
+			}
+		}
+		select {
+		case waitErr = <-done:
+		case <-time.After(2 * time.Second):
+			acpLog().Warn("acp process cleanup still waiting", append(processLogAttrs(logArgs, pid, startedAt), "forced", forced)...)
+			return
+		}
 	}
+	attrs := append(processLogAttrs(logArgs, pid, startedAt), "forced", forced)
+	if waitErr != nil {
+		attrs = append(attrs, "wait_error", waitErr)
+	}
+	acpLog().Info("acp process cleaned up", attrs...)
 }
 
 func processLogAttrs(logArgs []any, pid int, startedAt time.Time) []any {

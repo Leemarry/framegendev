@@ -1,12 +1,16 @@
 package repository
 
 import (
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 	"path/filepath"
 	"testing"
 )
 
 func TestAPIKeyStoreSetGetAndClear(t *testing.T) {
 	store := NewAPIKeyStore(filepath.Join(t.TempDir(), "settings.sqlite"))
+	if store != nil {
+		testutil.CloseDB(t, store.db)
+	}
 
 	value, source, err := store.Get("openrouter")
 	if err != nil {

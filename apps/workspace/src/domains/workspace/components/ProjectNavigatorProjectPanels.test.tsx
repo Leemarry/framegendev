@@ -184,13 +184,28 @@ describe("ProjectSidebarPanel", () => {
 		expect(onOpenNewDocument).toHaveBeenCalledWith("reference");
 	});
 
-	it("right-aligns footer actions on home and project sidebars", () => {
+	it("exposes project navigation and the shared user menu", () => {
 		const projectSidebar = renderProjectSidebar(true);
-		expect(footerActionRowClassName()).toContain("justify-end");
+		expect(screen.getByRole("button", { name: "打开素材库" })).toHaveTextContent("项目素材库");
+		expect(screen.getByRole("button", { name: "打开生成历史" })).toHaveTextContent("项目生成历史");
+		expect(screen.getByRole("button", { name: "项目设置" })).toBeTruthy();
+		expect(screen.getByRole("button", { name: "本地用户菜单" })).toBeTruthy();
 		projectSidebar.unmount();
 
-		renderProjectsSidebar();
-		expect(footerActionRowClassName()).toContain("justify-end");
+		const onOpenSettings = vi.fn();
+		const onOpenProjects = vi.fn();
+		renderProjectsSidebar({ onOpenSettings, onOpenProjects });
+		expect(screen.getByRole("button", { name: "打开素材库" })).toHaveTextContent("素材库");
+		expect(screen.getByRole("button", { name: "打开生成历史" })).toHaveTextContent("生成历史");
+		fireEvent.click(screen.getByRole("button", { name: "项目管理" }));
+		expect(onOpenProjects).toHaveBeenCalledOnce();
+		fireEvent.pointerDown(screen.getByRole("button", { name: "本地用户菜单" }), {
+			button: 0,
+			ctrlKey: false,
+			pointerType: "mouse",
+		});
+		fireEvent.click(screen.getByRole("menuitem", { name: "软件设置" }));
+		expect(onOpenSettings).toHaveBeenCalledOnce();
 	});
 
 	it("shows a return action when the selected project does not exist", () => {
@@ -277,6 +292,7 @@ const renderProjectsSidebar = (
 ) =>
 	render(
 		<ProjectsSidebarPanel
+			onOpenSkills={vi.fn()}
 			isCreating={false}
 			isLoading={false}
 			locationPathname="/"
@@ -294,6 +310,3 @@ const renderProjectsSidebar = (
 
 const documentItemClassName = (name = "第一集") =>
 	(screen.getByRole("button", { name }).parentElement as HTMLElement).className;
-
-const footerActionRowClassName = () =>
-	(screen.getByRole("button", { name: "设置" }).parentElement as HTMLElement).className;

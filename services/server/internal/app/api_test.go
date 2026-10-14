@@ -25,6 +25,7 @@ import (
 	servicegeneration "github.com/mediago-dev/mediago-drama/services/server/internal/service/generation"
 	servicemedia "github.com/mediago-dev/mediago-drama/services/server/internal/service/media"
 	serviceselection "github.com/mediago-dev/mediago-drama/services/server/internal/service/selection"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 var testSessionProjects sync.Map
@@ -53,6 +54,7 @@ func TestAPIHandler(t *testing.T) {
 	t.Run("Codex skill inventory is read only and separate from prompt pack skills", func(t *testing.T) {
 		home := t.TempDir()
 		t.Setenv("HOME", home)
+		t.Setenv("USERPROFILE", home)
 		t.Setenv("CODEX_HOME", filepath.Join(home, ".codex"))
 		skillDir := filepath.Join(home, ".agents", "skills", "route-check")
 		if err := os.MkdirAll(skillDir, 0o755); err != nil {
@@ -444,8 +446,8 @@ func TestAPIHandler(t *testing.T) {
 	t.Run("episode preview serves generated timeline video", func(t *testing.T) {
 		dbPath := filepath.Join(t.TempDir(), "settings.db")
 		ffmpegPath := filepath.Join(t.TempDir(), "ffmpeg")
-		writeFakeFFmpegForTest(t, ffmpegPath)
-		previewHandler := NewHandlerWithConfig(
+		ffmpegPath = writeFakeFFmpegForTest(t, ffmpegPath)
+		previewHandler := newIsolatedHandler(t,
 			fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 			Config{
 				SettingsDBPath:          dbPath,
@@ -912,7 +914,7 @@ func TestAPIHandler(t *testing.T) {
 
 	t.Run("document operations passes project id to runner", func(t *testing.T) {
 		requests := make(chan documentOperationsRequest, 1)
-		projectHandler := NewHandlerWithConfig(
+		projectHandler := newIsolatedHandler(t,
 			fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 			Config{
 				SettingsDBPath:          filepath.Join(t.TempDir(), "settings.db"),
@@ -939,7 +941,7 @@ func TestAPIHandler(t *testing.T) {
 	})
 
 	t.Run("document operations endpoint falls back after invalid runner response", func(t *testing.T) {
-		fallbackHandler := NewHandlerWithConfig(
+		fallbackHandler := newIsolatedHandler(t,
 			fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 			Config{
 				SettingsDBPath:          filepath.Join(t.TempDir(), "settings.db"),
@@ -1023,7 +1025,7 @@ func TestAPIHandler(t *testing.T) {
 
 	t.Run("message passes runtime config selections to runner", func(t *testing.T) {
 		requests := make(chan agentRunRequest, 1)
-		agentHandler := NewHandlerWithConfig(
+		agentHandler := newIsolatedHandler(t,
 			fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 			Config{
 				SettingsDBPath:          filepath.Join(t.TempDir(), "settings.db"),
@@ -1054,7 +1056,7 @@ func TestAPIHandler(t *testing.T) {
 
 	t.Run("message accepts document category context", func(t *testing.T) {
 		requests := make(chan agentRunRequest, 1)
-		agentHandler := NewHandlerWithConfig(
+		agentHandler := newIsolatedHandler(t,
 			fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 			Config{
 				SettingsDBPath:          filepath.Join(t.TempDir(), "settings.db"),
@@ -1089,7 +1091,7 @@ func TestAPIHandler(t *testing.T) {
 	t.Run("message uses backend-owned fixed system prompt", func(t *testing.T) {
 		requests := make(chan agentRunRequest, 1)
 		workspaceDir := filepath.Join(t.TempDir(), "workspace")
-		agentHandler := NewHandlerWithConfig(
+		agentHandler := newIsolatedHandler(t,
 			fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 			Config{
 				SettingsDBPath:          filepath.Join(t.TempDir(), "settings.db"),
@@ -1126,7 +1128,7 @@ func TestAPIHandler(t *testing.T) {
 	t.Run("message passes project directory to runner", func(t *testing.T) {
 		requests := make(chan agentRunRequest, 1)
 		workspaceDir := filepath.Join(t.TempDir(), "workspace")
-		agentHandler := NewHandlerWithConfig(
+		agentHandler := newIsolatedHandler(t,
 			fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 			Config{
 				SettingsDBPath:          filepath.Join(t.TempDir(), "settings.db"),
@@ -1871,7 +1873,7 @@ func TestCancelRunImmediatelyCancelsPendingSelections(t *testing.T) {
 	started := make(chan agentRunRequest, 1)
 	release := make(chan struct{})
 	defer close(release)
-	rawHandler := NewHandlerWithConfig(
+	rawHandler := newIsolatedHandler(t,
 		fstest.MapFS{"index.html": {Data: []byte("<html>workspace</html>")}},
 		Config{
 			SettingsDBPath:          filepath.Join(t.TempDir(), "settings.db"),
@@ -1952,7 +1954,7 @@ func TestCancelRunImmediatelyCancelsPendingSelections(t *testing.T) {
 func newTestHandler(t *testing.T, dbPath string) http.Handler {
 	t.Helper()
 
-	handler := NewHandlerWithConfig(
+	handler := newIsolatedHandler(t,
 		fstest.MapFS{
 			"index.html": {
 				Data: []byte("<html>workspace</html>"),
@@ -2114,22 +2116,9 @@ func uploadImageAssetForTest(t *testing.T, handler http.Handler, projectID strin
 	return envelope.Data
 }
 
-func writeFakeFFmpegForTest(t *testing.T, path string) {
+func writeFakeFFmpegForTest(t *testing.T, path string) string {
 	t.Helper()
-	script := `#!/bin/sh
-last=""
-for arg in "$@"; do
-	last="$arg"
-done
-if [ "$last" = "pipe:1" ]; then
-	printf fragmented-mp4
-else
-	printf rendered-mp4 > "$last"
-fi
-`
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
-		t.Fatalf("writing fake ffmpeg: %v", err)
-	}
+	return testutil.WriteExecutable(t, path, testutil.ExecutableFixture{Mode: "ffmpeg"})
 }
 
 func listProjectCountForTest(t *testing.T, handler http.Handler) int {

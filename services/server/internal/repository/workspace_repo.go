@@ -337,6 +337,9 @@ func (repo *WorkspaceRepository) PermanentlyDeleteProject(projectID string) (boo
 		if err := tx.Delete(&domain.ProjectReferenceAssetModel{}, "project_id = ?", projectID).Error; err != nil {
 			return fmt.Errorf("deleting project assets: %w", err)
 		}
+		if err := tx.Delete(&domain.AssetLibraryFolderModel{}, "project_id = ?", projectID).Error; err != nil {
+			return fmt.Errorf("deleting project library folders: %w", err)
+		}
 
 		if err := tx.Delete(&domain.AgentSessionModel{}, "project_id = ?", projectID).Error; err != nil {
 			return fmt.Errorf("deleting agent sessions: %w", err)

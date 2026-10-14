@@ -12,6 +12,7 @@ import (
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/service/promptpack"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestStoreSeedsBuiltinPromptEntries(t *testing.T) {
@@ -173,6 +174,7 @@ func TestStoreRejectsInvalidListFilter(t *testing.T) {
 func TestStoreBrowsableIndexOmitsBodiesAndRejectsImportedDetails(t *testing.T) {
 	ctx := context.Background()
 	repos, err := repository.OpenSettingsRepositories(filepath.Join(t.TempDir(), "settings.sqlite"))
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenSettingsRepositories() error = %v", err)
 	}
@@ -222,6 +224,7 @@ func TestStoreBrowsableIndexOmitsBodiesAndRejectsImportedDetails(t *testing.T) {
 func newTestStore(t *testing.T) *Service {
 	t.Helper()
 	repos, err := repository.OpenSettingsRepositories(filepath.Join(t.TempDir(), "settings.sqlite"))
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenSettingsRepositories() error = %v", err)
 	}

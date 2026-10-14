@@ -2,6 +2,10 @@
 
 @import "./reset.css" layer(reset);
 @import "./tokens.css";
+@import "./projects.css";
+@import "./user-menu.css";
+@import "./workspace-shell.css";
+@import "./asset-library.css";
 @import "@xterm/xterm/css/xterm.css";
 @import "./locked-heading.css";
 @import "./tailwind.css";

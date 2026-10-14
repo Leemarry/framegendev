@@ -76,6 +76,7 @@ export const SidebarContentLayout: React.FC<SidebarContentLayoutProps> = ({
 					)}
 					style={{ width: sidebarHidden ? 0 : resolvedSidebarWidth }}
 					aria-hidden={sidebarHidden}
+					inert={sidebarHidden}
 					onPointerDown={startSidebarWindowDrag}
 				>
 					{sidebar}

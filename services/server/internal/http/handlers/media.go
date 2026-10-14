@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -65,6 +66,7 @@ func (handler MediaAssets) HandleProjectMediaAssets(context *gin.Context) {
 // @Param file formData file true "Media file"
 // @Param kind formData string false "Media kind"
 // @Param name formData string false "Display name"
+// @Param folderId formData string false "Logical folder owned by the upload scope"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
@@ -77,9 +79,13 @@ func (handler MediaAssets) HandleUploadMediaAsset(context *gin.Context) {
 		return
 	}
 
-	asset, err := handler.service.SaveMultipartFile(file, optionalProjectID(context))
+	asset, err := handler.service.SaveMultipartFile(context.Request.Context(), file, optionalProjectID(context), context.PostForm("folderId"))
 	if err != nil {
-		httpresponse.ErrorFromStatus(context, http.StatusBadRequest, err)
+		if errors.Is(err, service.ErrLibraryFolderNotFound) {
+			httpresponse.ErrorFromStatus(context, http.StatusNotFound, err)
+		} else {
+			httpresponse.ErrorFromStatus(context, http.StatusBadRequest, err)
+		}
 		return
 	}
 
@@ -96,6 +102,7 @@ func (handler MediaAssets) HandleUploadMediaAsset(context *gin.Context) {
 // @Param file formData file true "Media file"
 // @Param kind formData string false "Media kind"
 // @Param name formData string false "Display name"
+// @Param folderId formData string false "Logical folder owned by the project"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
@@ -217,7 +224,7 @@ func (handler MediaAssets) HandleProjectMediaAssetPoster(context *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param assetId path string true "Asset ID"
-// @Param payload body SwaggerObject true "Media asset patch"
+// @Param payload body SwaggerObject true "filename/tags/note/rating/folderId; omitted/null unchanged; empty folderId returns to root"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 404 {object} SwaggerEnvelope
@@ -236,9 +243,16 @@ func (handler MediaAssets) HandleUpdateMediaAsset(context *gin.Context) {
 		return
 	}
 
-	asset, ok, err := handler.service.UpdateFilename(id, payload.Filename)
+	asset, ok, err := handler.service.Update(id, optionalProjectID(context), payload)
 	if err != nil {
-		httpresponse.ErrorFromStatus(context, http.StatusBadRequest, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, service.ErrInvalidMediaAssetUpdate) {
+			status = http.StatusBadRequest
+		}
+		if errors.Is(err, service.ErrLibraryFolderNotFound) {
+			status = http.StatusNotFound
+		}
+		httpresponse.ErrorFromStatus(context, status, err)
 		return
 	}
 	if !ok {
@@ -257,7 +271,7 @@ func (handler MediaAssets) HandleUpdateMediaAsset(context *gin.Context) {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Param assetId path string true "Asset ID"
-// @Param payload body SwaggerObject true "Media asset patch"
+// @Param payload body SwaggerObject true "filename/tags/note/rating/folderId; scope must own asset and target folder"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 404 {object} SwaggerEnvelope
@@ -284,7 +298,7 @@ func (handler MediaAssets) HandleDeleteMediaAsset(context *gin.Context) {
 		return
 	}
 
-	deleted, err := handler.service.Delete(id)
+	deleted, err := handler.service.DeleteInScope(id, optionalProjectID(context))
 	if err != nil {
 		httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
 		return

@@ -142,6 +142,8 @@ export const filterAssetLibraryItems = (
 			item.mediaAsset?.relativePath ?? "",
 			item.mediaAsset?.conversationId ?? "",
 			item.mediaAsset?.sectionId ?? "",
+			item.mediaAsset?.note ?? "",
+			...(item.mediaAsset?.tags ?? []),
 			...item.selectedResourceTypes,
 		].some((value) => value.toLowerCase().includes(normalizedQuery));
 	});

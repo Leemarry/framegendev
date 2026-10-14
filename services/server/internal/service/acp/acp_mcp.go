@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	acp "github.com/coder/acp-go-sdk"
@@ -200,6 +201,13 @@ func documentMCPExecutable() (string, error) {
 // generation) by probing the running executable's directory and workspace
 // ancestor bin/ directories.
 func mcpExecutable(binaryName string) (string, error) {
+	return resolveMCPExecutable(binaryName, runtime.GOOS)
+}
+
+func resolveMCPExecutable(binaryName string, goos string) (string, error) {
+	if goos == "windows" && !strings.HasSuffix(strings.ToLower(binaryName), ".exe") {
+		binaryName += ".exe"
+	}
 	executable, err := processExecutablePath()
 	if err != nil {
 		return "", err

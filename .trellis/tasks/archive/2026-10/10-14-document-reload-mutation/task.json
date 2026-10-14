@@ -1,0 +1,30 @@
+{
+  "id": "document-reload-mutation",
+  "name": "document-reload-mutation",
+  "title": "TASK-004 document reload changes persisted content",
+  "description": "Without edits, browser reload increments document version and appends empty paragraphs; TASK-001 persistence acceptance cannot pass.",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-14",
+  "completedAt": "2026-10-14",
+  "branch": "codex/task-004-document-reload",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "ledger_id": "TASK-004",
+    "acceptance": "passed",
+    "next_task": "TASK-002"
+  }
+}

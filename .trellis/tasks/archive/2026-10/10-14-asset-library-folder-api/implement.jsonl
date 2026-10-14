@@ -1,0 +1,2 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Central schema, scope and unchanged physical identities"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Existing HTTP envelope and safe status mapping"}

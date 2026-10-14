@@ -7,6 +7,7 @@ import (
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestSessionServiceRunsOneAgentAtATime(t *testing.T) {
@@ -256,6 +257,7 @@ func TestSessionServicePersistsAndClearsACPInstructionState(t *testing.T) {
 func newTestAgentSessionRepository(t *testing.T) *repository.AgentSessionRepository {
 	t.Helper()
 	db, err := repository.OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("opening workspace database: %v", err)
 	}

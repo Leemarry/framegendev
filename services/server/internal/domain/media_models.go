@@ -9,6 +9,10 @@ type AssetModel struct {
 	Kind            string    `gorm:"column:kind;not null;index:assets_kind_idx"`
 	ContentHash     string    `gorm:"column:content_hash;not null;default:'';index:assets_content_hash_idx"`
 	Filename        string    `gorm:"column:filename;not null"`
+	TagsJSON        string    `gorm:"column:tags_json;not null;default:'[]'"`
+	Note            string    `gorm:"column:note;not null;default:''"`
+	Rating          int       `gorm:"column:rating;not null;default:0"`
+	LibraryFolderID string    `gorm:"column:library_folder_id;not null;default:'';index:assets_library_folder_idx"`
 	MIMEType        string    `gorm:"column:mime_type;not null"`
 	SizeBytes       int64     `gorm:"column:size_bytes;not null"`
 	RelPath         string    `gorm:"column:rel_path;not null;default:''"`
@@ -32,3 +36,16 @@ type AssetModel struct {
 func (AssetModel) TableName() string {
 	return "assets"
 }
+
+// AssetLibraryFolderModel stores logical media classification independently of document folders.
+type AssetLibraryFolderModel struct {
+	ID        string    `gorm:"column:id;primaryKey" json:"id"`
+	ProjectID string    `gorm:"column:project_id;not null;default:'';uniqueIndex:asset_library_folder_name,priority:1" json:"projectId"`
+	ParentID  string    `gorm:"column:parent_id;not null;default:'';uniqueIndex:asset_library_folder_name,priority:2" json:"parentId"`
+	Name      string    `gorm:"column:name;not null;uniqueIndex:asset_library_folder_name,priority:3" json:"name"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime:nano" json:"createdAt"`
+	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime:nano" json:"updatedAt"`
+}
+
+// TableName returns the logical library folder table.
+func (AssetLibraryFolderModel) TableName() string { return "asset_library_folders" }

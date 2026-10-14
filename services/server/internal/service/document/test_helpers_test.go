@@ -6,10 +6,13 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
-func newWorkspaceStateService(workspaceDir string) *Service {
+func newWorkspaceStateService(t *testing.T, workspaceDir string) *Service {
+	t.Helper()
 	db, err := repository.OpenWorkspaceDB(filepath.Join(workspaceDir, "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		return NewService(workspaceDir, nil, nil, err)
 	}
@@ -21,7 +24,7 @@ func newWorkspaceStateService(workspaceDir string) *Service {
 
 func requireDocumentStore(t *testing.T) *Service {
 	t.Helper()
-	store := newWorkspaceStateService(t.TempDir())
+	store := newWorkspaceStateService(t, t.TempDir())
 	if store.initErr != nil {
 		t.Fatalf("initializing document store: %v", store.initErr)
 	}

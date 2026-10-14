@@ -8,6 +8,9 @@ import { useWorkModeStore } from "@/lib/stores/work-mode";
 const Projects = lazy(() =>
 	import("@/pages/Projects").then((module) => ({ default: module.Projects })),
 );
+const AssetLibrary = lazy(() =>
+	import("@/pages/AssetLibrary").then((module) => ({ default: module.AssetLibrary })),
+);
 const Settings = lazy(() =>
 	import("@/pages/Settings").then((module) => ({ default: module.Settings })),
 );
@@ -59,6 +62,7 @@ function LegacyWorkspaceRouteRedirect() {
 const routes: RouteObject[] = [
 	{ path: "/", element: <RootShell /> },
 	{ path: "/projects", element: <Home /> },
+	{ path: "/assets", element: <AssetLibrary /> },
 	{ path: "/toolbox", element: <StudioHome /> },
 	{ path: "/toolbox/image", element: <StudioImage /> },
 	{ path: "/toolbox/video", element: <StudioVideo /> },

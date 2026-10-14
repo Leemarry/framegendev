@@ -5,12 +5,30 @@ import (
 
 	appevents "github.com/mediago-dev/mediago-drama/services/server/internal/app/events"
 	appworkspace "github.com/mediago-dev/mediago-drama/services/server/internal/app/workspace"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	serviceagent "github.com/mediago-dev/mediago-drama/services/server/internal/service/agent"
 	servicemodel "github.com/mediago-dev/mediago-drama/services/server/internal/service/model"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
-func TestLoadAgentEventsReplaysExternalProjectEvents(t *testing.T) {
+func newTestEventStore(t *testing.T) *appworkspace.WorkspaceStateService {
+	t.Helper()
 	store := appworkspace.NewStateService(t.TempDir())
+	db, err := repository.OpenGormSQLite(store.DatabasePath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	testutil.CloseDB(t, db)
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Errorf("closing event test store: %v", err)
+		}
+	})
+	return store
+}
+
+func TestLoadAgentEventsReplaysExternalProjectEvents(t *testing.T) {
+	store := newTestEventStore(t)
 	if store.InitErr() != nil {
 		t.Fatalf("initializing workspace store: %v", store.InitErr())
 	}
@@ -54,7 +72,7 @@ func TestLoadAgentEventsReplaysExternalProjectEvents(t *testing.T) {
 }
 
 func TestBrokerPersistsSequencedDeltaForReplay(t *testing.T) {
-	store := appworkspace.NewStateService(t.TempDir())
+	store := newTestEventStore(t)
 	if store.InitErr() != nil {
 		t.Fatalf("initializing workspace store: %v", store.InitErr())
 	}

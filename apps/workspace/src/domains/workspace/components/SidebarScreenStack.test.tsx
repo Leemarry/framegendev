@@ -22,12 +22,27 @@ const screens = Object.keys(levels).map((id) => ({
 })) as Array<{ id: SidebarScreenId; level: number; node: React.ReactNode }>;
 
 const activeSection = (container: HTMLElement, label: string) => {
-	const screen = container.querySelector(`section:not([aria-hidden="true"])`);
+	const screen = container.querySelector("section:not([inert])");
 	expect(screen?.textContent).toBe(label);
 	return screen as HTMLElement;
 };
 
 describe("SidebarScreenStack", () => {
+	it("makes only the active screen interactive throughout navigation", () => {
+		const { container, rerender } = render(
+			<SidebarScreenStack activeId="project" screens={screens} />,
+		);
+
+		for (const id of ["project", "settings", "project", "projects"]) {
+			rerender(<SidebarScreenStack activeId={id} screens={screens} />);
+			expect(container.querySelectorAll("section:not([inert])")).toHaveLength(1);
+			expect(activeSection(container, id)).not.toHaveAttribute("inert");
+			for (const section of container.querySelectorAll("section[inert]")) {
+				expect(section.getAttribute("data-sidebar-screen")).not.toBe(id);
+			}
+		}
+	});
+
 	it("switches root work modes without slide transitions", () => {
 		const { container, rerender } = render(
 			<SidebarScreenStack activeId="projects" screens={screens} />,

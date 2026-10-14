@@ -13,6 +13,7 @@ import (
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/service/settings"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestCreateGenerationBatchPersistsOrderedChildTasks(t *testing.T) {
@@ -158,6 +159,7 @@ func TestCreateGenerationBatchValidatesStructureBeforeSubmission(t *testing.T) {
 func newGenerationBatchTestWorkflow(t *testing.T) (*GenerationService, *GenerationTaskService) {
 	t.Helper()
 	db, err := repository.OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}

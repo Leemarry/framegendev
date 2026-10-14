@@ -263,3 +263,34 @@ pnpm build         # tsc -b && vite build  (runs typecheck)
 All three must pass before declaring a change complete.
 
 <!-- one ai-guides:end -->
+
+## 官方 0.1.17 对齐项目
+
+本节为项目自定义指引，位于 One CLI 受管片段之外。
+
+- 唯一开发目录：`E:\AI\framegendev`。原始源码目录和截图目录仅作为参考。
+- 每次续作先读 `docs/parity-0.1.17/README.md`、`REQUIREMENTS.md`、`TASKS.md` 和 `DECISIONS.md`，再检查 Git 状态及当前任务涉及的实际源码。
+- 用户目标：界面、交互、功能对齐官方 0.1.17；账户、会员、积分、充值、商城保留官方页面结构，提供实际可用的本地能力，商业服务明确标记待接入。
+- 原始交接：`E:\AI\mediago-gap-shots\HANDOFF.md`、`GAP-ANALYSIS.md` 和 `exe-flow\`。差异分析是历史参考，不能替代当前代码核实。
+- 新需求先分配稳定需求编号，记录原意、来源、验收条件、关联任务；修改实现前更新任务状态。完成后补充实际改动、验证结果和剩余差距。
+- 界面、交互、功能分别验收；存在按钮、样例数据或通过单元测试不代表真实流程完成。没有外部接口的功能不得用模拟成功冒充可用。
+- 不读写或清理 `%APPDATA%\mediago-drama\workspace-v2`。运行前确认实际数据目录，测试用独立目录，不对真实项目发送 Agent 或生成任务。
+- 遵循实际 `domains/*`、`shared/*` 目录和现有 API。本指南模板中的示例路径与源码不一致时，以已核实的实际实现为准。
+- 使用 Superpowers 进行头脑风暴、分模块设计和实施规划；已有技能无需重复安装。按当前会话授权执行，优先复用代码，避免重复实现。
+- 用户已确认的目标与偏好持续有效；常规实现细节自行处理，涉及实际范围歧义或外部服务时提出具体问题，避免反复确认同一事项。
+- 每次交接必须更新任务表的当前任务、下一步、阻塞项和验证记录；不得把未运行的检查记为通过。
+- 持续自动推进授权（2026-10-14，DEC-023）：按台账、真实依赖和核心流程优先级自行选择下一单项，完成设计/计划后实际开发、验收、记录，完成后自动接下一项，不逐项询问是否继续或重复要求批准常规设计/实施。每份计划仍只覆盖一个独立可验收任务。
+- 遇到问题标记待开发/待接入/待验收/阻塞，记录原因、证据与恢复条件；同项可修复的问题继续修复，确实受阻则保留未完成状态，继续无依赖任务。检查失败不得标完成或归档。TASK-010原设计保持待评审，跳过后继续其他任务；此授权不扩展到真实登录、生产数据、付费、外部发送或不可逆操作。
+
+## Trellis 项目工作流
+
+- 漫剧制作相关任务先读[制作与生成追溯指南](.trellis/spec/guides/comic-production.md)和[自动化工作台v2设计](docs/superpowers/specs/2026-10-14-automation-workbench-design.md)。沿现有章节生成/采用/引用与prompt-presets扩展；主脸确认、角色模板、镜头脚本手改、小数秒/图片停留和真实生成记录按REQ-036、038~041核实。指南中的新能力仍待开发，参考文稿不作执行授权。
+- 可迁移资料包入口：`E:/AI/MediaGo Drama/漫剧自动化工作台-设计与开发资料/README.md`（REQ-042/043、DEC-027）。包含原图、两版设计、架构/可行性/候选路线及代码证据；用户明确这些新增能力后续不一定开发，先保存参考。不把资料包当功能实施授权，后续按新指令核实实时源码与单项范围。
+
+- Trellis 仅安装在本项目；入口为 `.trellis/workflow.md`，使用说明为 `docs/parity-0.1.17/TRELLIS.md`。
+- 每次启动或续作读取 `.agents/skills/trellis-start/SKILL.md`，运行 `python -X utf8 .trellis/scripts/get_context.py` 和 `python -X utf8 .trellis/scripts/get_context.py --mode phase`；再读相关 `.trellis/spec/frontend/index.md`、`backend/index.md` 和 `guides/project-workflow.md`。即使自动 hooks 未启用，也执行这些读取步骤。
+- 产品需求与稳定编号以 `docs/parity-0.1.17/` 为准；Trellis 任务引用原文，保存本任务的范围、设计、计划、实现与验收记录，避免重复维护需求全文。
+- 用户已授权引入 Trellis 和持续记录任务；在此范围内创建或更新任务不必重复申请。执行前检查既有授权；实质范围歧义再提问。模型接入首项设计仍待评审，不把工具接入当作产品设计批准。
+- Superpowers 用于需求思考和模块设计，Trellis 用于任务生命周期、项目规范和会话记录；同一模块共用一份设计和计划。
+- `.trellis/config.yaml` 已设 `codex.dispatch_mode: inline` 和 `session_auto_commit: false`。默认在当前会话实施与检查，不启动并行 agent；未经明确指示不暂存、提交或推送。
+- 结束前更新台账与任务材料，记录已执行验证及下一步，使用 `add_session.py --commit "-" --no-commit` 记录会话；任务完成后可用 `task.py archive <任务> --no-commit` 归档。提交环节按当前用户授权处理，不以未提交阻止记录交接。

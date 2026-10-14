@@ -10,11 +10,13 @@ import (
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func newAgentExecutionRepositoryTest(t *testing.T) (*AgentExecutionRepository, string, string) {
 	t.Helper()
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.sqlite"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceDB() error = %v", err)
 	}

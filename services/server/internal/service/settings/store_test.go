@@ -15,6 +15,7 @@ import (
 
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation"
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation/libtv"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 type memoryAPIKeyStore struct {
@@ -309,11 +310,7 @@ func TestSettingsClearJimengAPIKeyRunsLogout(t *testing.T) {
 	settings := NewSettings(store)
 	tempDir := t.TempDir()
 	argsPath := filepath.Join(tempDir, "args.log")
-	binPath := filepath.Join(tempDir, "dreamina")
-	script := fmt.Sprintf("#!/bin/sh\nprintf '%%s\\n' \"$*\" >> %q\nexit 0\n", argsPath)
-	if err := os.WriteFile(binPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("writing fake jimeng CLI: %v", err)
-	}
+	binPath := testutil.WriteExecutable(t, filepath.Join(tempDir, "dreamina"), testutil.ExecutableFixture{Mode: "logout", ArgsPath: argsPath})
 	settings.SetJimengCLIPaths(binPath, "")
 
 	list, err := settings.ClearAPIKey(context.Background(), "jimeng")
@@ -339,11 +336,7 @@ func TestSettingsClearLibTVAPIKeyRunsLogout(t *testing.T) {
 	settings.SetGenerationCLIs([]string{"libtv"})
 	tempDir := t.TempDir()
 	argsPath := filepath.Join(tempDir, "args.log")
-	binPath := filepath.Join(tempDir, "libtv")
-	script := fmt.Sprintf("#!/bin/sh\nprintf '%%s\\n' \"$*\" >> %q\nexit 0\n", argsPath)
-	if err := os.WriteFile(binPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("writing fake libtv CLI: %v", err)
-	}
+	binPath := testutil.WriteExecutable(t, filepath.Join(tempDir, "libtv"), testutil.ExecutableFixture{Mode: "logout", ArgsPath: argsPath})
 	settings.SetLibTVCLIPaths(binPath, "")
 
 	list, err := settings.ClearAPIKey(context.Background(), "libtv")
@@ -365,17 +358,7 @@ func TestSettingsClearLibTVAPIKeyRunsLogout(t *testing.T) {
 
 func TestSettingsBeginJimengLoginStoresOAuthMarkerWhenSessionExists(t *testing.T) {
 	settings := NewSettings(&memoryAPIKeyStore{values: map[string]string{}})
-	binPath := filepath.Join(t.TempDir(), "dreamina")
-	script := `#!/bin/sh
-if [ "$1" = "login" ] && [ "$2" = "--headless" ] && [ "$#" -eq 2 ]; then
-  echo '已复用当前本地 OAuth 登录态。'
-  exit 0
-fi
-exit 1
-`
-	if err := os.WriteFile(binPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("writing fake jimeng CLI: %v", err)
-	}
+	binPath := testutil.WriteExecutable(t, filepath.Join(t.TempDir(), "dreamina"), testutil.ExecutableFixture{Mode: "jimeng-reuse"})
 	settings.SetJimengCLIPaths(binPath, "")
 
 	result, err := settings.BeginJimengLogin(context.Background(), false)
@@ -399,24 +382,7 @@ func TestSettingsJimengHeadlessLoginReturnsChallengeAndCompletes(t *testing.T) {
 	settings := NewSettings(store)
 	tempDir := t.TempDir()
 	argsPath := filepath.Join(tempDir, "args.log")
-	binPath := filepath.Join(tempDir, "dreamina")
-	script := fmt.Sprintf(`#!/bin/sh
-printf '%%s\n' "$*" >> %q
-if [ "$1" = "login" ] && [ "$2" = "--headless" ] && [ "$#" -eq 2 ]; then
-  echo "verification_uri: https://example.test/device"
-  echo "user_code: ABCD-EFGH"
-  echo "device_code: device-123"
-  exit 0
-fi
-if [ "$1" = "login" ] && [ "$2" = "checklogin" ]; then
-  echo "即梦本地登录态已可用"
-  exit 0
-fi
-exit 1
-`, argsPath)
-	if err := os.WriteFile(binPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("writing fake jimeng CLI: %v", err)
-	}
+	binPath := testutil.WriteExecutable(t, filepath.Join(tempDir, "dreamina"), testutil.ExecutableFixture{Mode: "jimeng-challenge", ArgsPath: argsPath})
 	settings.SetJimengCLIPaths(binPath, "")
 
 	result, err := settings.BeginJimengLogin(context.Background(), false)
@@ -468,18 +434,7 @@ func TestSettingsBeginLibTVLoginReturnsChallengeAndPersistsAfterCLICompletes(t *
 	store := &memoryAPIKeyStore{values: map[string]string{}}
 	settings := NewSettings(store)
 	settings.SetGenerationCLIs([]string{"libtv"})
-	binPath := filepath.Join(t.TempDir(), "libtv")
-	script := `#!/bin/sh
-if [ "$1" = "login" ] && [ "$2" = "web" ] && [ "$#" -eq 2 ]; then
-  echo "Open https://libtv.example.test/login in your browser"
-  sleep 0.2
-  exit 0
-fi
-exit 1
-`
-	if err := os.WriteFile(binPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("writing fake libtv CLI: %v", err)
-	}
+	binPath := testutil.WriteExecutable(t, filepath.Join(t.TempDir(), "libtv"), testutil.ExecutableFixture{Mode: "libtv-complete"})
 	settings.SetLibTVCLIPaths(binPath, "")
 
 	result, err := settings.BeginLibTVLogin(context.Background(), false)
@@ -520,30 +475,9 @@ func TestSettingsLibTVPendingLoginCanBeReplacedAndClearedForRetry(t *testing.T) 
 	argsPath := filepath.Join(tempDir, "args.log")
 	pidsPath := filepath.Join(tempDir, "pids.log")
 	currentPIDPath := filepath.Join(tempDir, "current.pid")
-	binPath := filepath.Join(tempDir, "libtv")
-	script := fmt.Sprintf(`#!/bin/sh
-printf '%%s\n' "$*" >> %q
-if [ "$1" = "login" ] && [ "$2" = "web" ] && [ "$#" -eq 2 ]; then
-  if [ -f %q ]; then
-    current_pid=$(cat %q)
-    if kill -0 "$current_pid" 2>/dev/null; then
-      echo "LibTV login is already running" >&2
-      exit 23
-    fi
-  fi
-  echo $$ > %q
-  echo $$ >> %q
-  echo "Open https://libtv.example.test/login in your browser"
-  while :; do sleep 1; done
-fi
-if [ "$1" = "logout" ] && [ "$#" -eq 1 ]; then
-  exit 0
-fi
-exit 1
-`, argsPath, currentPIDPath, currentPIDPath, currentPIDPath, pidsPath)
-	if err := os.WriteFile(binPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("writing fake libtv CLI: %v", err)
-	}
+	binPath := testutil.WriteExecutable(t, filepath.Join(tempDir, "libtv"), testutil.ExecutableFixture{
+		Mode: "libtv-block", ArgsPath: argsPath, PIDsPath: pidsPath, CurrentPIDPath: currentPIDPath,
+	})
 	t.Cleanup(func() {
 		output, _ := os.ReadFile(pidsPath)
 		for _, line := range strings.Fields(string(output)) {

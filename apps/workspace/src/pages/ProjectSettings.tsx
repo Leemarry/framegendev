@@ -20,6 +20,13 @@ import { isDesktopRuntime, openProjectDirectory } from "@/domains/projects/lib/p
 import { useDocumentsStore } from "@/domains/documents/stores";
 import { useProjectStore } from "@/domains/projects/stores";
 import { getRouteProjectId } from "@/domains/workspace/lib/workbench-route";
+import { listPromptPacks, promptPacksKey } from "@/domains/settings/api/packs";
+import {
+	projectSettingsGeneralTab,
+	projectSettingsSkillsTab,
+	resolveProjectSettingsTab,
+	useSettingsNavigationStore,
+} from "@/lib/stores/settings";
 
 export const ProjectSettings: React.FC = () => {
 	const location = useLocation();
@@ -33,6 +40,16 @@ export const ProjectSettings: React.FC = () => {
 	const documentsProjectId = useDocumentsStore((state) => state.projectId);
 	const workspaceDir = useDocumentsStore((state) => state.workspaceDir);
 	const { data, isLoading } = useSWR(projectsKey, getProjects);
+	const section = resolveProjectSettingsTab(location.search);
+	const {
+		data: packs,
+		error: packsError,
+		isLoading: packsLoading,
+		mutate: reloadPacks,
+	} = useSWR(
+		projectId && section === projectSettingsSkillsTab ? promptPacksKey : null,
+		listPromptPacks,
+	);
 	const [isArchiving, setIsArchiving] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpeningProjectFolder, setIsOpeningProjectFolder] = useState(false);
@@ -134,20 +151,124 @@ export const ProjectSettings: React.FC = () => {
 		}
 	};
 
+	if (!project)
+		return (
+			<div className="project-settings-content h-full">
+				<SettingsPanelLayout
+					title="项目设置"
+					description={isLoading ? "加载项目设置" : "项目不存在或已被删除。"}
+				>
+					<p className="text-sm text-muted-foreground">
+						{isLoading ? "加载中" : "请返回项目列表。"}
+					</p>
+				</SettingsPanelLayout>
+			</div>
+		);
 	return (
-		<div className="h-full min-h-0 overflow-hidden bg-ide-editor text-ide-editor-foreground">
-			<ProjectSettingsGeneralPanel
-				isArchiving={isArchiving}
-				isDeleting={isDeleting}
-				isLoading={isLoading}
-				project={project}
-				projectDir={projectDir}
-				projectName={projectName}
-				isOpeningProjectFolder={isOpeningProjectFolder}
-				onArchive={() => void archiveCurrentProject()}
-				onDelete={confirmDeleteCurrentProject}
-				onOpenProjectFolder={openCurrentProjectFolder}
-			/>
+		<div className="project-settings-content h-full min-h-0 overflow-hidden bg-ide-editor text-ide-editor-foreground">
+			<SettingsPanelLayout
+				title={`项目设置 · ${projectName}`}
+				description="管理当前项目的技能包、文件位置与项目生命周期。"
+			>
+				{section === projectSettingsSkillsTab ? (
+					<div className="project-settings-packs">
+						<p className="mb-5 text-sm text-muted-foreground">
+							全局共享技能包 · 项目单独启停待接入
+						</p>
+						{packsLoading ? (
+							<p className="text-sm text-muted-foreground">加载技能包</p>
+						) : packsError ? (
+							<div className="flex items-center gap-3">
+								<p className="text-sm text-error-foreground">技能包加载失败</p>
+								<Button variant="outline" onClick={() => void reloadPacks()}>
+									重试
+								</Button>
+							</div>
+						) : packs?.length ? (
+							<ul className="divide-y divide-border">
+								{packs.map((pack) => (
+									<li key={pack.id} className="flex items-start justify-between gap-3 py-4">
+										<div className="min-w-0">
+											<p className="break-words font-semibold">
+												{pack.name}
+												<span className="ml-2 text-xs font-normal text-muted-foreground">
+													{pack.source === "imported"
+														? "已导入"
+														: pack.source === "default"
+															? "内置"
+															: "本地"}
+												</span>
+											</p>
+											<p className="mt-1 text-sm text-muted-foreground">
+												{pack.skillCount ?? 0} Skills · {pack.promptCount ?? 0} 提示词
+											</p>
+										</div>
+										<span className="shrink-0 text-sm text-muted-foreground">
+											{pack.enabled ? "全局已启用" : "全局未启用"}
+										</span>
+									</li>
+								))}
+							</ul>
+						) : (
+							<p className="text-sm text-muted-foreground">暂无技能包</p>
+						)}
+						<Button
+							variant="outline"
+							className="mt-5"
+							onClick={() => {
+								useSettingsNavigationStore.getState().setActiveTab("prompt-packs");
+								navigate("/settings", {
+									state: {
+										settingsReturn: {
+											path: location.pathname + location.search,
+											state: location.state,
+										},
+									},
+								});
+							}}
+						>
+							<SlidersHorizontal />
+							管理全局技能包
+						</Button>
+					</div>
+				) : section === "project-feishu" ? (
+					<div>
+						<h3 className="font-semibold">飞书群</h3>
+						<p className="mt-2 text-sm text-muted-foreground">待接入</p>
+					</div>
+				) : section === "project-files" ? (
+					<div>
+						<h3 className="font-semibold">项目文件</h3>
+						<p className="mt-3 break-all text-sm text-muted-foreground">
+							{projectDir || (isLoading ? "项目文件夹正在加载。" : "项目目录不可用。")}
+						</p>
+						<Button
+							variant="outline"
+							className="mt-4"
+							disabled={!isDesktopRuntime() || !projectDir || isOpeningProjectFolder}
+							onClick={() => void openCurrentProjectFolder()}
+						>
+							<FolderOpen />
+							打开项目文件夹
+						</Button>
+						{!isDesktopRuntime() ? (
+							<p className="mt-2 text-sm text-muted-foreground">在桌面客户端中打开文件夹。</p>
+						) : null}
+					</div>
+				) : section === projectSettingsGeneralTab ? (
+					<ProjectSettingsGeneralPanel
+						isArchiving={isArchiving}
+						isDeleting={isDeleting}
+						isLoading={isLoading}
+						project={project}
+						projectDir={projectDir}
+						isOpeningProjectFolder={isOpeningProjectFolder}
+						onArchive={() => void archiveCurrentProject()}
+						onDelete={confirmDeleteCurrentProject}
+						onOpenProjectFolder={openCurrentProjectFolder}
+					/>
+				) : null}
+			</SettingsPanelLayout>
 		</div>
 	);
 };
@@ -162,7 +283,6 @@ const ProjectSettingsGeneralPanel: React.FC<{
 	onOpenProjectFolder: () => void;
 	project: WorkspaceProject | null;
 	projectDir: string;
-	projectName: string;
 }> = ({
 	isArchiving,
 	isDeleting,
@@ -173,13 +293,8 @@ const ProjectSettingsGeneralPanel: React.FC<{
 	onOpenProjectFolder,
 	project,
 	projectDir,
-	projectName,
 }) => (
-	<SettingsPanelLayout
-		title="基础设置"
-		description={<>管理“{projectName}”的项目设置。</>}
-		icon={<SlidersHorizontal className="size-4" />}
-	>
+	<div>
 		{isLoading && !project ? (
 			<div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
 				<Loader2 className="size-4 animate-spin" />
@@ -253,7 +368,7 @@ const ProjectSettingsGeneralPanel: React.FC<{
 				</div>
 			</div>
 		) : null}
-	</SettingsPanelLayout>
+	</div>
 );
 
 const projectSettingsRowClassName =

@@ -13,11 +13,13 @@ import (
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func newTestStore(t *testing.T) (*Service, *repository.AgentSelectionRepository, string) {
 	t.Helper()
 	db, err := repository.OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.db"))
+	testutil.CloseDB(t, db)
 	if err != nil {
 		t.Fatalf("opening workspace db: %v", err)
 	}

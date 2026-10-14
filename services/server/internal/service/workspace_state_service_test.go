@@ -8,6 +8,7 @@ import (
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/service/shared"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestWorkspaceStateServiceRecoversFilesystemProjectManifest(t *testing.T) {
@@ -17,6 +18,7 @@ func TestWorkspaceStateServiceRecoversFilesystemProjectManifest(t *testing.T) {
 	writeWorkspaceProjectManifest(t, projectDir, projectID, "Recovered Project")
 
 	repos, err := repository.OpenWorkspaceRepositories(shared.WorkspacePathsFor(workspaceDir).DatabasePath())
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -44,6 +46,7 @@ func TestWorkspaceStateServiceBackfillsBlankProjectDirFromCanonicalManifest(t *t
 	writeWorkspaceProjectManifest(t, projectDir, projectID, "Blank Dir Backfill")
 
 	repos, err := repository.OpenWorkspaceRepositories(shared.WorkspacePathsFor(workspaceDir).DatabasePath())
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -78,6 +81,7 @@ func TestWorkspaceStateServiceKeepsBlankProjectDirWhenDirectoryMissing(t *testin
 	workspaceDir := t.TempDir()
 	projectID := "project-missing-dir-retained"
 	repos, err := repository.OpenWorkspaceRepositories(shared.WorkspacePathsFor(workspaceDir).DatabasePath())
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -127,6 +131,7 @@ func TestWorkspaceStateServiceCleansDeprecatedStudioProjectDirs(t *testing.T) {
 	}
 
 	repos, err := repository.OpenWorkspaceRepositories(shared.WorkspacePathsFor(workspaceDir).DatabasePath())
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}
@@ -190,6 +195,7 @@ func TestWorkspaceStateServiceMigratesDeprecatedLocalProjectDirs(t *testing.T) {
 	}
 
 	repos, err := repository.OpenWorkspaceRepositories(shared.WorkspacePathsFor(workspaceDir).DatabasePath())
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}

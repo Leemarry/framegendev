@@ -5,6 +5,7 @@ import {
 	CircleQuestionMark,
 	Ellipsis,
 	FileText,
+	File,
 	Film,
 	Download,
 	Image as ImageIcon,
@@ -52,6 +53,7 @@ import { GenerationNotificationButton } from "./GenerationNotificationButton";
 import { openGenerationConversationCreateDialog } from "./GenerationConversationCreateDialog";
 import { GlobalToolboxButton } from "./GlobalToolboxDrawer";
 import { AssetLibraryButton } from "./AssetLibraryButton";
+import { WorkspaceUserMenu } from "./WorkspaceUserMenu";
 import type { ActiveStudioTab, StudioTab } from "./ProjectNavigatorTypes";
 
 const githubRepositoryURL = "https://github.com/mediago-dev/mediago-drama";
@@ -653,6 +655,8 @@ export const SettingsSidebarPanel: React.FC<{
 	onBack: () => void;
 	onOpenGenerationNotification?: (notification: GenerationSuccessNotification) => void;
 	onSelectTab: (tab: SettingsTabValue) => void;
+	onOpenGlobalSettings?: () => void;
+	onOpenSkills?: () => void;
 }> = ({
 	activeAgentBackendId,
 	activeTab,
@@ -660,57 +664,80 @@ export const SettingsSidebarPanel: React.FC<{
 	onBack,
 	onOpenGenerationNotification,
 	onSelectTab,
-}) => (
-	<div className="flex h-full flex-col">
-		<button
-			type="button"
-			onClick={onBack}
-			className="flex h-9 w-full items-center gap-2 rounded-sm px-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-ide-list-hover"
-		>
-			<ChevronLeft className="size-4 shrink-0 text-muted-foreground" />
-			<span className="min-w-0 flex-1 truncate">返回</span>
-		</button>
+	onOpenGlobalSettings = onBack,
+	onOpenSkills = onOpenGlobalSettings,
+}) => {
+	if (isProjectSettings)
+		return (
+			<div className="project-settings-sidebar flex h-full min-h-0 flex-col">
+				<button type="button" onClick={onBack} aria-label="返回" className="project-settings-back">
+					<ChevronLeft />
+					<span>项目设置</span>
+				</button>
+				<div className="min-h-0 flex-1 overflow-y-auto space-y-1 pt-3">
+					{[
+						{ value: "project-skills", label: "技能包", icon: File },
+						{ value: "project-feishu", label: "飞书群", icon: File },
+						{ value: "project-files", label: "项目文件", icon: FileText },
+						{ value: projectSettingsGeneralTab, label: "项目管理", icon: SlidersHorizontal },
+					].map((item) => (
+						<SettingsPanelButton
+							key={item.value}
+							active={activeTab === item.value}
+							label={item.label}
+							icon={<item.icon />}
+							onClick={() => onSelectTab(item.value)}
+						/>
+					))}
+				</div>
+				<div className="projects-root-user">
+					<WorkspaceUserMenu onOpenSettings={onOpenGlobalSettings} onOpenSkills={onOpenSkills} />
+					{onOpenGenerationNotification ? (
+						<GenerationNotificationButton onOpenNotification={onOpenGenerationNotification} />
+					) : null}
+				</div>
+			</div>
+		);
+	return (
+		<div className="flex h-full flex-col">
+			<button
+				type="button"
+				onClick={onBack}
+				className="flex h-9 w-full items-center gap-2 rounded-sm px-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-ide-list-hover"
+			>
+				<ChevronLeft className="size-4 shrink-0 text-muted-foreground" />
+				<span className="min-w-0 flex-1 truncate">返回</span>
+			</button>
 
-		{isProjectSettings ? (
-			<section className="mt-3 space-y-1">
-				<p className="px-2 text-2xs font-semibold text-muted-foreground">项目设置</p>
-				<SettingsPanelButton
-					active={activeTab === projectSettingsGeneralTab}
-					icon={<SlidersHorizontal />}
-					label="常规"
-					onClick={() => onSelectTab(projectSettingsGeneralTab)}
-				/>
-			</section>
-		) : null}
-
-		<div className={cn("space-y-4", isProjectSettings ? "mt-4" : "mt-2")}>
-			{settingsNavGroups(activeAgentBackendId).map((group) => (
-				<section key={group.label} className="space-y-1">
-					<p className="px-2 text-2xs font-semibold text-muted-foreground">{group.label}</p>
-					{group.items.map((item) => {
-						const Icon = item.icon;
-						return (
-							<SettingsPanelButton
-								key={item.value}
-								active={activeTab === item.value}
-								icon={<Icon />}
-								label={item.label}
-								onClick={() => onSelectTab(item.value)}
-							/>
-						);
-					})}
-				</section>
-			))}
+			<div className="space-y-4 mt-2">
+				{settingsNavGroups(activeAgentBackendId).map((group) => (
+					<section key={group.label} className="space-y-1">
+						<p className="px-2 text-2xs font-semibold text-muted-foreground">{group.label}</p>
+						{group.items.map((item) => {
+							const Icon = item.icon;
+							return (
+								<SettingsPanelButton
+									key={item.value}
+									active={activeTab === item.value}
+									icon={<Icon />}
+									label={item.label}
+									onClick={() => onSelectTab(item.value)}
+								/>
+							);
+						})}
+					</section>
+				))}
+			</div>
+			<div className="mt-auto flex justify-end gap-1 pt-2">
+				<AssetLibraryButton />
+				<GlobalToolboxButton />
+				{onOpenGenerationNotification ? (
+					<GenerationNotificationButton onOpenNotification={onOpenGenerationNotification} />
+				) : null}
+			</div>
 		</div>
-		<div className="mt-auto flex justify-end gap-1 pt-2">
-			<AssetLibraryButton />
-			<GlobalToolboxButton />
-			{onOpenGenerationNotification ? (
-				<GenerationNotificationButton onOpenNotification={onOpenGenerationNotification} />
-			) : null}
-		</div>
-	</div>
-);
+	);
+};
 
 const SettingsPanelButton: React.FC<{
 	active: boolean;
@@ -722,6 +749,7 @@ const SettingsPanelButton: React.FC<{
 }> = ({ active, disabled = false, icon, label, onClick, statusLabel }) => (
 	<button
 		type="button"
+		aria-current={active ? "page" : undefined}
 		disabled={disabled}
 		onClick={onClick}
 		className={cn(

@@ -14,12 +14,12 @@ import (
 
 func TestHandleInternalPublishEvent(t *testing.T) {
 	gin.SetMode(gin.ReleaseMode)
-	api := newAPIHandler(Config{
+	api := newIsolatedHandler(t, nil, Config{
 		SettingsDBPath:          filepath.Join(t.TempDir(), "settings.db"),
 		WorkspaceDir:            filepath.Join(t.TempDir(), "workspace"),
 		AgentBridgeToken:        "test-token",
 		DisableGenerationWorker: true,
-	})
+	}).(*Handler).api
 	router := gin.New()
 	internalHandler := httphandlers.NewInternalEvents(api.agentBridgeToken, api)
 	router.POST(internalEventsPublishPath, internalHandler.HandleInternalPublishEvent)

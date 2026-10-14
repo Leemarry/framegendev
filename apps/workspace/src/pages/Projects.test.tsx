@@ -8,6 +8,7 @@ import type { WorkspaceProject } from "@/domains/projects/api/projects";
 import { useProjectStore } from "@/domains/projects/stores";
 import { ConfirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import { ProjectRenameDialog } from "@/domains/projects/components/ProjectRenameDialog";
+import { AgentProjectCreateDialog } from "@/domains/workspace/components/AgentProjectCreateDialog";
 import type { ApiResponse } from "@/types/api";
 
 vi.mock("@/shared/lib/http", () => ({
@@ -122,7 +123,7 @@ describe("Projects", () => {
 			</SWRConfig>,
 		);
 
-		const row = await screen.findByRole("button", { name: /短剧项目/ });
+		const row = await screen.findByRole("button", { name: "短剧项目" });
 		fireEvent.click(row);
 
 		await waitFor(() => {
@@ -150,7 +151,7 @@ describe("Projects", () => {
 			expect(httpClient.post).toHaveBeenCalledWith("/projects/project-111/archive"),
 		);
 		await waitFor(() => expect(screen.queryByText("短剧项目")).not.toBeInTheDocument());
-		expect(screen.getByText("还没有项目")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "创建新项目" })).toBeInTheDocument();
 	});
 
 	it("renames an active project from the row context menu", async () => {
@@ -202,7 +203,62 @@ describe("Projects", () => {
 
 		await waitFor(() => expect(httpClient.delete).toHaveBeenCalledWith("/projects/project-111"));
 		await waitFor(() => expect(screen.queryByText("短剧项目")).not.toBeInTheDocument());
-		expect(screen.getByText("还没有项目")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "创建新项目" })).toBeInTheDocument();
+	});
+
+	it("cancels creation without sending a project request", async () => {
+		renderManagement();
+		fireEvent.click(await screen.findByRole("button", { name: "创建新项目" }));
+		const dialog = await screen.findByRole("alertdialog", { name: "创建新项目" });
+		fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "取消测试" } });
+		fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+		await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+		expect(httpClient.post).not.toHaveBeenCalled();
+	});
+
+	it("creates a Chinese project and opens the actual returned project", async () => {
+		vi.mocked(httpClient.post).mockResolvedValueOnce(
+			apiResponse({ ...activeProject, id: "created-id", name: "中文新项目" }),
+		);
+		renderManagement();
+		fireEvent.click(await screen.findByRole("button", { name: "创建新项目" }));
+		const dialog = await screen.findByRole("alertdialog", { name: "创建新项目" });
+		fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: " 中文新项目 " } });
+		fireEvent.click(within(dialog).getByRole("button", { name: "创建" }));
+		await waitFor(() =>
+			expect(httpClient.post).toHaveBeenCalledWith("/projects", { name: "中文新项目" }),
+		);
+		await waitFor(() =>
+			expect(screen.getByTestId("location")).toHaveTextContent("/projects?projectId=created-id"),
+		);
+	});
+
+	it("keeps creation available after a rejected request without opening a project", async () => {
+		vi.mocked(httpClient.post).mockRejectedValueOnce(new Error("Local service unavailable"));
+		renderManagement();
+		fireEvent.click(await screen.findByRole("button", { name: "创建新项目" }));
+		const dialog = await screen.findByRole("alertdialog", { name: "创建新项目" });
+		fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "失败测试" } });
+		fireEvent.click(within(dialog).getByRole("button", { name: "创建" }));
+		await waitFor(() =>
+			expect(httpClient.post).toHaveBeenCalledWith("/projects", { name: "失败测试" }),
+		);
+		await waitFor(() => expect(screen.getByRole("button", { name: "创建新项目" })).toBeEnabled());
+		expect(useProjectStore.getState().activeProjectId).toBeNull();
+		expect(screen.getByTestId("location").textContent).toBe("/");
+	});
+
+	it("opens the kebab without navigating and archives through its menu", async () => {
+		renderManagement();
+		const trigger = await screen.findByRole("button", { name: "项目操作：短剧项目" });
+		fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+		expect(await screen.findByRole("menuitem", { name: "归档" })).toBeInTheDocument();
+		expect(screen.getByTestId("location")).toHaveTextContent("/");
+		expect(useProjectStore.getState().activeProjectId).toBeNull();
+		fireEvent.click(screen.getByRole("menuitem", { name: "归档" }));
+		await waitFor(() =>
+			expect(httpClient.post).toHaveBeenCalledWith("/projects/project-111/archive"),
+		);
 	});
 
 	it("refreshes the trash list after permanently deleting a project", async () => {
@@ -275,3 +331,15 @@ const LocationProbe = () => {
 	const location = useLocation();
 	return <span data-testid="location">{`${location.pathname}${location.search}`}</span>;
 };
+
+const renderManagement = () =>
+	render(
+		<SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+			<MemoryRouter>
+				<Projects />
+				<AgentProjectCreateDialog />
+				<ConfirmDialog />
+				<LocationProbe />
+			</MemoryRouter>
+		</SWRConfig>,
+	);

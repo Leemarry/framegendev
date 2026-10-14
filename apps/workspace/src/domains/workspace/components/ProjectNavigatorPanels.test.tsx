@@ -187,7 +187,7 @@ describe("SettingsSidebarPanel", () => {
 		expect(screen.queryByRole("button", { name: "剪映草稿" })).toBeNull();
 	});
 
-	it("adds project settings above global settings in project mode", () => {
+	it("keeps project settings separate and selects the four project sections", () => {
 		const onSelectTab = vi.fn();
 
 		render(
@@ -200,11 +200,20 @@ describe("SettingsSidebarPanel", () => {
 		);
 
 		expect(screen.getByText("项目设置")).toBeTruthy();
-		expect(screen.getByRole("button", { name: "常规" }).className).toContain("bg-ide-list-active");
-		expect(screen.getByRole("button", { name: "基础设置" })).toBeTruthy();
-		expect(screen.getByRole("button", { name: "API 密钥" })).toBeTruthy();
-
-		fireEvent.click(screen.getByRole("button", { name: "基础设置" }));
-		expect(onSelectTab).toHaveBeenCalledWith("appearance");
+		expect(screen.getByRole("button", { name: "项目管理" })).toHaveAttribute(
+			"aria-current",
+			"page",
+		);
+		expect(screen.queryByRole("button", { name: "基础设置" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "API 密钥" })).toBeNull();
+		for (const [label, tab] of [
+			["技能包", "project-skills"],
+			["飞书群", "project-feishu"],
+			["项目文件", "project-files"],
+			["项目管理", projectSettingsGeneralTab],
+		]) {
+			fireEvent.click(screen.getByRole("button", { name: label }));
+			expect(onSelectTab).toHaveBeenLastCalledWith(tab);
+		}
 	});
 });

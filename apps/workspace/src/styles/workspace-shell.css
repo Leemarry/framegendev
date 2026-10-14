@@ -1,0 +1,212 @@
+.project-workspace-shell {
+	--ide-sidebar: var(--project-sidebar-surface);
+	position: relative;
+}
+.project-workspace-shell .native-sidebar-panel {
+	background: var(--project-sidebar-surface);
+}
+.project-workspace-shell .workspace-app-header {
+	height: 55px;
+	padding: 0 14px;
+}
+.project-workspace-shell .workspace-app-header h1 {
+	font-size: 16px;
+	font-weight: 600;
+}
+.project-workspace-shell [data-sidebar-screen] {
+	padding: 15px 10px;
+}
+.project-sidebar-toolbar {
+	height: 40px;
+	padding: 0 10px 5px;
+}
+.project-sidebar-toolbar button {
+	width: 35px;
+	height: 35px;
+	border: 0;
+	border-radius: 8px;
+}
+.project-sidebar-toolbar button svg {
+	width: 18px;
+	height: 18px;
+}
+.project-sidebar-toolbar [aria-label="类别视图"] {
+	width: 30px;
+	height: 30px;
+}
+.project-sidebar-toolbar [aria-label="目录视图"] {
+	width: 30px;
+	height: 30px;
+}
+.project-sidebar-toolbar [aria-label="类别视图"] svg,
+.project-sidebar-toolbar [aria-label="目录视图"] svg {
+	width: 16px;
+	height: 16px;
+}
+.project-sidebar-toolbar > div > div {
+	height: 35px;
+	border: 0;
+	border-radius: 8px;
+}
+.project-category-directory > section > button {
+	height: 35px;
+	font-size: 16px;
+}
+.project-workspace-shell .project-writing-page {
+	max-width: none;
+	padding: 16px 95px;
+}
+.project-category-directory .group\/document,
+.project-workspace-sidebar .group\/file {
+	height: 35px;
+	font-size: 16px;
+	border-radius: 8px;
+}
+.project-workspace-sidebar .group\/document button,
+.project-workspace-sidebar .group\/file button {
+	min-height: 35px;
+}
+.project-category-directory svg {
+	width: 18px;
+	height: 18px;
+}
+.project-sidebar-footer .projects-root-nav {
+	height: 44px;
+	border-radius: 8px;
+}
+.project-sidebar-footer .projects-root-user,
+.project-settings-sidebar .projects-root-user {
+	margin-top: 12px;
+}
+.project-settings-back {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 38px;
+	padding: 0 10px;
+	font-size: 18px;
+	font-weight: 600;
+	text-align: left;
+}
+.project-settings-back svg {
+	width: 18px;
+	height: 18px;
+}
+.project-settings-sidebar > div > button {
+	height: 40px;
+	border: 0;
+	border-radius: 8px;
+	gap: 8px;
+}
+.project-settings-sidebar > div > button span {
+	font-size: 16px;
+}
+.project-settings-sidebar > div > button svg {
+	width: 20px;
+	height: 20px;
+}
+.project-settings-content header {
+	padding: 22px 30px;
+}
+.project-settings-content h2 {
+	font-size: 20px;
+}
+.project-settings-content header p {
+	margin-top: 6px;
+	font-size: 16px;
+}
+.project-settings-content section > div {
+	padding: 30px 45px;
+}
+.project-header-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	flex-shrink: 0;
+	border-radius: 8px;
+	color: var(--muted-foreground);
+}
+.project-header-icon svg {
+	width: 20px;
+	height: 20px;
+}
+.project-header-icon:hover {
+	background: var(--ide-list-hover);
+	color: var(--foreground);
+}
+.project-header-icon[aria-pressed="true"] {
+	background: var(--ide-list-active);
+	color: var(--ide-list-active-foreground);
+}
+.project-header-icon:focus-visible,
+.project-settings-back:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: -2px;
+}
+.project-sidebar-backdrop {
+	position: absolute;
+	inset: 0;
+	z-index: 25;
+	background: color-mix(in srgb, var(--background) 65%, transparent);
+}
+.project-sidebar-close {
+	position: absolute;
+	right: 12px;
+	top: 12px;
+	z-index: 40;
+	width: 35px;
+	height: 35px;
+	display: grid;
+	place-items: center;
+	border-radius: 8px;
+	background: var(--ide-toolbar);
+}
+@media (max-width: 700px) {
+	.project-workspace-shell .projects-root-nav {
+		justify-content: flex-start;
+		padding: 0 10px;
+	}
+	.project-workspace-shell .projects-root-nav .nav-label,
+	.project-workspace-shell .projects-root-nav > svg:last-child,
+	.project-workspace-shell .projects-root-user-trigger span,
+	.project-workspace-shell .projects-root-user-trigger svg {
+		display: block;
+	}
+	.project-workspace-shell .projects-root-user {
+		flex-direction: row;
+		height: 44px;
+		gap: 8px;
+		padding: 0 8px;
+	}
+	.project-workspace-shell .projects-root-user-trigger {
+		flex: 1;
+	}
+	.project-workspace-shell .project-writing-page {
+		padding: 16px;
+	}
+	.project-workspace-shell .native-sidebar-panel {
+		position: absolute;
+		inset: 0 auto 0 0;
+		z-index: 30;
+		max-width: calc(100vw - 40px);
+	}
+	.project-workspace-shell .workspace-app-header {
+		gap: 4px;
+		padding: 0 8px;
+	}
+	.project-workspace-shell .workspace-app-header > div:last-child {
+		gap: 0;
+	}
+	.project-workspace-shell .project-workspace-sidebar,
+	.project-workspace-shell .project-settings-sidebar {
+		padding-top: 40px;
+	}
+	.project-settings-content header {
+		padding: 20px 16px;
+	}
+	.project-settings-content section > div {
+		padding: 20px 16px;
+	}
+}

@@ -8,6 +8,7 @@ import (
 	corecapability "github.com/mediago-dev/mediago-drama/services/server/internal/capability"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 	"gorm.io/gorm"
 )
 
@@ -248,6 +249,7 @@ func TestSummaryFiltersByProject(t *testing.T) {
 func billingTestRepos(t *testing.T) repository.WorkspaceRepositories {
 	t.Helper()
 	repos, err := repository.OpenWorkspaceRepositories(filepath.Join(t.TempDir(), "workspace.sqlite"))
+	testutil.CloseDB(t, repos.DB)
 	if err != nil {
 		t.Fatalf("OpenWorkspaceRepositories() error = %v", err)
 	}

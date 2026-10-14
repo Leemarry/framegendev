@@ -445,7 +445,8 @@ func defaultACPResidentProcessFactory(
 		_ = stdin.Close()
 		return nil, fmt.Errorf("opening ACP stdout: %w", err)
 	}
-	if err := cmd.Start(); err != nil {
+	closeProcessTree, err := startACPProcess(cmd)
+	if err != nil {
 		_ = stdin.Close()
 		_ = stdout.Close()
 		acpLog().Error("acp process start failed", append(spec.logArgs, "error", err)...)
@@ -463,7 +464,7 @@ func defaultACPResidentProcessFactory(
 		connection: connection,
 		router:     router,
 		closeFn: func() {
-			cleanupACPProcess(cmd, stdin, stdout, spec.logArgs, pid, startedAt)
+			cleanupACPProcess(cmd, stdin, stdout, append(spec.logArgs, "cleanup_reason", "resident_closed"), pid, startedAt, closeProcessTree)
 		},
 	}, nil
 }

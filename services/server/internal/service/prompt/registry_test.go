@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,7 +26,18 @@ func TestMain(m *testing.M) {
 	SetPromptTemplateStore(prompttemplates.NewServiceFromRepository(repos.Instructions, nil))
 	serviceskill.SetPromptPackStore(store)
 	code := m.Run()
-	_ = os.RemoveAll(dir)
+	sqlDB, err := repos.DB.DB()
+	if err == nil {
+		err = sqlDB.Close()
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "closing test settings database:", err)
+		code = 1
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		fmt.Fprintln(os.Stderr, "removing test settings directory:", err)
+		code = 1
+	}
 	os.Exit(code)
 }
 

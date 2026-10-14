@@ -6,10 +6,14 @@ import (
 	"testing"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
 
 func TestMediaAssetRepositoryLifecycle(t *testing.T) {
 	repo, err := NewMediaAssetRepository(filepath.Join(t.TempDir(), "workspace.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
 	if err != nil {
 		t.Fatalf("NewMediaAssetRepository() error = %v", err)
 	}
@@ -160,6 +164,9 @@ func TestMediaAssetRepositoryLifecycle(t *testing.T) {
 
 func TestMediaAssetRepositoryListMediaAssetsFiltersByProject(t *testing.T) {
 	repo, err := NewMediaAssetRepository(filepath.Join(t.TempDir(), "workspace.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
 	if err != nil {
 		t.Fatalf("NewMediaAssetRepository() error = %v", err)
 	}

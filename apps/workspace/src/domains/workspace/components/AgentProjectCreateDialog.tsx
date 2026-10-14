@@ -32,10 +32,8 @@ export const AgentProjectCreateDialog = createCallable<void, string | null>(({ c
 			<AlertDialogContent className="max-w-md">
 				<form onSubmit={submit}>
 					<AlertDialogHeader>
-						<AlertDialogTitle>新建智能体项目</AlertDialogTitle>
-						<AlertDialogDescription>
-							输入项目名后会在全局目录的 agent 文件夹下创建本地项目。
-						</AlertDialogDescription>
+						<AlertDialogTitle>创建新项目</AlertDialogTitle>
+						<AlertDialogDescription>项目将保存到当前工作区的本地项目目录。</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="my-4 space-y-3">
 						<label className="block">

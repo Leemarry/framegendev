@@ -1,0 +1,37 @@
+{
+  "id": "acp-startup-exit",
+  "name": "acp-startup-exit",
+  "title": "TASK-003 ACP startup exit investigation",
+  "description": "Confirmed successful metadata probe teardown, fixed cleanup/context races and bounded Windows descendants with a private Job Object. Full backend gates and real isolated read-only acceptance pass.",
+  "status": "completed",
+  "dev_type": "backend",
+  "scope": "ACP inspection and shared process teardown",
+  "package": "services/server",
+  "priority": "P0",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-14",
+  "completedAt": "2026-10-14",
+  "branch": "codex/task-004-document-reload",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [
+    "services/server/internal/service/acp/acp_runner.go",
+    "services/server/internal/service/acp/acp_runner_process.go",
+    "services/server/internal/service/acp/acp_runner_resident.go",
+    "services/server/internal/service/acp/acp_runner_process_test.go",
+    "services/server/internal/service/acp/acp_runner_test.go",
+    "services/server/internal/service/acp/acp_process_windows.go",
+    "services/server/internal/service/acp/acp_process_other.go",
+    "services/server/internal/service/acp/acp_process_windows_test.go"
+  ],
+  "notes": "TASK-003 accepted: full check/test/race/build exit0; 3 native runtime-config200, retained expected forced exit1, zero remaining descendants, four documents unchanged. Isolated31430 PID75752/bin-accepted. Session9 no-commit archive; TASK-010 pending review, no prompts/login/generation.",
+  "meta": {
+    "ledger_id": "TASK-003"
+  }
+}
