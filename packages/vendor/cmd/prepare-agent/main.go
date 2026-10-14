@@ -21,10 +21,19 @@ import (
 )
 
 const (
-	bunCompileAttempts = 3
-	defaultAgentID     = "codex"
-	npmRegistryURL     = "https://registry.npmjs.org"
+	bunCompileAttempts    = 3
+	defaultAgentID        = "codex"
+	defaultNPMRegistryURL = "https://registry.npmjs.org"
 )
+
+// npmRegistryURL honors MEDIAGO_NPM_REGISTRY so mirrors can be used where
+// registry.npmjs.org is unreachable.
+var npmRegistryURL = func() string {
+	if registry := strings.TrimSpace(os.Getenv("MEDIAGO_NPM_REGISTRY")); registry != "" {
+		return registry
+	}
+	return defaultNPMRegistryURL
+}()
 
 type agentSpec struct {
 	Distribution string   `json:"distribution,omitempty"`
