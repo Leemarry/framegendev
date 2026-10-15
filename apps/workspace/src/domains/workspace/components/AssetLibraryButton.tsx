@@ -937,7 +937,7 @@ export const AssetLibraryWorkspace: React.FC<{
 							(activeItem.mediaAsset.projectId || "") === selectedProjectId &&
 							!folderUnavailable ? (
 								<AssetLibraryMove
-									key={activeItem.key + (activeItem.mediaAsset.folderId || "")}
+									key={`move:${activeItem.key}:${activeItem.mediaAsset.folderId || ""}`}
 									asset={activeItem.mediaAsset}
 									folders={folderControls.folders}
 									busy={Boolean(busyKey)}
@@ -1312,7 +1312,7 @@ const AssetLibraryPreview: React.FC<{
 			{folderActions}
 			{item.mediaAsset ? (
 				<AssetLibraryMetadataEditor
-					key={item.key}
+					key={`metadata:${item.key}`}
 					tags={item.mediaAsset.tags ?? []}
 					note={item.mediaAsset.note ?? ""}
 					rating={item.mediaAsset.rating ?? 0}
