@@ -861,16 +861,20 @@ describe("PromptPackEditor", () => {
 
 		const navigator = await screen.findByRole("navigation", { name: "技能包管理导航" });
 		const libraryScreen = navigator.querySelector('[data-sidebar-screen="pack-library"]');
-		expect(libraryScreen).toHaveAttribute("aria-hidden", "false");
+		expect(libraryScreen).not.toHaveAttribute("inert");
+		expect(navigator.querySelector('[data-sidebar-screen="pack-detail"]')).toHaveAttribute("inert");
 
 		fireEvent.click(screen.getByRole("button", { name: "本地草稿" }));
 		await screen.findByRole("button", { name: "返回技能包列表" });
 		const detailScreen = navigator.querySelector('[data-sidebar-screen="pack-detail"]');
-		expect(detailScreen).toHaveAttribute("aria-hidden", "false");
+		expect(detailScreen).not.toHaveAttribute("inert");
+		expect(libraryScreen).toHaveAttribute("inert");
 		expect(detailScreen).toHaveClass("transition-transform", "translate-x-0");
 
 		fireEvent.click(screen.getByRole("button", { name: "返回技能包列表" }));
-		await waitFor(() => expect(libraryScreen).toHaveAttribute("aria-hidden", "false"));
+		await waitFor(() => expect(libraryScreen).not.toHaveAttribute("inert"));
+		expect(detailScreen).toHaveAttribute("inert");
+		expect(navigator.querySelectorAll("section[data-sidebar-screen]:not([inert])")).toHaveLength(1);
 		expect(detailScreen).toHaveClass("transition-transform", "translate-x-full", "z-20");
 	});
 

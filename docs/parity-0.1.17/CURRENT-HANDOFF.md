@@ -16,6 +16,8 @@
 - NLE会话已实现 TASK-040 M1/M2/M3（`45fafa2`、`48ba31f`、`cdc01a6`）和 TASK-041 字幕/真实音频波形。浏览器、保存重启与实际导出文件验收通过，21文件100测试和前后端/剪映包完整门通过。原生剪映重开与字幕排版仍待验收，TASK-040/041不标整体完成；详情见 `.trellis/tasks/10-15-nle-workbench/result.md`。
 - TASK-010 模型接入仍待评审；TASK-170~178 自动化新方案实施未定。豆包四会话方案仅参考，未启用额外 agent。
 
+会话1集成质量补正唯一文件：`apps/workspace/src/pages/PromptPackEditor.test.tsx`，仅将旧 aria-hidden 断言同步到已提交 SidebarScreenStack 的 inert 契约并加强非活跃层不可交互检查；不修改会话2组件实现/工作树。全量235文件1552测试首次暴露此旧断言及高并发下AgentChat两次5000ms超时，后续结果见selection-media-isolation任务。
+
 ## 下一步与限制
 
 1. TASK-181已完成8fc428b。TASK-070历史差异/安全恢复b7bc362→主c2261df已验收：并排/合并/导航、两次409不写入、取消/离线重试/恢复v6、空标签、页面和后端重启全文与六条历史保留。完整Windows check/race已通过。历史阅读/源码/版本互换及资源引用仍未验收，070整体不完成。详见 `.trellis/tasks/archive/2026-10/10-16-document-history-parity/result.md`。GAP-004及旧外部无CAS客户端边界保留。
