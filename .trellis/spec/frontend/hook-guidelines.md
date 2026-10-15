@@ -26,6 +26,10 @@ Reuse the graph for the same element and defer final cleanup across reconnection
 Browser codec support is runtime-specific; decode errors remain visible and test
 H.264 playback in a codec-capable runtime rather than relying on a poster.
 Login cancellation must stop polling and preserve truthful status.
+Workspace loading effects must not mark an already hydrated workspace as syncing:
+layout hydration or SSE may finish before a passive effect carrying isLoading.
+Use the loaded workspace identity/path as the readiness guard; keep dirty and
+conflict state intact. DocumentStateSync.test.tsx covers this effect ordering.
 Do not call hooks conditionally, issue requests in render, or duplicate Axios
 authentication/error handling.
 
