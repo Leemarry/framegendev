@@ -55,5 +55,8 @@ REQ-042/043、DEC-027和资料包入口同步原台账/AGENTS。现有Skill注�
 ## 下一步与恢复条件
 
 - TASK-170：供应商生成通道恢复后再提交保留的页面提示词并验收；未恢复前保留待验收、不归档。
+- 2026-10-15追加请求：按用户提供的 `https://api.kkrich.ltd/v1` 与 `gpt-image-2` 发起一次 1536x1024/high 设计图请求，服务端返回 HTTP 499；按降低超时风险再发起一次 1024x1024/medium 请求，返回 HTTP 524，均未产生本地图片。临时配置未保留，密钥未写入项目。此次结果仍不能证明图片已生成或请求是否计费。
+- 用户随后要求继续完成：已将独立工具包默认配置正式切换至该端点与`gpt-image-2`，新凭据仅写入工具包忽略目录中的Windows DPAPI加密文件。真实模型目录查询成功，返回`gpt-image-2`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`。再次生成07图返回HTTP502；08图以1024x1024/low运行至客户端180秒读超时，仍无图片。未自动重试，未改用用户未指定模型；中断请求是否计费未知。
+- 本轮新增两个不含凭据的完整提示词：`docs/superpowers/specs/2026-10-14-automation-workbench/07-asset-generation-workspace-prompt.txt`（对象正文与多候选主图切换）和 `08-asset-generation-flow-prompt.txt`（标题/内容、批量张数、生成中/取消/采用状态）。
 - 应用开发继续TASK-031原单项质量与真实持久化验收；不覆盖其既有改动。
 - 自动生产设计中的TASK-171~174分别核实并规划；完整方案仍待评审，toonflowLocal保持TASK-300专项边界。
