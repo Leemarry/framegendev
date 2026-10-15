@@ -25,7 +25,7 @@ describe("SettingsSidebarPanel", () => {
 		expect(onSelectTab).toHaveBeenCalledWith("shortcuts");
 	});
 
-	it("shows API keys without the retired agent model profile entry", () => {
+	it("keeps existing API key settings reachable alongside model access", () => {
 		const onSelectTab = vi.fn();
 
 		render(
@@ -37,7 +37,8 @@ describe("SettingsSidebarPanel", () => {
 			/>,
 		);
 
-		expect(screen.queryByRole("button", { name: "模型接入" })).toBeNull();
+		fireEvent.click(screen.getByRole("button", { name: "模型接入" }));
+		expect(onSelectTab).toHaveBeenCalledWith("model-access");
 
 		fireEvent.click(screen.getByRole("button", { name: "API 密钥" }));
 		expect(onSelectTab).toHaveBeenCalledWith("api-keys");
@@ -104,7 +105,7 @@ describe("SettingsSidebarPanel", () => {
 			within(codexGroup as HTMLElement)
 				.getAllByRole("button")
 				.map((button) => button.textContent)
-				.slice(0, 4),
+				.slice(-4),
 		).toEqual(["API 密钥", "Codex 接入", "Codex 技能", "智能体指令"]);
 
 		rerender(
@@ -121,7 +122,7 @@ describe("SettingsSidebarPanel", () => {
 			within(otherGroup as HTMLElement)
 				.getAllByRole("button")
 				.map((button) => button.textContent)
-				.slice(0, 3),
+				.slice(-3),
 		).toEqual(["API 密钥", "Codex 技能", "智能体指令"]);
 	});
 
@@ -157,7 +158,35 @@ describe("SettingsSidebarPanel", () => {
 			within(workspaceGroup as HTMLElement)
 				.getAllByRole("button")
 				.map((button) => button.textContent),
-		).toEqual(["基础设置", "快捷键", "用量与账单", "应用更新"]);
+		).toEqual(["账户", "用量分析", "基础设置", "浏览器设置", "存储管理", "快捷键", "应用更新"]);
+	});
+
+	it("navigates every generation service and preserves its selected state", () => {
+		const onSelectTab = vi.fn();
+		render(
+			<SettingsSidebarPanel
+				activeTab="comfyui-cloud"
+				isProjectSettings={false}
+				onBack={vi.fn()}
+				onSelectTab={onSelectTab}
+			/>,
+		);
+		for (const [label, tab] of [
+			["本地 ComfyUI", "comfyui-local"],
+			["云端 ComfyUI", "comfyui-cloud"],
+			["MG 动画", "mg-animation"],
+			["安装设置", "installation"],
+			["Agent 扩展", "extensions"],
+			["飞书 Agent", "feishu-agent"],
+			["Drami 动效", "drami-motion"],
+		]) {
+			fireEvent.click(screen.getByRole("button", { name: label }));
+			expect(onSelectTab).toHaveBeenLastCalledWith(tab);
+		}
+		expect(screen.getByRole("button", { name: "云端 ComfyUI" })).toHaveAttribute(
+			"aria-current",
+			"page",
+		);
 	});
 
 	it("hides the Codex access settings entry for non-Codex agents", () => {

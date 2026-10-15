@@ -78,6 +78,44 @@ describe("Settings API key page", () => {
 		cleanup();
 	});
 
+	it.each([
+		"account",
+		"browser",
+		"storage",
+		"comfyui-local",
+		"comfyui-cloud",
+		"mg-animation",
+		"installation",
+		"extensions",
+		"feishu-agent",
+		"drami-motion",
+	])("opens %s with honest capability status", (tab) => {
+		useSettingsNavigationStore.setState({ activeTab: tab });
+		render(
+			<MemoryRouter>
+				<SWRConfig value={{ provider: () => new Map() }}>
+					<Settings />
+				</SWRConfig>
+			</MemoryRouter>,
+		);
+		expect(screen.getByText(/【待(开发|接入)】/)).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "保存" })).toBeNull();
+	});
+
+	it("keeps model consolidation under review while opening the real API settings", async () => {
+		useSettingsNavigationStore.setState({ activeTab: "model-access" });
+		render(
+			<MemoryRouter>
+				<SWRConfig value={{ provider: () => new Map() }}>
+					<Settings />
+				</SWRConfig>
+			</MemoryRouter>,
+		);
+		expect(screen.getByText("【待评审】")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "API 密钥" }));
+		expect(await screen.findByRole("heading", { name: "API 密钥" })).toBeInTheDocument();
+	});
+
 	it("shows MediaGo hero and CLI section, keeps other providers collapsed", async () => {
 		renderSettings();
 
