@@ -1,0 +1,7 @@
+# TASK-070 history slice design
+
+Existing DocumentHistoryPanel has a version list, unified lines and confirmed restore. Actual isolated official history has parallel/unified tabs, change navigation, close/cancel and restore preserving history. Keep our truthful Git metadata and service; widen the sheet and use a responsive history-list/diff layout. Shared Tabs and icon buttons supply familiar controls. A small deterministic alignment helper pairs existing removed/added line runs for parallel display; backend remains the diff authority. Group contiguous changed lines for navigation in either mode.
+
+Capture the current document version when opening/selecting the history context. Restore POST carries optional expectedVersion through the existing handler/app adapter/document service into UpdateWorkspaceDocument's existing atomic CAS. Reject dirty/conflicted documents before opening confirmation and again before sending. A stale write receives409 and requires explicit review of the fresh current version, never automatic retry. Legacy empty POST remains compatible. No new persistence store or route.
+
+Ownership remains session1: documents components/helper/tests, workspace API, existing shared backend workspace handler/app adapter/document service. App.tsx and session2's files are untouched. Runtime reuses only session1 cache/profile; record isolated official and development clicks. Main remains runnable while this item develops.

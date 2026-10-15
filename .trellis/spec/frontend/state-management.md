@@ -14,6 +14,20 @@ version and retained history after reload and backend restart. Legacy complete
 workspace mutations supply expectedVersions for all loaded document IDs; service
 checks the full ID/version map under its existing lock before replacement.
 
+## Document History Restore (TASK-070)
+
+Freeze the reviewed document version when opening history. Compare the selected
+Git snapshot against the explicit current history hash; omitting `from` compares
+the selected commit to its parent instead. Restore sends `expectedVersion` as a
+positive query integer through the existing atomic document PATCH contract.
+Dirty/conflicted documents cannot restore; check again inside confirmation.
+Refresh/revalidation must finish before enabling restore. A409 preserves the
+document/history and requires a page refresh plus explicit review, without
+advancing the original base automatically. Close confirmation after a failed
+request so the panel error is visible. A successful restore creates a new version,
+keeps previous history, and restores empty tags as well as body/title/category.
+Legacy callers omitting the optional version remain compatible and unprotected.
+
 NLE manual edits live in local immutable history until explicit episode PUT succeeds.
 Failed writes retain the draft; discard requires confirmation. Saved episodes use
 optional `editVersion: 1`; backend resolved reads preserve the complete manual

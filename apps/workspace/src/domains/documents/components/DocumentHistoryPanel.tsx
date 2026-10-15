@@ -1,16 +1,15 @@
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
-import { GitCompare, History, Loader2, RotateCcw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, History, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
 import useSWR from "swr";
 import {
-	type DocumentHistoryDiffLine,
 	type DocumentHistoryItem,
 	getWorkspaceDocumentHistory,
 	getWorkspaceDocumentHistoryDiff,
 	restoreWorkspaceDocumentHistoryVersion,
 } from "@/domains/workspace/api/workspace";
-import type { MarkdownDocument } from "@/domains/documents/stores";
-import { useDocumentsStore } from "@/domains/documents/stores";
+import { historyChangeStarts } from "@/domains/documents/lib/document-history-diff";
+import { useDocumentsStore, type MarkdownDocument } from "@/domains/documents/stores";
 import { Button } from "@/shared/components/ui/button";
 import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import {
@@ -20,8 +19,10 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@/shared/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/shared/lib/utils";
+import { DocumentHistoryDiff } from "./DocumentHistoryDiff";
 
 interface DocumentHistoryPanelProps {
 	open: boolean;
@@ -38,276 +39,323 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 }) => {
 	const toast = useToast();
 	const [selectedHash, setSelectedHash] = useState<string | null>(null);
-	const [restoringHash, setRestoringHash] = useState<string | null>(null);
+	const [restoring, setRestoring] = useState(false);
+	const [reviewedVersion, setReviewedVersion] = useState<number | null>(null);
+	const [restoreError, setRestoreError] = useState("");
+	const [mode, setMode] = useState("parallel");
+	const [changeIndex, setChangeIndex] = useState(-1);
+	const diffContainer = useRef<HTMLDivElement>(null);
 	const documentId = document?.id ?? null;
 	const historyKey =
 		open && projectId && documentId ? ["document-history", projectId, documentId] : null;
 	const {
 		data: history,
 		error: historyError,
-		isLoading: isHistoryLoading,
-		mutate: mutateHistory,
+		isLoading: loadingHistory,
+		isValidating: refreshingHistory,
+		mutate: refreshHistory,
 	} = useSWR(historyKey, () => getWorkspaceDocumentHistory(documentId ?? "", projectId, 50), {
 		revalidateOnFocus: false,
 	});
 	const items = history?.items ?? [];
-
-	useEffect(() => {
-		if (!open) {
-			setSelectedHash(null);
-			return;
-		}
-		if (!items.length) {
-			setSelectedHash(null);
-			return;
-		}
-		if (!selectedHash || !items.some((item) => item.hash === selectedHash)) {
-			setSelectedHash(items[0]?.hash ?? null);
-		}
-	}, [items, open, selectedHash]);
-
+	const currentHash = items[0]?.hash;
+	const selectedItem = items.find((item) => item.hash === selectedHash);
+	const dirty = Boolean(document?.isDirty || document?.saveConflict);
 	useEffect(() => {
 		setSelectedHash(null);
-	}, [documentId]);
-
-	const selectedItem = useMemo(
-		() => items.find((item) => item.hash === selectedHash) ?? null,
-		[items, selectedHash],
-	);
-	const diffKey =
-		open && projectId && documentId && selectedHash
-			? ["document-history-diff", projectId, documentId, selectedHash]
-			: null;
+		setReviewedVersion(open ? (document?.version ?? null) : null);
+		setRestoreError("");
+	}, [open, projectId, documentId]);
+	useEffect(() => {
+		if (
+			open &&
+			items.length &&
+			(!selectedHash || !items.some((item) => item.hash === selectedHash))
+		)
+			setSelectedHash((items[1] ?? items[0]).hash);
+	}, [open, items, selectedHash]);
 	const {
-		data: diffResponse,
+		data: response,
 		error: diffError,
-		isLoading: isDiffLoading,
+		isLoading: loadingDiff,
+		isValidating: refreshingDiff,
+		mutate: refreshDiff,
 	} = useSWR(
-		diffKey,
-		() => getWorkspaceDocumentHistoryDiff(documentId ?? "", selectedHash ?? "", projectId),
+		open && projectId && documentId && selectedHash && currentHash
+			? ["document-history-diff", projectId, documentId, selectedHash, currentHash]
+			: null,
+		() =>
+			getWorkspaceDocumentHistoryDiff(
+				documentId ?? "",
+				currentHash ?? "",
+				projectId,
+				selectedHash ?? undefined,
+			),
 		{ revalidateOnFocus: false },
 	);
-	const diff = diffResponse?.diff ?? null;
-
-	const restoreSelectedVersion = async (hash: string) => {
-		if (!projectId || !documentId || restoringHash) return false;
-		setRestoringHash(hash);
+	const diff = response?.diff;
+	const changes = historyChangeStarts(diff?.lines ?? []);
+	useEffect(() => {
+		setChangeIndex(-1);
+	}, [selectedHash, currentHash]);
+	const navigateChange = (direction: number) => {
+		if (!changes.length) return;
+		const next =
+			changeIndex < 0
+				? direction < 0
+					? changes.length - 1
+					: 0
+				: (changeIndex + direction + changes.length) % changes.length;
+		setChangeIndex(next);
+		diffContainer.current
+			?.querySelector(`[data-change-start="${changes[next]}"]`)
+			?.scrollIntoView({ block: "center" });
+	};
+	const restore = async (hash: string, expectedVersion: number) => {
+		const state = useDocumentsStore.getState();
+		const current = state.documents.find((item) => item.id === documentId);
+		if (
+			!projectId ||
+			!documentId ||
+			state.projectId !== projectId ||
+			!current ||
+			current?.isDirty ||
+			current?.saveConflict
+		) {
+			setRestoreError("当前文档有未保存修改，请先保存或处理冲突。");
+			return false;
+		}
+		setRestoring(true);
+		setRestoreError("");
 		try {
-			const response = await restoreWorkspaceDocumentHistoryVersion(documentId, hash, projectId);
-			useDocumentsStore.getState().hydrateWorkspaceDocuments(response.state);
-			await mutateHistory();
-			toast.success("已恢复历史版本", { description: response.document.title });
+			const saved = await restoreWorkspaceDocumentHistoryVersion(
+				documentId,
+				hash,
+				projectId,
+				expectedVersion,
+			);
+			if (useDocumentsStore.getState().projectId === projectId) {
+				useDocumentsStore.getState().hydrateWorkspaceDocuments(saved.state);
+				setReviewedVersion(saved.document.version);
+			}
+			await refreshHistory();
+			toast.success("已恢复历史版本", { description: saved.document.title });
 			return true;
 		} catch (error) {
-			toast.error("恢复失败", { description: historyErrorMessage(error) });
+			setRestoreError(
+				error && typeof error === "object" && "code" in error && error.code === 409
+					? "文档已被修改，恢复未执行。请刷新文档页面并重新打开历史，确认最新版本后再恢复。"
+					: historyErrorMessage(error),
+			);
 			return false;
 		} finally {
-			setRestoringHash(null);
+			setRestoring(false);
 		}
 	};
-
-	const confirmRestoreSelectedVersion = (hash: string | null) => {
-		if (!hash) return;
+	const confirmRestore = () => {
+		if (!selectedHash || reviewedVersion === null || dirty || restoring) return;
 		void confirmDialog({
 			title: "恢复这个历史版本？",
-			description: "当前文档内容会被替换，恢复动作会写入一条新的变更记录。",
+			description: "将恢复所选版本的正文和元数据，并生成新版本。当前内容和已有历史仍会保留。",
 			confirmLabel: "恢复",
-			onConfirm: () => restoreSelectedVersion(hash),
+			onConfirm: async () => {
+				await restore(selectedHash, reviewedVersion);
+			},
 		});
 	};
-
 	return (
-		<>
-			<Sheet open={open} onOpenChange={onOpenChange}>
-				<SheetContent side="right" className="flex w-[min(92vw,760px)] flex-col p-0">
-					<SheetHeader className="border-b border-border px-4 py-3">
-						<div className="flex min-w-0 items-center gap-2">
-							<div className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-ide-toolbar text-muted-foreground">
-								<History className="size-4" />
-							</div>
-							<div className="min-w-0">
-								<SheetTitle>变更记录</SheetTitle>
-								<SheetDescription className="truncate">
-									{document?.title ?? "未选择文档"}
-								</SheetDescription>
-							</div>
+		<Sheet open={open} onOpenChange={onOpenChange}>
+			<SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-6xl">
+				<SheetHeader className="shrink-0 border-b border-border px-4 py-3">
+					<div className="flex min-w-0 items-center gap-2">
+						<History className="size-4 shrink-0 text-muted-foreground" />
+						<div className="min-w-0 flex-1">
+							<SheetTitle>文档历史</SheetTitle>
+							<SheetDescription className="break-words">
+								{document?.title ?? "未选择文档"} · 当前基线 v{reviewedVersion ?? "-"}
+							</SheetDescription>
 						</div>
-					</SheetHeader>
-
-					<div className="flex min-h-0 flex-1 flex-col">
-						<div className="max-h-56 overflow-y-auto border-b border-border p-2">
-							{isHistoryLoading ? (
-								<div className="flex items-center gap-2 px-2 py-3 text-xs text-muted-foreground">
-									<Loader2 className="size-4 animate-spin" />
-									<span>加载中</span>
-								</div>
-							) : historyError ? (
-								<p className="px-2 py-3 text-xs text-destructive">变更记录加载失败。</p>
-							) : items.length === 0 ? (
-								<p className="px-2 py-3 text-xs text-muted-foreground">暂无变更记录。</p>
-							) : (
-								<div className="grid gap-1">
-									{items.map((item) => (
-										<button
-											key={item.hash}
-											type="button"
-											className={cn(
-												"grid min-h-14 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-sm border border-transparent px-2.5 py-2 text-left transition-colors hover:bg-ide-list-hover",
-												item.hash === selectedHash &&
-													"border-border bg-ide-list-hover text-foreground",
-											)}
-											onClick={() => setSelectedHash(item.hash)}
-											aria-selected={item.hash === selectedHash}
-										>
-											<span className="min-w-0">
-												<span className="block truncate text-xs font-medium text-foreground">
-													{historySummary(item)}
-												</span>
-												<span className="mt-1 block truncate text-2xs text-muted-foreground">
-													{historySourceLabel(item)} · {shortHash(item.hash)}
-												</span>
-											</span>
-											<span className="text-2xs text-muted-foreground">
-												{formatHistoryTime(item.createdAt)}
-											</span>
-										</button>
-									))}
-								</div>
-							)}
-						</div>
-
-						<div className="flex min-h-0 flex-1 flex-col">
-							<div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
-								<div className="flex min-w-0 items-center gap-2">
-									<GitCompare className="size-4 shrink-0 text-muted-foreground" />
-									<p className="truncate text-xs font-medium text-foreground">
-										{selectedItem ? historySummary(selectedItem) : "未选择版本"}
-									</p>
-								</div>
-								<Button
+						<Button
+							size="icon"
+							variant="ghost"
+							aria-label="刷新变更记录"
+							title="刷新变更记录"
+							onClick={() => {
+								void refreshHistory();
+								void refreshDiff();
+							}}
+						>
+							<RefreshCw />
+						</Button>
+						<Button
+							size="icon"
+							variant="ghost"
+							aria-label="关闭文档历史"
+							title="关闭文档历史"
+							onClick={() => onOpenChange(false)}
+						>
+							<X />
+						</Button>
+					</div>
+				</SheetHeader>
+				<div className="grid min-h-0 flex-1 grid-rows-[minmax(0,9rem)_minmax(0,1fr)] md:grid-cols-[15rem_minmax(0,1fr)] md:grid-rows-1">
+					<div className="min-h-0 overflow-y-auto border-b border-border p-2 md:border-b-0 md:border-r">
+						{loadingHistory ? (
+							<Loading />
+						) : historyError ? (
+							<p role="alert" className="p-2 text-sm text-destructive">
+								变更记录加载失败，请刷新重试。
+							</p>
+						) : !items.length ? (
+							<p className="p-2 text-sm text-muted-foreground">暂无变更记录。</p>
+						) : (
+							items.map((item, index) => (
+								<button
+									key={item.hash}
 									type="button"
-									size="sm"
-									variant="outline"
-									className="h-7 shrink-0"
-									disabled={!selectedHash || Boolean(restoringHash)}
-									onClick={() => confirmRestoreSelectedVersion(selectedHash)}
-								>
-									{restoringHash === selectedHash ? (
-										<Loader2 className="animate-spin" />
-									) : (
-										<RotateCcw />
+									aria-pressed={item.hash === selectedHash}
+									onClick={() => setSelectedHash(item.hash)}
+									className={cn(
+										"mb-1 block w-full rounded-sm border border-transparent px-3 py-2 text-left hover:bg-ide-list-hover",
+										item.hash === selectedHash && "border-border bg-ide-list-hover",
 									)}
-									<span>恢复</span>
+								>
+									<span className="block truncate text-sm font-medium">
+										{index === 0 ? "当前版本" : historySummary(item)}
+									</span>
+									<span className="mt-1 block text-xs text-muted-foreground">
+										{formatHistoryTime(item.createdAt)} · {shortHash(item.hash)}
+									</span>
+									<span className="block truncate text-xs text-muted-foreground">
+										{item.source || item.operation || "文档更新"}
+									</span>
+								</button>
+							))
+						)}
+					</div>
+					<div className="flex min-h-0 min-w-0 flex-col">
+						<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border p-2">
+							<Tabs value={mode} onValueChange={setMode}>
+								<TabsList aria-label="差异显示方式">
+									<TabsTrigger value="parallel">并排</TabsTrigger>
+									<TabsTrigger value="unified">合并</TabsTrigger>
+								</TabsList>
+							</Tabs>
+							<div className="flex items-center gap-1">
+								<Button
+									size="icon"
+									variant="ghost"
+									aria-label="上一处变更"
+									title="上一处变更"
+									disabled={!changes.length}
+									onClick={() => navigateChange(-1)}
+								>
+									<ChevronLeft />
+								</Button>
+								<span className="min-w-12 text-center text-xs tabular-nums" aria-live="polite">
+									{changeIndex + 1} / {changes.length}
+								</span>
+								<Button
+									size="icon"
+									variant="ghost"
+									aria-label="下一处变更"
+									title="下一处变更"
+									disabled={!changes.length}
+									onClick={() => navigateChange(1)}
+								>
+									<ChevronRight />
 								</Button>
 							</div>
-
-							<div className="min-h-0 flex-1 overflow-auto bg-ide-editor">
-								{isDiffLoading ? (
-									<div className="flex items-center gap-2 px-4 py-4 text-xs text-muted-foreground">
-										<Loader2 className="size-4 animate-spin" />
-										<span>加载中</span>
-									</div>
-								) : diffError ? (
-									<p className="px-4 py-4 text-xs text-destructive">版本差异加载失败。</p>
-								) : diff ? (
-									<DiffLines lines={diff.lines} />
-								) : (
-									<p className="px-4 py-4 text-xs text-muted-foreground">选择一个版本查看差异。</p>
-								)}
-							</div>
+						</div>
+						<div className="grid shrink-0 grid-cols-2 gap-2 border-b border-border px-3 py-2 text-xs text-muted-foreground">
+							<span className="min-w-0 break-words">所选版本 {shortHash(selectedHash ?? "")}</span>
+							<span className="min-w-0 break-words">当前版本 {shortHash(currentHash ?? "")}</span>
+						</div>
+						{diff?.from &&
+						(diff.from.title !== diff.to.title ||
+							diff.from.category !== diff.to.category ||
+							JSON.stringify(diff.from.tags ?? []) !== JSON.stringify(diff.to.tags ?? [])) ? (
+							<p className="shrink-0 border-b border-warning-border bg-warning-surface p-2 text-xs text-warning-foreground">
+								恢复会更新元数据：{diff.to.title} → {diff.from.title}（标题、分类、标签）
+							</p>
+						) : null}
+						<div ref={diffContainer} className="min-h-0 flex-1 overflow-auto bg-ide-editor">
+							{loadingDiff ? (
+								<Loading />
+							) : diffError ? (
+								<p role="alert" className="p-4 text-sm text-destructive">
+									版本差异加载失败，请刷新重试。
+								</p>
+							) : diff ? (
+								<DocumentHistoryDiff lines={diff.lines} parallel={mode === "parallel"} />
+							) : (
+								<p className="p-4 text-sm text-muted-foreground">选择一个版本查看差异。</p>
+							)}
 						</div>
 					</div>
-				</SheetContent>
-			</Sheet>
-		</>
-	);
-};
-
-const DiffLines: React.FC<{ lines: DocumentHistoryDiffLine[] }> = ({ lines }) => {
-	if (lines.length === 0) {
-		return <p className="px-4 py-4 text-xs text-muted-foreground">这个版本没有内容差异。</p>;
-	}
-	return (
-		<div className="min-w-full py-2 font-mono text-2xs leading-5">
-			{lines.map((line, index) => (
-				<div
-					key={`${index}-${line.type}-${line.oldLine ?? 0}-${line.newLine ?? 0}`}
-					className={cn(
-						"grid grid-cols-[3rem_3rem_minmax(0,1fr)] px-2",
-						line.type === "added" && "bg-emerald-500/10 text-emerald-700",
-						line.type === "removed" && "bg-red-500/10 text-red-700",
-						line.type === "context" && "text-muted-foreground",
-					)}
-				>
-					<span className="select-none pr-2 text-right text-muted-foreground/70">
-						{line.oldLine ?? ""}
-					</span>
-					<span className="select-none pr-2 text-right text-muted-foreground/70">
-						{line.newLine ?? ""}
-					</span>
-					<span className="min-w-0 whitespace-pre-wrap break-words">
-						{linePrefix(line.type)}
-						{line.text || " "}
-					</span>
 				</div>
-			))}
-		</div>
+				<div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border p-3">
+					<p
+						role={restoreError ? "alert" : undefined}
+						className={cn(
+							"min-w-0 basis-full text-xs",
+							restoreError || dirty ? "text-destructive" : "text-muted-foreground",
+						)}
+					>
+						{restoreError ||
+							(dirty
+								? "当前文档有未保存修改，请先保存或处理冲突。"
+								: "恢复后生成新版本，当前内容和已有历史仍会保留。")}
+					</p>
+					<Button variant="outline" onClick={() => onOpenChange(false)}>
+						取消
+					</Button>
+					<Button
+						disabled={
+							!selectedItem ||
+							selectedHash === currentHash ||
+							reviewedVersion === null ||
+							dirty ||
+							restoring ||
+							Boolean(diffError) ||
+							Boolean(historyError) ||
+							!diff ||
+							loadingHistory ||
+							loadingDiff ||
+							refreshingHistory ||
+							refreshingDiff
+						}
+						onClick={confirmRestore}
+					>
+						{restoring ? <Loader2 className="animate-spin" /> : <RotateCcw />}恢复所选版本
+					</Button>
+				</div>
+			</SheetContent>
+		</Sheet>
 	);
 };
 
-const historySummary = (item: DocumentHistoryItem) =>
-	item.summary || operationLabel(item.operation);
-
-const operationLabel = (operation?: string) => {
-	switch (operation) {
-		case "workspace_save":
-			return "文档更新";
-		default:
-			return operation?.trim() || "文档更新";
-	}
-};
-
-const historySourceLabel = (item: DocumentHistoryItem) => {
-	switch (item.source) {
-		case "agent":
-			return "agent";
-		case "user":
-			return "用户";
-		case "system":
-			return operationLabel(item.operation);
-		default:
-			return item.source?.trim() || operationLabel(item.operation);
-	}
-};
-
+const Loading = () => (
+	<div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+		<Loader2 className="size-4 animate-spin" />
+		加载中
+	</div>
+);
+const shortHash = (hash: string) => hash.slice(0, 7);
+const historySummary = (item: DocumentHistoryItem) => item.summary || item.operation || "文档更新";
 const formatHistoryTime = (value: string) => {
 	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return "";
-	return new Intl.DateTimeFormat("zh-CN", {
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-	}).format(date);
+	return Number.isNaN(date.getTime())
+		? ""
+		: new Intl.DateTimeFormat("zh-CN", {
+				month: "2-digit",
+				day: "2-digit",
+				hour: "2-digit",
+				minute: "2-digit",
+			}).format(date);
 };
-
-const shortHash = (hash: string) => hash.slice(0, 7);
-
-const linePrefix = (type: DocumentHistoryDiffLine["type"]) => {
-	switch (type) {
-		case "added":
-			return "+ ";
-		case "removed":
-			return "- ";
-		default:
-			return "  ";
-	}
-};
-
 const historyErrorMessage = (error: unknown) => {
-	if (typeof error === "object" && error !== null && "message" in error) {
-		const message = (error as { message?: unknown }).message;
-		if (typeof message === "string" && message.trim()) return message;
-	}
-	return "请稍后重试。";
+	if (error && typeof error === "object" && "message" in error && typeof error.message === "string")
+		return error.message;
+	return "恢复失败，请稍后重试。";
 };

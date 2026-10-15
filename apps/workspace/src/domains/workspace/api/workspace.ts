@@ -476,9 +476,12 @@ export const restoreWorkspaceDocumentHistoryVersion = async (
 	documentId: string,
 	commitHash: string,
 	projectId?: string | null,
+	expectedVersion?: number,
 ) => {
 	const response = await httpClient.post<RestoreDocumentHistoryResponse>(
 		workspaceDocumentHistoryRestoreKey(documentId, commitHash, projectId),
+		undefined,
+		{ params: expectedVersion === undefined ? undefined : { expectedVersion } },
 	);
 	return response.data;
 };

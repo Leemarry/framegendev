@@ -40,7 +40,8 @@
     "10-15-asset-reference-document-body",
     "10-15-asset-folder-reparent",
     "10-15-nle-workbench",
-    "10-15-document-conflict-protection"
+    "10-15-document-conflict-protection",
+    "10-16-document-history-parity"
   ],
   "parent": null,
   "relatedFiles": [],

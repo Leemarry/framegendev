@@ -33,7 +33,7 @@ type WorkspaceStore interface {
 	ListDocumentHistory(projectID string, documentID string, limit int) (service.DocumentHistoryResponse, error)
 	GetDocumentHistoryVersion(projectID string, documentID string, commitHash string) (service.DocumentHistoryVersionResponse, error)
 	GetDocumentHistoryDiff(projectID string, documentID string, commitHash string, fromHash string) (service.DocumentHistoryDiffResponse, error)
-	RestoreDocumentHistoryVersion(projectID string, documentID string, commitHash string) (service.DocumentHistoryRestoreResponse, error)
+	RestoreDocumentHistoryVersion(projectID string, documentID string, commitHash string, expectedVersion *int) (service.DocumentHistoryRestoreResponse, error)
 	GetEpisodeTimelineState(projectID string, documentID string) (service.EpisodeTimelineStateResponse, bool, error)
 	GetResolvedEpisodeTimelineState(projectID string, documentID string) (service.EpisodeTimelineResolvedResponse, error)
 	SaveEpisodeTimelineState(projectID string, documentID string, request service.SaveEpisodeTimelineStateRequest) (service.EpisodeTimelineStateResponse, error)
@@ -706,9 +706,11 @@ func (handler Workspace) HandleGetDocumentHistoryDiff(context *gin.Context) {
 // @Param projectId path string true "Project ID"
 // @Param documentId path string true "Document ID"
 // @Param commitHash path string true "Commit hash"
+// @Param expectedVersion query int false "Current document version; stale restores return409"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 404 {object} SwaggerEnvelope
+// @Failure 409 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/workspace/documents/{documentId}/history/{commitHash}/restore [post]
 func (handler Workspace) HandleRestoreDocumentHistoryVersion(context *gin.Context) {
@@ -724,7 +726,16 @@ func (handler Workspace) HandleRestoreDocumentHistoryVersion(context *gin.Contex
 	if !ok {
 		return
 	}
-	response, err := handler.store.RestoreDocumentHistoryVersion(projectID, documentID, commitHash)
+	var expectedVersion *int
+	if raw := context.Query("expectedVersion"); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 1 {
+			httpresponse.Error(context, http.StatusBadRequest, "expectedVersion must be a positive integer")
+			return
+		}
+		expectedVersion = &value
+	}
+	response, err := handler.store.RestoreDocumentHistoryVersion(projectID, documentID, commitHash, expectedVersion)
 	if err != nil {
 		handler.writeDocumentHistoryError(context, err)
 		return
@@ -863,6 +874,10 @@ func (handler Workspace) writeFolderMutationError(context *gin.Context, err erro
 }
 
 func (handler Workspace) writeDocumentHistoryError(context *gin.Context, err error) {
+	if handler.matchesVersionConflict(err) {
+		httpresponse.ErrorFromStatus(context, http.StatusConflict, err)
+		return
+	}
 	if handler.matchesNotFound(err) {
 		httpresponse.Error(context, http.StatusNotFound, "历史版本不存在")
 		return
