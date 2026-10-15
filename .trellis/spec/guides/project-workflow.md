@@ -5,7 +5,9 @@ reference-only. Never access `%APPDATA%/mediago-drama/workspace-v2`.
 
 Authoritative sources relative to repository root:
 
-- `docs/parity-0.1.17/README.md`: baseline and continuation.
+- `docs/parity-0.1.17/README.md`: short entry and progressive reading map.
+- `docs/parity-0.1.17/CURRENT-HANDOFF.md`: active work, isolation and next step.
+- `docs/parity-0.1.17/BASELINE-REVIEW.md`: module evidence, missing states and retained improvements.
 - `docs/parity-0.1.17/REQUIREMENTS.md`: stable requirement IDs.
 - `docs/parity-0.1.17/TASKS.md`: product task IDs, status and dependencies.
 - `docs/parity-0.1.17/DECISIONS.md`: user choices and unresolved evidence.
@@ -13,7 +15,10 @@ Authoritative sources relative to repository root:
 
 Trellis owns task artifacts and session journals; the existing ledger owns
 product scope. Link stable IDs in task metadata/PRDs and update both when state
-changes. Do not duplicate whole requirement matrices.
+changes. Do not duplicate whole requirement matrices. Load only matching IDs,
+task artifacts and skill steps; archives, old plans and all SKILL files are not
+startup context. Keep temporary artifacts in .cache and durable evidence under
+docs/parity-0.1.17/evidence. Do not create competing handoff/requirements copies.
 
 Superpowers supports design; Trellis tracks work. Reference existing designs
 and plans instead of generating competing copies. TASK-010 design at
@@ -56,18 +61,22 @@ failed checks and incomplete work visible, and continue independent items.
 Do not mark failed items complete or archive them. TASK-010 stays awaiting review;
 skip it and its dependent work rather than stopping all progress. This does not
 authorize real account login, production data access, payments, external sending
-or irreversible actions. TASK-031/032/033/035/036 are accepted; TASK-030 remains
-incomplete. Reassess TASK-034's remaining work for local necessity before choosing
-its next independently verifiable deliverable.
+or irreversible actions. Current scheduling and other-session ownership come from
+TASKS and CURRENT-HANDOFF; stale historical next-step/PID records do not override
+them. Preserve TASK-010 review and TASK-170 undecided implementation states.
 
 Read current source before relying on GAP history. Comment submission, project/
 archive/trash tabs, Ctrl/Cmd+K search and Xiaoyunque catalog already exist.
 Reuse and verify. Commercial pages keep official structures and working local
 capabilities; external services remain pending integration without fake success.
 
-Record visuals, interactions and functionality separately. Official captures
-are 1600 x 1136 full windows. Uncaptured menus/dialogs and unseen business
-behavior need further evidence. Confirm isolated workspace paths before running.
+Record visuals, interactions and functionality separately. New screenshots are
+106 files (105 full 1920 x 1080 desktops and one crop); exe-flow has 43 full
+1600 x 1136 windows. Names and counts in external notes are unreliable. Inspect
+pixels, title/task bars and DPI before comparing. New captures are not complete;
+supplement actual official behavior using isolated user-data and workspace via
+scripts/parity/start-official-desktop.ps1. Never take over the user's live EXE.
+Keep existing improvements that serve the local workflow and record reasons.
 
 Handoff records changed files, actual checks, failures/unrun checks, gaps and
 next steps. Archive completed tasks with `--no-commit`; record sessions using an

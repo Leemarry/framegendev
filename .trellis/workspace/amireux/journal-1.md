@@ -75,8 +75,8 @@ Registered three stages and deferred items; built and started isolated services;
 
 - Plan TASK-004 independently, then reverify TASK-001. Model-access design still pending; no login, generation, export or task archive.
 
-
 ## Session 3: TASK-004 document persistence fix and TASK-001 reacceptance
+
 <!-- trellis-session: v=2 fp=20f5fc29ca0a03e9 -->
 
 **Date**: 2026-10-14
@@ -107,8 +107,8 @@ Fixed initialization writes; archived TASK-004 and reaccepted TASK-001; no Git c
 
 - Plan TASK-002 Windows MCP executable resolution, retest TASK-003, then review TASK-010 model access page.
 
-
 ## Session 4: TASK-061 project management screenshot parity
+
 <!-- trellis-session: v=2 fp=238bb8e2460ba377 -->
 
 **Date**: 2026-10-14
@@ -139,8 +139,8 @@ Implemented project cards, single header, root sidebar and empty states. Real li
 
 - Plan TASK-062 import/open-directory separately; TASK-002/003 defects remain, TASK-010 design awaiting review.
 
-
 ## Session 5: TASK-021 screenshot user menu
+
 <!-- trellis-session: v=2 fp=05d93e42011f93bd -->
 
 **Date**: 2026-10-14
@@ -172,8 +172,8 @@ Implemented screenshot06 root user menu with persisted theme, real skills/settin
 
 - Design TASK-022 project workspace shell/navigation against screenshots01/02; TASK-010 still awaiting review.
 
-
 ## Session 6: TASK-022 工作区壳与必要导航
+
 <!-- trellis-session: v=2 fp=fdec81d736a26e1e -->
 
 **Date**: 2026-10-14
@@ -204,8 +204,8 @@ Implemented screenshot06 root user menu with persisted theme, real skills/settin
 
 - 本轮只完成TASK-022，后续按用户指定继续单项；建议TASK-002再TASK-003，TASK-010仍待评审，完整正文/技能/飞书/NLE等保留。
 
-
 ## Session 7: TASK-002 Windows MCP resolution and isolated runtime verification
+
 <!-- trellis-session: v=2 fp=e6d6edbcb5768f2d -->
 
 **Date**: 2026-10-14
@@ -239,8 +239,8 @@ Native suffix fixed; real document/generation MCP acceptance passes. Full Window
 
 - Plan GAP-003 separately, rerun full gates, then replace original isolated server and close TASK-002; TASK-003 follows and TASK-010 stays awaiting review.
 
-
 ## Session 8: GAP-003 Windows full gates and TASK-002 final acceptance
+
 <!-- trellis-session: v=2 fp=2574538e6ffa89c1 -->
 
 **Date**: 2026-10-14
@@ -256,12 +256,11 @@ Completed Windows toolchain/test portability repair, passed full backend gates, 
 本轮按用户明确顺序，先独立完成GAP-003，再完成TASK-002最终验收。Superpowers既有设计/计划与Trellis inline执行共用；未启动子agent，未暂存/提交/推送。
 
 - GAP-003：本地便携GCC16.2.0官方SHA256核验；DB pool/日志/worker生命周期、原生CLI fixture、Windows HOME与NO_PROXY兼容。新增Windows检查脚本与README/spec。x/sys已有版本只从indirect改direct，go.sum不变。
-- 真实检查：原task check、task test、显式go test -race ./...和go build ./...均退出0。证据.cache/parity/gap-003/logs/*-accepted.log及remaining-gates.json。早期未关闭资源、缓存AST工具fmt与CloseHandle lint失败已修复并保留日志，无新增skip/降级门。
+- 真实检查：原task check、task test、显式go test -race ./...和go build ./...均退出0。证据.cache/parity/gap-003/logs/\*-accepted.log及remaining-gates.json。早期未关闭资源、缓存AST工具fmt与CloseHandle lint失败已修复并保留日志，无新增skip/降级门。
 - TASK-002：重新构建server/document/generation/probe.exe；旧隔离后端64284按路径/配置核实后停止，新31430/PID49948保持原task-001配置与数据，前端31431/PID61876不变。组合命令曾被自动策略拒绝；更明确的独立核验、身份受限停止与隐藏启动获执行成功，没有待批准动作。
 - 双隔离workspace真实MCP initialize/list通过（document9工具、generation2工具），list_comments只读成功；专用文档version1与原四篇14/2/3/2的正文hash/updatedAt不变。临时31432/PID25708已关闭，文件与数据保留。
 - runtime-config本次200并返回真实选项；ACP清理仍exit1，后续TASK-003先区分清理与失败。不宣称Agent prompt通过；未登录、真实生成、导出或访问生产workspace-v2。TASK-010仍待评审。
 - GAP-003与TASK-002均--no-commit归档；当前无激活任务，下一项单独规划TASK-003。此前前端源码和全部隔离数据保留；HEAD仍47322e43b13cb26c17963decb357154f638e2853，暂存区为空。
-
 
 ### Git Commits
 
@@ -279,8 +278,8 @@ Completed Windows toolchain/test portability repair, passed full backend gates, 
 
 - Plan TASK-003 independently; distinguish successful runtime-config inspection cleanup from real failure; TASK-010 remains pending review.
 
-
 ## Session 9: TASK-003 ACP cleanup and Windows descendant ownership
+
 <!-- trellis-session: v=2 fp=4a0a22000dc1bf57 -->
 
 **Date**: 2026-10-14
@@ -297,13 +296,12 @@ Completed ACP cleanup diagnosis, bounded synchronous teardown and Windows Job Ob
 
 - 专用日志确认配置元数据成功在前，旧清理关闭管道/Kill及HTTP context取消竞争在后；不能把exit1直接推断为认证/初始化失败。同步有界清理、用途/阶段/原因/forced/原始wait_error已实现。
 - 初版500ms及仅3s实现均留下原生后代验收失败证据。官方npm1.1.2源码SHA512核验确认Windows shell启动与2s清理兜底。固定3s后代观察未继续放宽，最终增加Windows私有kill-on-close Job Object：挂起启动、先加入Job再恢复，清理始终关闭Job；非Windows启动不变、无新增依赖。
-- 原生EOF/延迟EOF/已退出非零/强制、探测成功/初始化错误/认证错误/重试/取消、resident关闭和真实后代EOF/强制/取消race回归通过。完整check/test/显式全量race/build最终全部退出0，gates-accepted.json和logs/*-job.log。无新增skip/降低门，fixture GORACE仅去人工退出sleep，检测保持。
+- 原生EOF/延迟EOF/已退出非零/强制、探测成功/初始化错误/认证错误/重试/取消、resident关闭和真实后代EOF/强制/取消race回归通过。完整check/test/显式全量race/build最终全部退出0，gates-accepted.json和logs/\*-job.log。无新增skip/降低门，fixture GORACE仅去人工退出sleep，检测保持。
 - 隔离服务按PID/路径/配置/端口身份受限替换到31430/PID75752，task-003/bin-accepted及原task-001/server.yaml/workspace；前端31431/PID61876保留。原二进制、日志和每轮失败证据保留。
 - 连续3次真实runtime-config200，3次probe_completed/forced exit1如实保留，无ACP WARN/ERROR，父进程已回收且Codex/MCP后代0；固定3s采样首次即为空。四篇原文档version14/2/3/2、hash/updatedAt与before完全相同。
 - 更新PRD/design/implement/result、台账、DEC-022、README、CURRENT-HANDOFF及backend logging spec。TASK-003完成并--no-commit归档，当前没有激活下一任务；TASK-010仍待设计评审。
 - 未改前端/未重跑前端全量；未进行Electron、Linux/macOS原生运行、真实登录、Agent prompt、生成或导出，未访问生产workspace-v2。模型/权限元数据与HTTP服务ready不能证明认证或Agent prompt可用。
 - HEAD仍47322e43b13cb26c17963decb357154f638e2853，126个未提交路径，暂存区为空。
-
 
 ### Git Commits
 
@@ -321,8 +319,8 @@ Completed ACP cleanup diagnosis, bounded synchronous teardown and Windows Job Ob
 
 - Select the next single task from the ledger; TASK-010 remains awaiting design review.
 
-
 ## Session 10: 自动推进授权与交接更新
+
 <!-- trellis-session: v=2 fp=69b843068df4b54b -->
 
 **Date**: 2026-10-14
@@ -353,8 +351,8 @@ Completed ACP cleanup diagnosis, bounded synchronous teardown and Windows Job Ob
 
 - 自动推进TASK-030素材元数据/API核实与首个独立可验收子项；完成后按依赖自动继续，问题登记原因/证据/恢复条件后推进无依赖任务。
 
-
 ## Session 11: TASK-170 自动化工作台设计与出图诊断
+
 <!-- trellis-session: v=2 fp=93761b9b4c3f2db1 -->
 
 **Date**: 2026-10-14
@@ -403,7 +401,6 @@ Completed ACP cleanup diagnosis, bounded synchronous teardown and Windows Job Ob
 - 应用开发继续TASK-031原单项质量与真实持久化验收；不覆盖其既有改动。
 - 自动生产设计中的TASK-171~174分别核实并规划；完整方案仍待评审，toonflowLocal保持TASK-300专项边界。
 
-
 ### Git Commits
 
 (No commits - planning session)
@@ -420,8 +417,8 @@ Completed ACP cleanup diagnosis, bounded synchronous teardown and Windows Job Ob
 
 - AI效果图待提供方恢复；应用开发回到TASK-031单项验证，TASK-010待评审
 
-
 ## Session 12: TASK-031素材元数据验收归档，自动进入TASK-032
+
 <!-- trellis-session: v=2 fp=1b88cc2ff5277aa8 -->
 
 **Date**: 2026-10-14
@@ -440,8 +437,8 @@ TASK-031真实标签备注评分编辑/搜索与scope写入隔离完成；23前�
 
 [OK] **Completed**
 
-
 ## Session 13: TASK-032 project asset library accepted
+
 <!-- trellis-session: v=2 fp=20c891881c77ed1e -->
 
 **Date**: 2026-10-14
@@ -472,8 +469,8 @@ Project asset library page accepted; continue TASK-034 folder/API research. Othe
 
 - Research TASK-034 folder/scope contracts and implement its first independent item; TASK-010 remains pending review.
 
-
 ## Session 14: TASK-170 v2图文联动、镜头列表与媒体画布设计
+
 <!-- trellis-session: v=2 fp=48f102001dca0d36 -->
 
 **Date**: 2026-10-14
@@ -506,8 +503,8 @@ Project asset library page accepted; continue TASK-034 folder/API research. Othe
 
 收尾同步：重新读取素材会话检查点及Session13，TASK-032已验收，转TASK-034核实；修正本轮设计/README/result中的旧状态，保留其他会话记录与调度。
 
-
 ## Session 15: TASK-170 可迁移设计资料包与代码可行性归纳
+
 <!-- trellis-session: v=2 fp=7e465ee42ef12aed -->
 
 **Date**: 2026-10-14
@@ -538,8 +535,8 @@ Project asset library page accepted; continue TASK-034 folder/API research. Othe
 
 - 设计资料已交付；依用户新目标再选择单项，原TASK-170 AI图片仍待提供方恢复、不归档；其他会话TASK-035独立继续。
 
-
 ## Session 16: TASK-035 素材逻辑文件夹API验收
+
 <!-- trellis-session: v=2 fp=78770d838c167586 -->
 
 **Date**: 2026-10-14
@@ -558,8 +555,8 @@ Project asset library page accepted; continue TASK-034 folder/API research. Othe
 
 [OK] **Completed**
 
-
 ## Session 17: TASK-036 素材文件夹页面完整闭环
+
 <!-- trellis-session: v=2 fp=3f210485b6ce702b -->
 
 **Date**: 2026-10-14
@@ -590,8 +587,8 @@ Project asset library page accepted; continue TASK-034 folder/API research. Othe
 
 - 核实TASK-033官方全局范围结构，复用现有目录/媒体实现；目录删除重挂扫描待开发，TASK-010待评审。
 
-
 ## Session 18: TASK-033 全局素材范围页面验收
+
 <!-- trellis-session: v=2 fp=4bf233303a280a8d -->
 
 **Date**: 2026-10-14
@@ -622,8 +619,8 @@ Project asset library page accepted; continue TASK-034 folder/API research. Othe
 
 - TASK-034剩余目录删除/重挂父级/扫描单项核实；TASK-030未完成，TASK-010待评审和TASK-170资料保留。
 
-
 ## Session 19: TASK-161 最新迭代与Git提交规则
+
 <!-- trellis-session: v=2 fp=112f15a409c617f5 -->
 
 **Date**: 2026-10-15
@@ -640,8 +637,8 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 
 ### Git Commits
 
-| Hash | Message |
-|------|---------|
+| Hash      | Message                                                                 |
+| --------- | ----------------------------------------------------------------------- |
 | `216611e` | chore(parity): checkpoint verified local development and design records |
 
 ### Testing
@@ -656,8 +653,8 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 
 - 先评估TASK-034剩余功能个人必要性，形成单功能计划；TASK-030/034未完成、TASK-010待评审、TASK-170未定保持
 
-
 ## Session 20: TASK-162 素材文件夹删除：真实浏览器验收与错误消息缺陷修复
+
 <!-- trellis-session: v=2 fp=83726229b38531af -->
 
 **Date**: 2026-10-15
@@ -693,8 +690,8 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 - 按TASK-034剩余真实依赖选独立单项（重挂父级/物理扫描 或 评分筛选排序/关联详情），先核实个人必要性与可复用能力
 - 像素截图待用户聚焦 in-app Browser 面板后可补；服务器英文错误消息本地化留待已登记 i18n 项
 
-
 ## Session 21: 素材评分筛选与排序验收完成
+
 <!-- trellis-session: v=2 fp=f899fbab6e3d4130 -->
 
 **Date**: 2026-10-15
@@ -717,8 +714,8 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 
 - TASK-030/034剩余：重挂父级/物理扫描、关联详情，启动前核实必要性与复用
 
-
 ## Session 22: TASK-164 素材引用关联详情
+
 <!-- trellis-session: v=2 fp=41f601ce2ee57e26 -->
 
 **Date**: 2026-10-15
@@ -752,8 +749,8 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 
 - TASK-030/034 剩余：物理扫描与文档正文级引用检索，需独立设计
 
-
 ## Session 23: TASK-165 素材目录物理扫描（刷新）
+
 <!-- trellis-session: v=2 fp=b315e80ad45b3fd3 -->
 
 **Date**: 2026-10-15
@@ -787,8 +784,8 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 
 - TASK-030/034 剩余：文档正文级引用检索，需独立核实与设计
 
-
 ## Session 24: TASK-164 文档正文引用完整验收
+
 <!-- trellis-session: v=2 fp=acfd6d43a6ddcaa1 -->
 
 **Date**: 2026-10-15
@@ -820,8 +817,8 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 
 - TASK-163真实UI移动/冲突/刷新仍缺验收，按原设计补齐；TASK-030/034不标整体完成，TASK-010待评审
 
-
 ## Session 25: TASK-163 目录重挂完整补验收
+
 <!-- trellis-session: v=2 fp=fa81870d6f1fc2e0 -->
 
 **Date**: 2026-10-15
@@ -853,8 +850,8 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 
 - GAP-004旧共享测试文稿workspace_save来源待核实，保留前后文件及失败baseline；TASK-030/034仍待聚合验收，TASK-010待评审
 
-
 ## Session 26: TASK-040 M1 NLE shell
+
 <!-- trellis-session: v=2 fp=bdc597ab0eafe541 -->
 
 **Date**: 2026-10-15
@@ -873,8 +870,8 @@ Verified full-screen bins, selection, focus and isolated browser flow; M2 editin
 
 [OK] **Completed**
 
-
 ## Session 27: TASK-040 M2 durable NLE edits
+
 <!-- trellis-session: v=2 fp=e8b3e69fe5e89ad5 -->
 
 **Date**: 2026-10-15
@@ -893,8 +890,8 @@ Verified full-screen bins, selection, focus and isolated browser flow; M2 editin
 
 [OK] **Completed**
 
-
 ## Session 28: TASK-040 M3 playback and matching draft export
+
 <!-- trellis-session: v=2 fp=07db40defca6d1c8 -->
 
 **Date**: 2026-10-15
@@ -912,3 +909,37 @@ Browser playback/export accepted; frontend95 tests and full gates pass; native J
 ### Status
 
 [OK] **Completed**
+
+## Session 29: TASK-166 新截图基线复查与渐进资料整理
+
+<!-- trellis-session: v=2 fp=f44b482121360552 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-166 新截图基线复查与渐进资料整理
+**Branch**: `codex/nle-export`
+
+### Summary
+
+实际检查106张新图、当前源码和隔离官方桌面，补采证据并重排任务；整理唯一资料入口。本记录随本项本地提交交付。
+
+### Main Changes
+
+- 登记REQ-045至047、DEC-030和TASK-181；保留现有改进，避开其他会话TASK-040/041。
+- 补充截图索引及隔离体验脚本；收敛README/当前交接/AGENTS自定义区，历史按需追溯。
+
+### Git Commits
+
+与TASK-166资料及工具同一提交，提交号从本文件Git历史查询；不是未实施的规划记录。
+
+### Testing
+
+- [OK] 106项hash、11文档链接、PowerShell AST/三个guard、Trellis validate通过；既有前端2文件17测试通过。
+- [OK] 指定资料oxfmt通过；AGENTS既有受管区全文件格式例外，自定义区格式通过、受管区未改。未运行产品全量门和开发UI全量验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- P0 TASK-181独立设计并发保存保护；素材采用/引用、批注和文档往返聚合验收。TASK-010待评审，NLE/字幕归另一会话。

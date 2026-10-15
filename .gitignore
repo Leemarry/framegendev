@@ -7,6 +7,8 @@ bin
 coverage
 packages/server/internal/app/docs/
 /mediago-server
+/services/server/mediago-server*.exe
+/services/server/server.log
 __pycache__/
 *.py[cod]
 

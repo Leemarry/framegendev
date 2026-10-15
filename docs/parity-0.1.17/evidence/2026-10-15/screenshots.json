@@ -1,0 +1,642 @@
+{
+	"source": "E:\\AI\\mediago-gap-shots\\screenshots",
+	"count": 106,
+	"screenshots": [
+		{
+			"file": "01-项目管理-主界面.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "f7cf9e7f071f10ca895694f0106048309e45764f814665d12d4c9a750748a952"
+		},
+		{
+			"file": "02-项目管理-归档标签.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "ec72460a161e25c7b2db890b405d3d9bcc89dbf74e2662d18fb7dbfb81633c29"
+		},
+		{
+			"file": "03-项目管理-垃圾箱标签.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "7a501488de35f58e91c631bb5e92db0d5aa6949175a3aafcf2cec0ea702707b1"
+		},
+		{
+			"file": "04-项目管理-项目标签.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "1c9c83f040065bfcadd1cb7960ed1df5136023ddaac4046a86875334f01a160e"
+		},
+		{
+			"file": "05-项目卡片-三点菜单.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "f80f34f005b06ba195e4946de70e3bdd8b6b6ef0c49ec1a6861944a080df381d"
+		},
+		{
+			"file": "06-创建新项目-弹窗.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "d10ac30e760a35816e99aca6c0bfec1e6deaf90d33a134f5f871a418bbc72cc1"
+		},
+		{
+			"file": "07-顶部菜单-文件.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "10c824136b572b947d3131d8fc88a017b3ecf0bf2ecacaea0e1a3fba785093a8"
+		},
+		{
+			"file": "08-顶部菜单-编辑.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "5e8320bdf60b0809e8a3ce534df5169fb5a4271c9715bdea51e688d2b0957777"
+		},
+		{
+			"file": "09-顶部菜单-视图.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "43895a6e85b815de3892860d884b165d7d7eca4ffce1c6ea2201515d9ba0c8e7"
+		},
+		{
+			"file": "10-顶部菜单-工具.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "969ac45e0548057ca3d4eed2fe893dddc2140a30a5b74ef4e489adca7a94fd2b"
+		},
+		{
+			"file": "11-顶部菜单-窗口.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "d87341fadd06dba9f86ad9996484f29aaf437320b109f1eb20bd4099a0c73443"
+		},
+		{
+			"file": "12-顶部菜单-帮助.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "b6fcb1cb92636deffe81ec78f3be5a0ff712cbbcfaaa2309e0470dff3d9af22e"
+		},
+		{
+			"file": "13-帮助菜单-展开.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9fa1877694c47c29ee70b9ba2099194387a39eec6e5554f50db5ee15153571d7"
+		},
+		{
+			"file": "14-关于-关于对话框.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "bae5b434690267b631bb395b51aeba04211e615cadb699517617099647a302a2"
+		},
+		{
+			"file": "15-全局导航-Drami.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "17550185e1f895cb86690a2f2a09afdd1f0aab550a3d979836edd5652579fa59"
+		},
+		{
+			"file": "16-全局导航-素材库.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "888049f4c53650e9c79eeabaf70ad2632ee49dd69ff149e58d831a5b3a79f8e4"
+		},
+		{
+			"file": "17-全局导航-生成历史.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "f6ee2bf5f8d70d4592025ccdb8425f1503d316a3b26215b5453de096587ce9f0"
+		},
+		{
+			"file": "18-全局用户菜单.png",
+			"width": 529,
+			"height": 480,
+			"sha256": "e2016b36710cd8df90b87bc9fe7a8be775c3f929b64349d429b2a37912c9e12c"
+		},
+		{
+			"file": "19-项目工作区-主界面.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "12defcd7671139e32d338eb9026fd7c1033c333d9f472ca417ba35f8012e1c24"
+		},
+		{
+			"file": "20-六大模块-剧本.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "863b85c2f975fdff2a120fa8e8cf4ce333ea488f56ac3d3b008fcfca1fd307e7"
+		},
+		{
+			"file": "21-六大模块-场景.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "519d32dd40509ff2370780eb0f6290cadec40ca14a218d1efd728992fd887db7"
+		},
+		{
+			"file": "22-六大模块-道具.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "0de4adb3f2b0c0d2ac158512414d594eb78ca823a295742f3c78dfa315693498"
+		},
+		{
+			"file": "23-六大模块-分镜.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "17f238dc1049f6029c88b76bec2c72c159c52daef493ebbf5a882cb8cca5b85f"
+		},
+		{
+			"file": "24-六大模块-资料.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "d31328128f27edadfcd9940280aea1267542715f1d768e51730b20ff96b09cfc"
+		},
+		{
+			"file": "25-目录树-新建文档按钮.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "748cd39da0c5cef5644026dce3ad4035dd0549445c678d2cb144e5e1845a1bd5"
+		},
+		{
+			"file": "26-右上角-历史版本.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "1ed6002028401b3a9f805d95403911378fc1b3a41e577adb6bd89a7a99f1bd4e"
+		},
+		{
+			"file": "27-右上角-批注.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "813d08b80fcf849cfea245d0df14edd0e25102e22954b521931449d16f7d54a3"
+		},
+		{
+			"file": "28-右上角-项目设置.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "4fccd26c31ea5ed1284127d0133b4fe000707913b5e387aff6f8cd7cc024938c"
+		},
+		{
+			"file": "29-素材预览-示例图.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "f0484d91b87aada008ff23c1b2abc12c4e3883f788af3ef1a439665a66037346"
+		},
+		{
+			"file": "30-右键-剧本节点.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "a843680c5a8824c97f5db4ff5ba5cd091e7e0a18b0531233c2d56b9a9593b6c5"
+		},
+		{
+			"file": "31-右键-角色节点.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "3728b3688b86c752a3d782e7bb0e45c3a18295920c182ded1043c8cd5420ce2b"
+		},
+		{
+			"file": "32-右键-场景节点.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "7200a9ab1d38cf400f3448621277ac33da410eb3be5363b5758f0dc21d0ae8b0"
+		},
+		{
+			"file": "33-右键-道具节点.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "bf5f35565806ad0519da367be999bc6ff19db70bf7ed4fc56876bfbd18a489f8"
+		},
+		{
+			"file": "34-右键-分镜节点.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "8559fd153e3c480e75bbe2be5cac79dd959e6dec8e42553e8a3ed27237ae1a64"
+		},
+		{
+			"file": "35-右键-资料节点.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "d1a0d54e8b2f99be1e0b278534011408ae0ff2a0e6ec03c395b93ba12be0c327"
+		},
+		{
+			"file": "36-新建文档六选一弹窗.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "50019ae68592f471a8a8de66ec69eae94a2b5cd0391912fa1025c44ca903a339"
+		},
+		{
+			"file": "37-顶部工具栏-全局搜索.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "944e607fff883c9f7581ef3cef23098e048a253f6860ec234a05c44cf775e75d"
+		},
+		{
+			"file": "38-顶部工具栏-列表视图.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "7f90177065e754891289aee83e307c841a667026159ea46cc23d7387014f307e"
+		},
+		{
+			"file": "39-顶部工具栏-网格视图.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "36ce34d88082b5eeb37c12eaa3701bc6568155960f6ff734bbaf401c93627ce1"
+		},
+		{
+			"file": "40-文档-新建角色成功.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "f1999c04569471358a7fb3979d7c9ecb5c5a0e36b0d9ce2ff6945565c896f20f"
+		},
+		{
+			"file": "41-文档-输入文字.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "d08f737f56e69bac85fa6c38e32eee73eba8d05e1af26ba1ab99082f72b1b1d2"
+		},
+		{
+			"file": "42-富文本-H1标题.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "ee6e14e902a95d8eb509ff30595d6be37d46c5747822df69ca91f4ba7bb995e6"
+		},
+		{
+			"file": "43-富文本-H2标题.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "b75f2578f676195e207e735e38869355f9ea86ab8e9381bdf89ad0908c87d157"
+		},
+		{
+			"file": "44-富文本-无序列表.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "de95347dd1e6ec0341417c3277cc64392150f8dbc7f0214a617740340dd3264d"
+		},
+		{
+			"file": "45-富文本-引用块.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "70cae98660c7d8ce189cb33de4fb4c0f3af96f6c3f990b97a45c29b739333c99"
+		},
+		{
+			"file": "46-富文本-代码块.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9e16ecd3ea246db9bfa1f3d971c990abf9a922a1f631a46908d2a23a497024c5"
+		},
+		{
+			"file": "47-富文本-链接弹窗.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "a6223df49a4afc13039724a236f58e4e8f39fe40e5188f900ef7e2d0bbc77bf8"
+		},
+		{
+			"file": "48-富文本-插入图片.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "444aecef31e05ced332c849a5532f9d798606c8aabb371c3c7fd017d5eee8142"
+		},
+		{
+			"file": "49-富文本-表格菜单.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "083a5abc12457b1bd296dc8e8b376036bfbb6b06894a1f9f93fb76b6b6e5ed91"
+		},
+		{
+			"file": "50-文档-交给Agent按钮.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "7e73a60aacfbc20efc23ee9781b3973594cbd40243eec8f25f41e463215119da"
+		},
+		{
+			"file": "51-交给Agent弹窗.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9df6bfda2c6baba0723d418e0c057368e3c2e0a46ec3d9b388a1ebd987aa5e16"
+		},
+		{
+			"file": "52-正文批注面板.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "0f860ae741f6f3dfb36f857517bcf2694716e3691b7e5cd5a082e383473cf4d0"
+		},
+		{
+			"file": "53-文档-历史版本侧栏.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "bed4494c65fffd349929d0596503e48020c85b5127131a8e511945897ddfdf0d"
+		},
+		{
+			"file": "54-项目素材库-主界面.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9c7a3df6005fe70a96a1e1f66959c7000ebf641b53d68c04205e6793df37ed89"
+		},
+		{
+			"file": "55-项目素材库-新建文件夹.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "a038b16c4256256eeaf5d01393941a7e7e455ae84ca5fd3b2dd4c225a6379ad6"
+		},
+		{
+			"file": "56-项目素材库-导入文件.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "6c8803c6813ff012dd919f3d82f2c0b3f860bd91538e4a29ed4501017aaefa0c"
+		},
+		{
+			"file": "57-项目素材库-刷新.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "486be94023a3c742b6581598a7791b80e6f4ac173a17a32cde6c10883fb9976c"
+		},
+		{
+			"file": "58-项目素材库-排序下拉.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "4501a0027ca02db81ddf5b59f4655564550aaeb4de0655f7caa13849924c08c2"
+		},
+		{
+			"file": "59-项目素材库-筛选面板.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "5052acef0722636e2830dd204c5a3add5a5a461bfef0a08c86732a4099e1a474"
+		},
+		{
+			"file": "60-素材右键菜单.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "d35768e4a40cd8626a4ed46c17cb7c2de9cd71819a9fc6d0789b5bf02bab76dd"
+		},
+		{
+			"file": "61-项目内-素材库入口.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "719cd7256199ce9426aa60ba183d06ac782f14f218a6b50dbd712937c8badd3e"
+		},
+		{
+			"file": "62-生成面板-分辨率设置.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "799f7ef81794c06daa7b37a5c2bb120a1199574bd887343bb47d808b76e135d2"
+		},
+		{
+			"file": "63-生成面板-模型选择.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "3a58f733d4308a4333f7ae28abe483d48c86f3841b591508c0c5301101c0cb82"
+		},
+		{
+			"file": "64-生成面板-引用素材.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "2261910b82b1cccd8d02ad5ce68665543ae60a14bea0a96b968dcddce384950f"
+		},
+		{
+			"file": "65-生成面板-插入技能包.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "22a18a755a1bf90c15ceec14140cb06c03ca7f3b5e725144e4c764084b3b41ac"
+		},
+		{
+			"file": "66-全局生成历史-视频.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9e675c93bcd9303a352809ed63c215b5ad586b5ca2d33c32d7f4484b0fed6cc4"
+		},
+		{
+			"file": "67-全局生成历史-图片.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "aac9255f0143a73c0a8d79d023661ba785205c0d038220acf2eea1ee8250b573"
+		},
+		{
+			"file": "68-全局生成历史-文本.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "eea7b4fd5a3c5fd1f39bd1b3d261c783ab30341ead45b02be060ba7f9dae568e"
+		},
+		{
+			"file": "69-全局生成历史-音频.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "5cb601d57be8d0acbf12f6cb60e43b100aac14fbbe32b1d0bfe5f24ec80410a4"
+		},
+		{
+			"file": "70-新建会话-类型选择.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "c4758ebf3d2c7f536ca4bffc59d8d10c39c63403215f9e05578e05a8d2d18076"
+		},
+		{
+			"file": "71-Drami-AI助手面板.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "69d06903283523f1347e62950484d7970c922857a00cbca691cb77a45c028bc5"
+		},
+		{
+			"file": "72-Drami-新建会话.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "25b6cb0e884c5ae1abaaf7f270aff11217ef56a5992b21ebeb8c92fb376412ae"
+		},
+		{
+			"file": "73-Drami-加号新建对话.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "b2b8df614080e65328898c78f8f24704d3c537a14581c858e340f3c6eb7beb4d"
+		},
+		{
+			"file": "74-项目设置-技能包.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "2965ba8b307547333375acad81c0ea0afbbab3a50ace5ff1ff17b47763f98103"
+		},
+		{
+			"file": "75-项目设置-飞书群.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "fc9bff02cb3c0e44d4523ae829e838040166a8c8eaef1f491791c6d675e8014c"
+		},
+		{
+			"file": "76-项目设置-项目文件.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "3e3ee81b16872827f051270576945061debb4b2464427049bd19a5bad172509e"
+		},
+		{
+			"file": "77-项目设置-项目管理.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "e26f5407885efa9d50bc4afa8b85c74401a974a4af5f5b0e666d8126e79b2e80"
+		},
+		{
+			"file": "78-技能包-详情.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "81542d4d7c47483faf7e5b725964e6322774e321993cbdb7221f2e0e6ecfd5a3"
+		},
+		{
+			"file": "79-项目生成历史-视频空态.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "6496600c84a790b22494bab90fec8445f7651a37e08f88e9d602137eb40c494d"
+		},
+		{
+			"file": "80-软件设置-基础设置.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "67320076957f581a27d668161f2e8316347b3f84bea63e3073b9c4d29e444756"
+		},
+		{
+			"file": "81-软件设置-账户.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "8dfae5496e7534f8984bf3f228b2af0a67177a306f3ac2c3e771fbfc4e644f1f"
+		},
+		{
+			"file": "82-软件设置-用量分析.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "6753e6f84467edb0ac9cc55b0474983290122ac0514b100e3b7779eccd3ef4dc"
+		},
+		{
+			"file": "83-软件设置-浏览器设置.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "67b9e36fe84d44970c238bca94f452339afcb894317467aa8c83c4a800ccd3b1"
+		},
+		{
+			"file": "84-软件设置-存储管理.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "866a0b7561868488a1b9d3000026826e15ba0315b507df4151fae86306c510e0"
+		},
+		{
+			"file": "85-软件设置-快捷键-下.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "f8bce53eda27a2dfbc1d289101701af21b3320a5a9c56343ac001bff9b45cf89"
+		},
+		{
+			"file": "85-软件设置-快捷键.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "d60df4cc4af0c8956ba0dda5aab5de26230cebe46a2a020d6ac41eac980937c0"
+		},
+		{
+			"file": "86-软件设置-应用更新.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9e1e622f8b8b9306a69cabbecb21f2b79313ebeb6439ec3caf636bf6a2ad3696"
+		},
+		{
+			"file": "87-软件设置-本地ComfyUI.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "c233e13e16e555e94895f012e3f04c26e74e6b2ace3d5b7b4ae604e7acd1cc42"
+		},
+		{
+			"file": "88-软件设置-云端ComfyUI.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "3bcc8071637c67789b7d0a12512096eb41e24cc1693093434d51db57220c6b44"
+		},
+		{
+			"file": "89-软件设置-MG动画.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "ad324f98600e62765d59779f3b16d08101ca2c92133c6cd143cf4b972bff8a20"
+		},
+		{
+			"file": "90-软件设置-安装设置.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "8035b06688411b1ae935df2eff18b2151c1f9bd1c4689690d7e41054187fe1c8"
+		},
+		{
+			"file": "91-软件设置-模型接入-下.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "19a5337ecca456259669843d0d0f0d4c7c5c14c1eafd212ec78f3b9a53d38404"
+		},
+		{
+			"file": "91-软件设置-模型接入.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "34356f7c87ecb303b6734753de9a60a6512a17b6f165a45b933b1146811def56"
+		},
+		{
+			"file": "92-软件设置-Agent扩展.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "ed5299bad3b4a2e71d6d967f6624c6ec36b29c2ec87cbe8e2ab073ed49a64086"
+		},
+		{
+			"file": "93-软件设置-飞书Agent.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "581aa7dbfe6f7ecfc3bd8caf8264fd90e68b032391ffc3adee28a7f801703b2d"
+		},
+		{
+			"file": "94-软件设置-技能包.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "dca0e61307ec69244cbcdc1582f9076c879fc4f432083ea44124a045df0e0155"
+		},
+		{
+			"file": "95-软件设置-Drami动效.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "ba62e65546c484ce36a1a097179b944a27c10c557424c3d2311c55fe9190679d"
+		},
+		{
+			"file": "96-全局搜索-命令面板.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "34bbe3e7a6a84198959199f878037ab8e80f9740a55e8c933be2fb34a6a38737"
+		},
+		{
+			"file": "100-时间轴视图.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9ebd2dae18dd3a83924d74aee21caaa086219cd40d9a3d622831ccb5f8a2d554"
+		},
+		{
+			"file": "101-剪辑工作台.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "2347a6863096bd5e620de31a15b7639e6e29a12efd28f540d90fae878574bbb3"
+		},
+		{
+			"file": "102-剪辑工作台-素材.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "a757dc4bb9998e21e57b7e519750b0ea89c91106041149357d07d30b7eb1b937"
+		},
+		{
+			"file": "103-剪辑工作台-音频.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "283ccac3f626c8a50b9d63894634fc97dc5599ea6359c015e2ae194816d7a556"
+		},
+		{
+			"file": "104-剪辑工作台-字幕.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9cad6f9dcb89f439dba0e3ca33343d9ebfdb3cac5a5050d4ef9597cc7ef2d9ed"
+		},
+		{
+			"file": "105-剪辑工作台-右侧音频.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "cfdb7504688838aec189a8524344225834efb3ec39d246e59da2a101ab5a8825"
+		},
+		{
+			"file": "106-剪辑工作台-右侧变速.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "9ec49604ebe82d0e50dc408048bd056233f0d964719b10f07c144efd0494d038"
+		},
+		{
+			"file": "107-全局素材库.png",
+			"width": 1920,
+			"height": 1080,
+			"sha256": "7d090da6be865595f87434a9d2abfbc9484163fb7a6aee814fa90de445b1ed4c"
+		}
+	]
+}
