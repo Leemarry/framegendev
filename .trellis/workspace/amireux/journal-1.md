@@ -1247,3 +1247,37 @@ TASK080 narrow audio cache recovery accepted using explicitly labeled canceled/e
 ### Next Steps
 
 - Investigate TASK030 adoption source project boundary with local imported history before implementation.
+
+
+## Session 41: Accept project task ownership before adoption
+<!-- trellis-session: v=2 fp=72af0d85f6917868 -->
+
+**Date**: 2026-10-16
+**Task**: Accept project task ownership before adoption
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK030 task-source project boundary accepted in source and integrated main; direct-media scope and overall workflow remain open.
+
+### Main Changes
+
+- Retained initial blocked combined fixture command, proxy/offline gate failures and collection mismatch caused by additional fixture; stable-ID original records unchanged.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dd34016` | fix(generation): reject foreign task sources before adoption writes |
+
+### Testing
+
+- [OK] Source full Windows check with race and standalone build; main focused race,97files641frontend tests, embedded build; real404 zero writes and valid adopt/unadopt references/restart.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Check direct-media ownership separately; keep session2 native windows, native040/041 and150 pending.

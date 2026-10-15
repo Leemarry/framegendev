@@ -37,6 +37,8 @@ pwsh -NoProfile -File scripts/parity/inspect-screenshots.ps1 -SourceDirectory E:
 
 2026-10-16补证：TASK-181旧窗口草稿发现已集成7ea7f4e/e363a3c。保留profile真实重启发现多源、下载/失败/缺失文档/暂停载入及主生产包390px/刷新/完整正文历史与来源值一致通过，详见 `.trellis/tasks/archive/2026-10/10-16-prior-window-recovery/result.md`。修复已加载工作区被passive loading effect误标syncing的生命周期竞争。会话2原生新窗口仍待其独立Electron复验；下表保留最初源码复查结论。
 
+TASK-030采用边界补证：dd34016在现有锁内拒绝外项目任务来源的选择/取消选择；真实本地导入历史采用→素材引用增减、重启/零写检查及完整Windows门通过。见selection-project-isolation归档；直接素材ID来源、真实生成与全流程仍待核实。
+
 下表前端路径相对 `apps/workspace/src/`；Electron路径相对 `apps/workspace/`，后端路径相对 `services/server/internal/`。实现存在只代表源码证据；视觉、交互、真实功能分别验收，不能直接把“有”写成“完成”。
 
 | 工作流/参考                 | 当前实现与复用位置                                                                                                                      | 缺口与任务处置                                                                                                                                    |

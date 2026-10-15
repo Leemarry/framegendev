@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 40
+- **Total Sessions**: 41
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1249 | Active |
+| `journal-1.md` | ~1283 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 41 | 2026-10-16 | Accept project task ownership before adoption | `dd34016` | `codex/nle-export` |
 | 40 | 2026-10-16 | Accept browser recovery of persisted audio failures | `a747a54`, `b776423` | `codex/nle-export` |
 | 39 | 2026-10-16 | Accept prior-window recovery in integrated production bundle | `7ea7f4e`, `f2517ad`, `e363a3c` | `codex/nle-export` |
 | 38 | 2026-10-16 | TASK-080 local history import validation integrated | `90b07c9` | `codex/nle-export` |

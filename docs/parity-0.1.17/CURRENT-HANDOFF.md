@@ -25,7 +25,7 @@
 5. TASK-181旧窗口发现补项已验收集成：b7c3d79→7ea7f4e、验收b43dee2→f2517ad、加载生命周期修复befb45c→e363a3c。用户允许后原隔离profile完整重开，三稿发现、原来源字节保留、实际JSON下载、失败重试/dirty拒绝/缺失文档、深浅短屏、显式合并v4及后端重启通过；主生产包真实多稿预览/取消/暂停载入/刷新和完整正文历史不变通过，97文件641测试、前端门/Electron/Windows build通过。结果见 `.trellis/tasks/archive/2026-10/10-16-prior-window-recovery/result.md`。主31456现运行mediago-server-recovery-ready.exe；9240已恢复。会话2原生新窗口8ccef8b仍未验收、未集成，需其自行Electron复验。项目导入/导出/新窗口归TASK-060/062；storage/transfer契约请求仍保留，安全导入服务尚未实现。
 
 6. TASK-080音频缓存遗漏9c949f0→主a747a54及页面恢复验收0af4aa8→b776423已完成：先失败再3文件26测试通过；真实失败fixture在源页新标签冷加载/390px和主生产包刷新后保留完整prompt/status/error，错误详情展开及两环境跨项目空态隔离通过。未发送生成请求，不代表音频生成成功。结果见 `.trellis/tasks/archive/2026-10/10-16-audio-history-recovery/result.md`。主最新97文件641测试及前端门/Electron/Windows build通过。多轮遗留自有标签的HTTP/1.1 SSE占满导致请求超时；关闭已核实旧标签后加载恢复并重验，原失败保留，150/原生多窗口仍须考虑该限制。040/041仍缺剪映原生重开，150整体不完成。
-7. TASK-080本地导入校验339e511→主90b07c9已验收：校验全部素材后再写会话/历史，请求内去重、缺失/类型/跨项目及scope/kind拒绝零写；Windows完整check/race和独立build、主额外race/嵌入构建、实际HTTP/重启后完整历史和旧文档记录不变通过。失败/中止及CRLF快照问题保留在 `.trellis/tasks/archive/2026-10/10-16-history-import-validation/result.md`。下一项核实030本地历史采用→资源引用的项目来源隔离；先复现，不发送生成请求。整体080仍待真实生成/采用及统计。会话2分支仍617a80d，无新增已验证提交。
+7. TASK-080本地导入校验339e511→主90b07c9已验收，见history-import-validation归档。TASK-030任务来源项目隔离f2466dd→dd34016已验收：SQLite先失败、跨项目选择/取消选择及别名实际404零写，同项目采用/取消采用、重启全文/采用记录与真实素材引用增减通过；源完整Windows门/race、独立build及主97文件641测试/额外race/嵌入构建通过。主31456现运行mediago-server-selection.exe。结果见 `.trellis/tasks/archive/2026-10/10-16-selection-project-isolation/result.md`，含代理超时/离线失败及项目列表新增fixture导致旧整列表比较失败的完整记录；原任务逐ID全文不变。下一项核实直接素材ID来源边界，不发送生成请求；整体030/080/150仍未完成。会话2分支仍617a80d，无新增已验证提交。
 
 GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_save 变更，调用来源尚未确认。原 baseline 失败不能用新隔离数据通过替代，不重置原文件。
 
