@@ -1,6 +1,6 @@
 # TASK-181 result
 
-Status: implementation and isolated acceptance passed; integrate this commit in the main directory before archiving.
+Status: accepted and integrated. Session-1 implementation0d9b182 is in main as8fc428b.
 
 ## Behavior And Contract
 
@@ -41,4 +41,10 @@ Runtime/API logs and intermediate failed captures: `.cache/parity/task-181/`.
 Actual partial recording (46 frames; recording started after initial window setup):
 `C:/Users/Amireux/.config/browser-harness/agent-workspace/recordings/parity-s1-task181`.
 
-Next: integrate verified181; inspect session-2 committed native-menu slice and its remaining TASK-020 narrow-shell gap; continue TASK-070 as an independent item.
+## Main Integration
+
+Main serial integration contains8fc428b plus session-2 accepted native-menu454b90c/e6bf582 (source f1515cb/6d92fa9). Main41files/243tests, lint, format, production build, Electron compile and full Windows check including build/race all passed. First main format failed21 checkout-CRLF source files; temporary LF check passed, then exact checkout endings were restored without a content diff.
+
+Main embedded production build is running at http://127.0.0.1:31456 using only `.cache/parity/s1-integration/server.yaml` and its own workspace. Actual UI created project `project-ee04787052fd3d84` and document `doc-1792081464198-5s1uoghjqj5`; actual typing saved `Integrated main document persistence check.\n\n`/v2 and full reload retained exact body/version. This smoke check does not claim whole TASK-150 acceptance.
+
+Next: TASK-070 history as an independent item. Session-2 TASK-020 and basic settings c05ab94 still explicitly fail390px and are not merged as accepted features. App.tsx minimum-shell writer remains session2 per main31e4fa1.

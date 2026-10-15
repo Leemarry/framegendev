@@ -9,8 +9,8 @@
 - `domains/workspace/` 不作整目录认领。会话1独占：`api/workspace.ts`、`api/media.ts`、`api/project-assets.ts`、`api/library-folders.ts` 及测试；`components/AssetLibraryButton*`、`AssetLibraryFolders.tsx`、`AssetLibraryMetadataEditor*`、`AssetLibraryScopes.tsx`、`NewDocumentDialog*`、`NewReferenceDocumentDialog*`、`GenerationNotificationButton*`、`GenerationConversationCreateDialog.tsx`、`AgentProjectCreateDialog.tsx`、`AgentWorkbenchTopBar*`、`ProjectDirectory.tsx`、`ProjectDirectoryTree*`、`directory/*`；`lib/asset-library*`、`lib/library-folders.ts`。会话2独占其余现有 workspace 组件（含 AppLayout/ProjectNavigator/ProjectWorkspaceShell/ProjectDocumentSearchDialog/WorkspaceUserMenu）与其测试及导航、路由描述/设置返回等 lib 文件。新增跨界文件先在本节登记。
 - 公共文件唯一负责人为会话1：本交接、TASKS/REQUIREMENTS/DECISIONS/BASELINE-REVIEW、AGENTS自定义区、共享模型 `src/types/`、`router/`、`shared/components/ui/`、`shared/lib/`、`shared/stores/`、样式与依赖/锁文件、后端 `domain/`、`repository/`、`app/`、`http/routes/routes.go`、`service/workspace_state_service*`、`http/handlers/workspace.go`。会话2仅在自己任务目录记录结果/所需公共契约，通过独立提交供会话1读取；公共修改由会话1小提交提供契约。各自 Trellis 任务目录独立；公共日志由会话1串行维护。
 - 公共契约更新（TASK-020，回应会话2 `8296b0e` 的 result）：`apps/workspace/src/App.tsx` 本项唯一写入人指定为会话2，仅限向既有 AppLayout 传入 `globalSettings={routeIsSettings && !projectWorkspace}`、相关导航 key/类型连接与必要回归；AppLayout 仍由会话2拥有。复用原窄屏抽屉，不将 projectWorkspace 全局化。会话1在会话2提交该修复前不编辑 App.tsx。共享 `services/server/internal/service/model/workspace.go` 归会话1；TASK-181增加可选 `expectedVersions` 原子校验契约，公共API小提交验收后提供。此处不授权TASK-010/042/170~178。
-- 已读取会话2 `8296b0e`：TASK-020桌面导航20次点击/42测试/lint/build通过，但390px全局壳失败，保持开发中/不归档，暂不作为已验证项合并。修复后由会话1读取新result并组合验收。
-- 运行约定（启动前重新检查占用）：会话1 backend/frontend `31450/31451`，浏览器CDP `9240`，官方CDP `9242`；会话2 `31452/31453`、`9241`、`9243`。各自在自己的 `.cache/parity/<任务>/` 保存配置/DB/workspace/log/profile，BU_NAME 分别以 `parity-s1-` / `parity-s2-` 开头，desktop以 `MediaGoParityS1` / `MediaGoParityS2` 开头。当前这些预留端口均空闲。真实 workspace-v2 禁止访问；既有NLE/素材/用户官方实例不接管。冲突改号并在本节记录。
+- 会话2原生菜单子项 `f1515cb`/`6d92fa9` 已以 `454b90c`/`e6bf582` 串行集成，真实Windows独立desktop菜单/设置返回/关于/重启证据与主集成检查通过；TASK-090整体未完成。已读取设置导航8296b0e与基础设置26190ee/c05ab94的result，390px全局壳仍失败，保持开发中，不作为已验证项合并。App.tsx修复写入已由主目录31e4fa1/本节明确授权会话2，待其读取并提交。
+- 运行约定（启动前重新检查占用）：会话1 backend/frontend `31450/31451`，浏览器CDP `9240`，官方CDP `9242`；会话2 `31452/31453`、`9241`、`9243`。各自在自己的 `.cache/parity/<任务>/` 保存配置/DB/workspace/log/profile，BU_NAME 分别以 `parity-s1-` / `parity-s2-` 开头，desktop以 `MediaGoParityS1` / `MediaGoParityS2` 开头。会话1现用task-181缓存、MediaGoParityS1Task181官方desktop；主目录集成生产构建使用31456、`.cache/parity/s1-integration/server.yaml`和独立workspace。真实 workspace-v2 禁止访问；既有NLE/素材/用户官方实例不接管。冲突改号并记录。
 
 - TASK-166 已完成：本轮新截图与源码复查、隔离官方体验、任务补项和资料收敛；结果与证据见 [复查索引](BASELINE-REVIEW.md)。产品整体仍未验收。
 - NLE会话已实现 TASK-040 M1/M2/M3（`45fafa2`、`48ba31f`、`cdc01a6`）和 TASK-041 字幕/真实音频波形。浏览器、保存重启与实际导出文件验收通过，21文件100测试和前后端/剪映包完整门通过。原生剪映重开与字幕排版仍待验收，TASK-040/041不标整体完成；详情见 `.trellis/tasks/10-15-nle-workbench/result.md`。
@@ -18,7 +18,7 @@
 
 ## 下一步与限制
 
-1. TASK-181 已实现并通过隔离验收，待本次提交串行集成：409暂停/SSE与stream保护、窗口恢复稿、显式合并与备份重载、全量workspace可选CAS；双窗口/真实409/离线失败/下载/重启v7正文历史、232测试和前后端质量门通过。详见 `.trellis/tasks/10-15-document-conflict-protection/result.md`。不宣称 GAP-004 已解决，也不宣称旧外部无CAS客户端受保护。下一单项为TASK-070历史/视图。
+1. TASK-181 已完成并以8fc428b串行集成：409暂停/SSE与stream保护、窗口恢复稿、显式合并与备份重载、全量workspace可选CAS；双窗口/真实409/离线失败/下载/重启正文历史通过，主目录243测试、lint/format/build、Electron编译、Windows完整check含race通过；真实主集成新项目保存/刷新正文v2不变。详见 `.trellis/tasks/archive/2026-10/10-15-document-conflict-protection/result.md`。GAP-004及旧外部无CAS客户端边界保留。下一单项TASK-070历史差异/安全恢复，视图往返独立验收。
 2. TASK-030/034 新图聚合验收，以及 TASK-050 已有批注流程、TASK-080 本地生成历史与引用链路。按台账逐单项推进，优先复用现有实现。
 3. 项目导入/导出/新窗口归 TASK-060/062；设置入口/存储/商业结构分归原任务。不要把参考候选清单当成缺失实现的事实。
 
