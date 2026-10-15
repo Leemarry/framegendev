@@ -155,10 +155,12 @@ export const createDocumentOperationActions = ({
 								);
 								return;
 							}
-							dependencies.rollbackWorkspaceStateForProject(
+							retainOperationConflict(
+								{ get, set },
 								capturedProjectId,
-								rollback,
-								"后端保存文档操作失败",
+								documentId,
+								rollback.documents,
+								"文档操作保存失败，自动保存已暂停，本地修改已保留",
 							);
 						});
 				};
@@ -266,10 +268,12 @@ export const createDocumentOperationActions = ({
 							);
 							return;
 						}
-						dependencies.rollbackWorkspaceStateForProject(
+						retainOperationConflict(
+							{ get, set },
 							capturedProjectId,
-							rollback,
-							"后端撤销文档操作失败",
+							targetDocumentId,
+							rollback.documents,
+							"撤销保存失败，自动保存已暂停，本地修改已保留",
 						);
 					});
 			};
@@ -310,6 +314,7 @@ const retainOperationConflict = (
 	projectId: string | null,
 	documentId: string,
 	before: MarkdownDocument[],
+	message = "文档操作发生冲突，本地修改已保留",
 ) => {
 	if (!projectId || context.get().projectId !== projectId) return;
 	const base = before.find((document) => document.id === documentId);
@@ -325,7 +330,7 @@ const retainOperationConflict = (
 				: document,
 		),
 		syncStatus: "error",
-		syncMessage: "文档操作发生冲突，本地修改已保留",
+		syncMessage: message,
 	}));
 	void refreshDocumentConflict(context, documentId, projectId);
 };

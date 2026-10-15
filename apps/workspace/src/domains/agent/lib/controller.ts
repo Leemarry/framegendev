@@ -47,6 +47,8 @@ export {
 } from "@/domains/agent/lib/streaming-events";
 
 interface RunAgentPromptOptions {
+	projectId?: string;
+	documentId?: string;
 	anchorText?: string;
 	commentId?: string;
 	comments?: DocumentComment[];
@@ -93,7 +95,6 @@ export const runAgentPrompt = async (prompt: string, options: RunAgentPromptOpti
 	try {
 		if (agentStore.runtimeMode === "remote") {
 			await runStreamingACPAgent(taskPrompt, context, options);
-			resolveAppliedComment(context.activeDocument.id, context.commentId, taskPrompt);
 			return;
 		}
 
@@ -108,7 +109,17 @@ const buildExecutionContext = (
 	options: RunAgentPromptOptions,
 ): AgentExecutionContext | null => {
 	const documentsStore = useDocumentsStore.getState();
-	const activeDocument = selectActiveDocument() ?? fallbackAgentDocument();
+	const projectId = useProjectStore.getState().activeProjectId ?? documentsStore.projectId;
+	if (
+		(options.projectId &&
+			(options.projectId !== projectId || options.projectId !== documentsStore.projectId)) ||
+		(options.documentId && !documentsStore.documents.some((item) => item.id === options.documentId))
+	)
+		return null;
+	const activeDocument =
+		(options.documentId
+			? documentsStore.documents.find((item) => item.id === options.documentId)
+			: selectActiveDocument()) ?? fallbackAgentDocument();
 
 	const ambientSelection =
 		!trimmedPrompt &&
@@ -139,7 +150,7 @@ const buildExecutionContext = (
 		// events agree with the project filter in handleStreamingAgentEvent. documentsStore.projectId
 		// lags behind navigation (it only updates after workspace state loads); preferring it here
 		// would create the run against the previous project and drop every live event.
-		projectId: useProjectStore.getState().activeProjectId ?? documentsStore.projectId,
+		projectId,
 		selection,
 		anchorText,
 		isStructuredScopedEdit: Boolean(
@@ -179,7 +190,7 @@ const runLocalDocumentAgent = async (
 
 	if (operationResult.applied > 0) {
 		agentStore.recordDocumentUpdated(result.summary);
-		resolveAppliedComment(context.activeDocument.id, context.commentId, commentResolutionPrompt);
+		resolveAppliedComment(context, commentResolutionPrompt);
 		if (operationResult.rejected.length > 0) {
 			agentStore.recordActivity(
 				"patch",
@@ -316,22 +327,29 @@ const chooseAgentAnchor = (
 
 const compactAnchorText = (value: string) => value.trim().replace(/\s+/g, " ").slice(0, 120);
 
-const resolveAppliedComment = (
-	documentId: string,
-	commentId: string | undefined,
-	prompt: string,
-) => {
+const resolveAppliedComment = (context: AgentExecutionContext, prompt: string) => {
 	const documentsStore = useDocumentsStore.getState();
-	const targetCommentId = commentId ?? inferFirstOpenCommentId(prompt);
-	if (!targetCommentId) return;
+	if (documentsStore.projectId !== context.projectId) return;
+	const submitted = context.comments.find((comment) =>
+		context.commentId ? comment.id === context.commentId : !comment.resolved,
+	);
+	if (
+		!context.commentId &&
+		!["评论", "批注", "反馈", "comment", "annotation"].some((word) => prompt.includes(word))
+	)
+		return;
+	const current = documentsStore.documents
+		.find((document) => document.id === context.activeDocument.id)
+		?.comments.find((comment) => comment.id === submitted?.id);
+	if (!submitted || !current || current.resolved || current.body !== submitted.body) return;
 
 	documentsStore.applyOperations(
-		documentId,
+		context.activeDocument.id,
 		[
 			createDocumentOperation<DocumentOperation>({
 				type: "resolve_comment",
 				summary: "已解决应用过的批注。",
-				target: { commentId: targetCommentId },
+				target: { commentId: submitted.id },
 				payload: {},
 			}),
 		],
@@ -341,17 +359,6 @@ const resolveAppliedComment = (
 		},
 	);
 	useAgentStore.getState().recordActivity("patch", "批注已解决", "编辑完成后已关闭对应批注。");
-};
-
-const inferFirstOpenCommentId = (prompt: string) => {
-	if (
-		!["评论", "批注", "反馈", "comment", "annotation"].some((keyword) => prompt.includes(keyword))
-	) {
-		return undefined;
-	}
-
-	const activeDocument = selectActiveDocument();
-	return activeDocument?.comments.find((comment) => !comment.resolved)?.id;
 };
 
 const getErrorMessage = (err: unknown) => {

@@ -58,6 +58,7 @@ export const CommentsGutter: React.FC = () => {
 	const addComment = useDocumentsStore((state) => state.addComment);
 	const clearPendingComment = useDocumentsStore((state) => state.clearPendingComment);
 	const deleteComment = useDocumentsStore((state) => state.deleteComment);
+	const resolveComment = useDocumentsStore((state) => state.resolveComment);
 	const focusComment = useDocumentsStore((state) => state.focusComment);
 	const setShowComments = useDocumentsStore((state) => state.setShowComments);
 	const updateComment = useDocumentsStore((state) => state.updateComment);
@@ -293,7 +294,7 @@ export const CommentsGutter: React.FC = () => {
 	};
 
 	const submitOpenCommentsToAgent = () => {
-		if (agentIsRunning || openComments.length === 0) return;
+		if (agentIsRunning || openComments.length === 0 || !projectId || !activeDocument) return;
 
 		setAgentTab("agent");
 		if (projectId && activeDocument) {
@@ -302,6 +303,9 @@ export const CommentsGutter: React.FC = () => {
 			});
 		}
 		void runAgentPrompt("", {
+			projectId,
+			documentId: activeDocument.id,
+			comments: openComments,
 			displayPrompt: "按照评论修改",
 			taskPrompt: "按照评论修改",
 		});
@@ -312,7 +316,10 @@ export const CommentsGutter: React.FC = () => {
 	}
 
 	return (
-		<aside className="hidden h-full min-h-0 w-64 shrink-0 flex-col border-l border-border bg-ide-panel text-ide-panel-foreground md:flex">
+		<aside
+			aria-label="文档批注"
+			className="absolute inset-y-0 right-0 z-30 flex h-full min-h-0 w-64 max-w-full shrink-0 flex-col border-l border-border bg-ide-panel text-ide-panel-foreground shadow-lg md:static md:shadow-none"
+		>
 			<header className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-ide-toolbar px-3 text-ide-toolbar-foreground">
 				<div className="flex min-w-0 items-center gap-2">
 					<MessageSquare className="size-4 text-muted-foreground" />
@@ -343,7 +350,7 @@ export const CommentsGutter: React.FC = () => {
 				<TabsContent
 					ref={bodyRef}
 					value="anchored"
-					className="relative mt-0 min-h-0 flex-1 overflow-hidden p-2"
+					className="relative mt-0 min-h-0 flex-1 overflow-y-auto p-2"
 				>
 					<div className="relative w-full" style={{ minHeight: contentHeight }}>
 						{activePending && pendingTop !== null ? (
@@ -375,6 +382,7 @@ export const CommentsGutter: React.FC = () => {
 								}}
 								onEditBodyChange={setEditDraft}
 								onFocus={() => focusComment(comment.id)}
+								onResolve={() => activeDocument && resolveComment(activeDocument.id, comment.id)}
 								onSaveEdit={(event) => submitCommentEdit(event, comment)}
 								onStartEdit={() => startEditingComment(comment)}
 							/>
@@ -401,6 +409,7 @@ export const CommentsGutter: React.FC = () => {
 								}}
 								onEditBodyChange={setEditDraft}
 								onFocus={() => focusComment(comment.id)}
+								onResolve={() => activeDocument && resolveComment(activeDocument.id, comment.id)}
 								onSaveEdit={(event) => submitCommentEdit(event, comment)}
 								onStartEdit={() => startEditingComment(comment)}
 							/>
@@ -507,6 +516,7 @@ interface CommentCardProps {
 	onDelete: () => void;
 	onEditBodyChange: (body: string) => void;
 	onFocus: () => void;
+	onResolve: () => void;
 	onSaveEdit: (event: React.FormEvent<HTMLFormElement>) => void;
 	onStartEdit: () => void;
 }
@@ -521,6 +531,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
 	onDelete,
 	onEditBodyChange,
 	onFocus,
+	onResolve,
 	onSaveEdit,
 	onStartEdit,
 }) => (
@@ -589,28 +600,45 @@ const CommentCard: React.FC<CommentCardProps> = ({
 					<Button
 						type="button"
 						variant="ghost"
-						size="sm"
-						className="h-7 rounded-sm px-2 text-xs"
+						size="icon"
+						className="size-7 rounded-sm"
+						aria-label={comment.resolved ? "批注已解决" : "标记为已解决"}
+						title={comment.resolved ? "批注已解决" : "标记为已解决"}
+						disabled={comment.resolved}
+						onClick={(event) => {
+							event.stopPropagation();
+							onResolve();
+						}}
+					>
+						<Check />
+					</Button>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="size-7 rounded-sm"
+						aria-label="编辑"
+						title="编辑"
 						onClick={(event) => {
 							event.stopPropagation();
 							onStartEdit();
 						}}
 					>
 						<PencilLine />
-						<span>编辑</span>
 					</Button>
 					<Button
 						type="button"
 						variant="ghost"
-						size="sm"
-						className="h-7 rounded-sm px-2 text-xs"
+						size="icon"
+						className="size-7 rounded-sm"
+						aria-label="删除"
+						title="删除"
 						onClick={(event) => {
 							event.stopPropagation();
 							onDelete();
 						}}
 					>
 						<Trash2 />
-						<span>删除</span>
 					</Button>
 				</div>
 			</div>

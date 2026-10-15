@@ -10,6 +10,7 @@ import { pendingRootRunId } from "@/domains/agent/stores/constants";
 import { useProjectStore } from "@/domains/projects/stores";
 import { useDocumentsStore } from "@/domains/documents/stores";
 import type { MarkdownDocument } from "@/domains/documents/stores";
+import { createTextAnchor } from "@/domains/documents/lib/operations";
 import {
 	agentSessionStorageKey,
 	closeAllResumedAgentEventStreams,
@@ -93,6 +94,66 @@ describe("agent controller", () => {
 	it("scopes persisted session ids by project", () => {
 		expect(agentSessionStorageKey("project-1")).toBe("mediago_drama_agent_session_project-1");
 	});
+
+	it("does not dispatch a comment with stale project or missing document context", async () => {
+		vi.mocked(connectRemoteAgentRuntime).mockClear();
+		useProjectStore.setState({ activeProjectId: "project-2" });
+		useDocumentsStore.setState({ projectId: "project-1", documents: [testDocument] });
+		await runAgentPrompt("comments", { projectId: "project-1", documentId: "doc-1" });
+		useProjectStore.setState({ activeProjectId: "project-1" });
+		await runAgentPrompt("comments", { projectId: "project-1", documentId: "missing" });
+		expect(connectRemoteAgentRuntime).not.toHaveBeenCalled();
+	});
+
+	it.each(["completed", "failed", "cancelled"])(
+		"keeps submitted and newly active comments open after a remote %s without an explicit resolution",
+		async (outcome) => {
+			const comment = {
+				id: "comment-1",
+				body: "Review this",
+				anchorText: "line",
+				anchor: createTextAnchor("line", "line"),
+				resolved: false,
+				createdAt: "2026-10-16",
+			};
+			const original = { ...testDocument, comments: [comment] };
+			const other = { ...testDocument, id: "doc-2", comments: [{ ...comment, id: "comment-2" }] };
+			useProjectStore.setState({ activeProjectId: "project-1" });
+			useDocumentsStore.setState({
+				projectId: "project-1",
+				activeDocumentId: "doc-2",
+				documents: [original, other],
+			});
+			const send = vi.fn(async () => {
+				if (outcome === "failed") useAgentStore.getState().failRun("runtime failed");
+				else if (outcome === "cancelled") useAgentStore.getState().cancelRun();
+				else useAgentStore.getState().finishRun();
+				return { accepted: true };
+			});
+			vi.mocked(connectRemoteAgentRuntime).mockResolvedValue({
+				sessionId: "session-1",
+				send,
+				isClosed: () => false,
+				close: vi.fn(),
+			});
+			await runAgentPrompt("", {
+				projectId: "project-1",
+				documentId: "doc-1",
+				comments: [comment],
+				taskPrompt: "按照评论修改",
+			});
+			expect(send).toHaveBeenCalledWith(
+				expect.objectContaining({
+					projectId: "project-1",
+					document: expect.objectContaining({ id: "doc-1" }),
+					comments: [comment],
+				}),
+			);
+			expect(
+				useDocumentsStore.getState().documents.map((document) => document.comments[0].resolved),
+			).toEqual([false, false]);
+		},
+	);
 
 	it("dedupes resumed event streams and closes them on demand", () => {
 		const closeSpy = vi.fn();

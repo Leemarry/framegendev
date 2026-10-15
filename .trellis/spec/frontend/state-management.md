@@ -14,6 +14,17 @@ version and retained history after reload and backend restart. Legacy complete
 workspace mutations supply expectedVersions for all loaded document IDs; service
 checks the full ID/version map under its existing lock before replacement.
 
+## Comment Operations (TASK-050)
+
+Failed apply/undo writes retain the latest local body/comments and operation log,
+restore the known base version and pause through existing conflict recovery.
+Never replace later typing/another document with a stale workspace rollback.
+Captured project guards make late failures after navigation a no-op.
+Comment-triggered Agent dispatch carries explicit project/document/open comments;
+validate loaded context. Remote termination alone never resolves a comment.
+Use explicit document resolution operations or manual resolution. Any local test
+runtime inference must use captured identity and unchanged submitted comment body.
+
 ## Document History Restore (TASK-070)
 
 Freeze the reviewed document version when opening history. Compare the selected
