@@ -54,7 +54,8 @@
     "10-16-history-snapshot-views",
     "10-16-history-version-selector",
     "10-16-storyboard-resource-panel",
-    "10-16-history-reading-diff"
+    "10-16-history-reading-diff",
+    "10-16-history-scope-acceptance"
   ],
   "parent": null,
   "relatedFiles": [],

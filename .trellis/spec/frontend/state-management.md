@@ -188,6 +188,13 @@ Global history variants keep their original behavior. Project skill packs reflec
 the real global API; without a project-scoped contract, do not show working project
 toggles. Read-only global status and explicit pending integration are required.
 
+GenerationWorkspace's task-history read state comes from its existing SWR key.
+Loading/revalidation/error hides chat-history actions and history reference
+entries, while keeping cached tasks and persisted local messages intact. Show an
+explicit status and refresh/retry using the same bound task mutator; never claim
+successful synchronization merely because mutate resolved with retained data.
+Conversation navigation and media-editor history are separate surfaces.
+
 AssetLibrary owns folderId in URL and folders in scope-keyed SWR. Folder navigation
 preserves projectId and route state; settings returns preserve the exact folder URL.
 After create/rename, update the same cache from the saved response before entering
