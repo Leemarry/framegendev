@@ -1,6 +1,6 @@
 # TASK-030/034 local aggregate result
 
-2026-10-16. Local import/folder/metadata/document-reference aggregate accepted in session1; integrated-main smoke pending. TASK-030 overall remains open for the official detail/filter gaps below and real generation adoption. TASK-034 local folder flow is verified through the existing individual tests and this aggregate.
+2026-10-16. Local import/folder/metadata/document-reference aggregate accepted and integrated. Source6cc7b90 -> main03cd506. TASK-030 overall remains open for the official detail/filter gaps below and real generation adoption. TASK-034 local folder flow is verified through the existing individual tests and this aggregate.
 
 ## Fix
 
@@ -25,3 +25,11 @@ Focused tests: 2files33, then 5files50, final 5files56 (including MarkdownHybrid
 ## Remaining parity
 
 Official isolated CDP9242: actual new folder/save/enter/import PNG/select/open detail/5star, plus filters, were clicked. Official filter adds browsing range, usage state and tag select; detail has color palette, source URL, favorite, uses/details tabs and dimensions. Current local preview still omits some of that structure and this fixture's dimensions metadata. Record as TASK-030 remaining development/acceptance, not full parity. Native import dialog itself is not accepted by CDP setFileInputFiles. Real generation/adoption needs a working provider; pending TASK010/080 boundary remains. Referenced deletion guard is not implemented or accepted.
+
+## Main integration
+
+Main integrated accepted session2 update recovery44e3fce/617a80d as1ec42e9/bef6713; only its journal index conflict needed preserving both session6 blocker and session7 records. Native windows8ccef8b was NOT integrated. Combined test run exposed10 old ProjectNavigatorProjectPanels tests missing Router and outdated button expectations. Main-only integration correction986ad37 supplies Router/browser location fixtures and asserts real project/global asset link addresses. First reruns retained one mismatch until browserLocationSearch's window.history dependency was supplied; no production navigation fallback or assertion suppression added.
+
+Final main68files448tests pass, lint0errors/warnings, full702-fileformat/build/Electron compile and embedded Go build pass. One command invoked pnpm from services/server with the wrong relative -C path; corrected absolute directory checks passed. Restoring the temporary LF list before a still-running combined command reached format caused another58-fileCRLF check failure; repeated format with sequential normalization/check/restore passed. All temporary conversion restored and main clean after integration commit. Existing build chunk advisory remains.
+
+Main actual31456 production assets runtime: upload asset-7ff794b1f04c315c, preview, block list GET -> error and no cached write controls, unblock -> refresh success, page reload retains PNG. Exact complete records of existing documentsv1/v3 (including prior nonempty comment) remain equal to the pre-import snapshot. Actual390px Settings drawer -> Updates shows true browser fallback and no download/install claim. Native update failures remain session2's explicit simulated test evidence, not a claimed native failure in this smoke. Current main binary mediago-server-assets.exe uses the existing isolated config/workspace; source-side backend restarted as85275.

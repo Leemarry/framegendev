@@ -1109,3 +1109,28 @@ Accepted read-only storyboard timeline mode, actual switch/restart/body/version/
 ### Status
 
 [OK] **Completed**
+
+
+## Session 36: Asset aggregate accepted and update retry integrated
+<!-- trellis-session: v=2 fp=9676b8722e98c32b -->
+
+**Date**: 2026-10-16
+**Task**: Asset aggregate accepted and update retry integrated
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+TASK034 local folders and TASK030 local aggregate accepted with refresh error/cached actions fix; actual import metadata moves references and restart preserve hash/body/version/history. Integrated main 68 files448 tests, frontend gates/Electron/embedded build and actual smoke pass. TASK030 official detail/filter and real adoption remain open. Next TASK181 prior-window draft discovery blocks native-window acceptance.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6cc7b90` | fix(assets): verify aggregate refresh before enabling cached actions |
+| `03cd506` | fix(assets): verify aggregate refresh before enabling cached actions |
+| `1ec42e9` | fix(settings): recover update metadata and download failures |
+| `986ad37` | test(workspace): align sidebar fixtures with asset library routing |
+
+### Status
+
+[OK] **Completed**

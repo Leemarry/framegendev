@@ -21,7 +21,8 @@
 1. TASK-181已完成8fc428b。TASK-070历史差异/安全恢复b7bc362→主c2261df已验收：并排/合并/导航、两次409不写入、取消/离线重试/恢复v6、空标签、页面和后端重启全文与六条历史保留。完整Windows check/race已通过。历史阅读/源码/版本互换及资源引用仍未验收，070整体不完成。详见 `.trellis/tasks/archive/2026-10/10-16-document-history-parity/result.md`。GAP-004及旧外部无CAS客户端边界保留。
 2. TASK-050本地安全f6eb85d→主6ad83ca已验收集成：真实创建/编辑/手动解决/删除、离线保留/刷新恢复/显式合并和非空v12后端重启通过；上下文和结束不误解决由边界测试覆盖。主270测试/前端门/Electron/嵌入构建及实际批注刷新/390px通过。真实Agent未发送，codex-acp缺失503，050整体不完成。结果见 `.trellis/tasks/archive/2026-10/10-16-comment-context-safety/result.md`。会话2项目文件夹打开9b46896/484631f已审阅集成580838e/d2ec9db。
 3. TASK-070分镜正文/时间轴往返194b2e6→主2f171e4已验收：复用已有时间轴/NLE，去掉挂载隐式文档写入，加载/重验/失败无旧片段操作；实际v3全文/版本/历史3重启不变、NLE继续/放弃、离线编辑禁入和v4恢复通过。主66文件376测试、lint/full702-fileformat/build/嵌入Go构建通过，31456实际新分镜→时间轴→NLE→关闭通过。当前主运行mediago-server-timeline.exe；资源栏/引用及历史额外控件仍未完成。详见 `.trellis/tasks/archive/2026-10/10-16-document-timeline-roundtrip/result.md`。下一单项TASK-030/034素材聚合验收。
-4. 项目导入/导出/新窗口归 TASK-060/062；设置入口/存储/商业结构分归原任务。不要把参考候选清单当成缺失实现的事实。会话2已提交的storage/transfer契约请求保留，安全导入服务尚未实现，不以CreateProject冒充。
+4. TASK-030/034本地素材聚合6cc7b90→主03cd506已验收：真实导入/非空目录重挂/元数据/文档引用/失败取消/后端重启，素材ID/hash及正文v2/历史2不变；034完成，030保留官方详情/筛选结构与真实生成采用差距，见对应归档result。主68文件448测试、前端门/Electron/嵌入Go构建通过；测试Router/旧按钮契约修正986ad37。主31456现运行mediago-server-assets.exe；实际导入/列表失败无旧操作/重试/重载及既有文档完整记录不变通过。会话2更新失败重试44e3fce/617a80d已集成1ec42e9/bef6713，实际390px设置导航→更新显示真实浏览器fallback。
+5. 会话2原生新窗口8ccef8b未验收、未集成：完整Electron重启后旧窗口草稿仍在localStorage，但新sessionStorage窗口ID无法发现。下一独立项优先TASK-181显式旧窗口草稿发现/恢复，保留多个竞争草稿与活动窗口隔离；不得自动用旧稿覆盖服务器。详见会话2 `.trellis/tasks/10-16-s2-project-windows/result.md`。项目导入/导出/新窗口归TASK-060/062；storage/transfer契约请求仍保留，安全导入服务尚未实现，不以CreateProject冒充。
 
 GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_save 变更，调用来源尚未确认。原 baseline 失败不能用新隔离数据通过替代，不重置原文件。
 
