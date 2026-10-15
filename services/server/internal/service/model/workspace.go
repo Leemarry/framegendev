@@ -142,6 +142,7 @@ type TimelineClipRecord struct {
 	Prompt       string                  `json:"prompt,omitempty"`
 	Source       string                  `json:"source,omitempty"`
 	VideoURL     string                  `json:"videoUrl,omitempty"`
+	AudioURL     string                  `json:"audioUrl,omitempty"`
 	PosterURL    string                  `json:"posterUrl,omitempty"`
 	ThumbnailURL string                  `json:"thumbnailUrl,omitempty"`
 }

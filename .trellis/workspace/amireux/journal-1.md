@@ -943,3 +943,36 @@ Browser playback/export accepted; frontend95 tests and full gates pass; native J
 ### Next Steps
 
 - P0 TASK-181独立设计并发保存保护；素材采用/引用、批注和文档往返聚合验收。TASK-010待评审，NLE/字幕归另一会话。
+
+
+## Session 30: TASK-041 editable captions actual audio waveforms and native export
+<!-- trellis-session: v=2 fp=8b2defa2a152ba07 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-041 editable captions actual audio waveforms and native export
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Completed NLE subtitle/audio editing, real PCM waveforms, synchronized preview and native file export; native desktop reopening remains pending.
+
+### Main Changes
+
+- Reused episode history/storage/media API and jianyingdraft; optional audioUrl; actual metadata, ownership and source validation.
+
+### Git Commits
+
+(Implementation and acceptance record; included with the current TASK-041 commit.)
+
+### Testing
+
+- [OK] 21 episode test files / 100 tests; frontend lint format build; backend final full check with race and explicit build; draft package tidy fmt vet race passed.
+- [OK] Edge actual WAV insert/edit/delete/undo/error/retry/reload/restart, silence/signal pixels, one-frame paused mapping, copied native audio/text export, complete documents payload unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Native Jianying client reopening/audio/text typography acceptance required; parent and TASK-040/041 remain pending acceptance. No push, TASK-042/178 excluded.

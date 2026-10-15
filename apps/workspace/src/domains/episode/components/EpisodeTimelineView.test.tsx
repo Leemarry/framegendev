@@ -416,6 +416,9 @@ describe("EpisodeTimelineView canvas generation", () => {
 		expect(fixtures.previewProvider.play).not.toHaveBeenCalled();
 		expect(fixtures.previewRemoteControl.play).not.toHaveBeenCalled();
 		expect(useEpisodeStore.getState().isPlaying).toBe(true);
+		expect(screen.getByTestId("preview-player")).toBeTruthy();
+		screen.getByRole("button", { name: "剪辑工作台" }).click();
+		await waitFor(() => expect(screen.queryByTestId("preview-player")).toBeNull());
 	});
 
 	it("jumps to a storyboard clip and starts playback when the clip is clicked", async () => {

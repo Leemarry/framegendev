@@ -23,7 +23,7 @@ func NewJianyingDraft(service *service.Service) JianyingDraft {
 
 // HandleExportEpisodeJianyingDraft godoc
 // @Summary 导出剪映草稿
-// @Description 将剪辑工作台的已生成视频分镜导出为剪映桌面端草稿。
+// @Description 导出已保存的视频分镜及手工剪辑的字幕、旁白与音乐轨，校验实际本地媒体并写入剪映草稿。
 // @Tags Episodes
 // @Accept json
 // @Produce json

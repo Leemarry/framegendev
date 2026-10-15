@@ -14,11 +14,13 @@ import (
 // ErrDraftAlreadyExists indicates that the destination draft directory exists.
 var ErrDraftAlreadyExists = errors.New("draft already exists")
 
-// Draft is an in-memory video-only Jianying draft.
+// Draft holds validated local media and subtitle clips for export.
 type Draft struct {
-	options DraftOptions
-	reader  MetadataReader
-	shots   []normalizedShot
+	options  DraftOptions
+	reader   MetadataReader
+	shots    []normalizedShot
+	audios   []normalizedAudio
+	captions []Caption
 }
 
 // NewDraft creates an empty draft with the supplied options.
@@ -308,7 +310,11 @@ func (draft *Draft) prepareMedia(ctx context.Context, tempDraftPath string, fina
 	}
 	copied := map[string]string{}
 	usedNames := map[string]struct{}{}
-	for _, shot := range draft.shots {
+	all := append([]normalizedShot(nil), draft.shots...)
+	for _, audio := range draft.audios {
+		all = append(all, audio.normalizedShot)
+	}
+	for _, shot := range all {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}

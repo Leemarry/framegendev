@@ -13,6 +13,14 @@ export const defaultClipEdit: TimelineClipEdit = {
 	opacity: 1,
 };
 
+export function sourceTimeForClip(clip: TimelineClip, timelineTime: number) {
+	const edit = { ...defaultClipEdit, ...clip.edit };
+	return (
+		edit.sourceIn +
+		Math.max(0, Math.min(timelineTime - clip.start, clip.end - clip.start)) * edit.speed
+	);
+}
+
 export function validateClipEdit(clip: TimelineClip, sourceDuration?: number) {
 	const edit = { ...defaultClipEdit, ...clip.edit };
 	if (![clip.start, clip.end, ...Object.values(edit)].every(Number.isFinite))
@@ -76,15 +84,46 @@ export function replaceNLEClip(
 export function timelineDuration(tracks: Episode["tracks"]) {
 	return Math.max(
 		1 / NLE_FPS,
-		...tracks
-			.filter(
-				(track) =>
-					track.type === "video" ||
-					track.type === "caption" ||
-					track.clips.some((clip) => clip.videoUrl),
-			)
-			.flatMap((track) => track.clips.map((clip) => clip.end)),
+		...tracks.flatMap((track) =>
+			track.clips
+				.filter(
+					(clip) =>
+						track.type === "video" || track.type === "caption" || clip.videoUrl || clip.audioUrl,
+				)
+				.map((clip) => clip.end),
+		),
 	);
+}
+
+export function addNLEClip(
+	episode: Episode,
+	type: "caption" | "voiceover" | "music",
+	clip: TimelineClip,
+): Episode {
+	validateClipEdit(clip);
+	const existing = episode.tracks.find((track) => track.type === type);
+	const tracks = existing
+		? episode.tracks.map((track) =>
+				track === existing ? { ...track, clips: [...track.clips, clip] } : track,
+			)
+		: [
+				...episode.tracks,
+				{
+					id: `track-${type}`,
+					type,
+					label: type === "caption" ? "字幕" : type === "music" ? "音乐" : "旁白",
+					clips: [clip],
+				},
+			];
+	return { ...episode, editVersion: 1, tracks, duration: timelineDuration(tracks) };
+}
+
+export function removeNLEClip(episode: Episode, id: string): Episode {
+	const tracks = episode.tracks.map((track) => ({
+		...track,
+		clips: track.clips.filter((clip) => clip.id !== id),
+	}));
+	return { ...episode, editVersion: 1, tracks, duration: timelineDuration(tracks) };
 }
 
 export function formatFrameTime(seconds: number) {

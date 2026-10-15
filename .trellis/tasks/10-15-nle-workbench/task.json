@@ -21,10 +21,11 @@
   "children": [
     "10-15-nle-shell",
     "10-15-nle-editing",
-    "10-15-nle-preview-export"
+    "10-15-nle-preview-export",
+    "10-15-nle-audio-captions"
   ],
   "parent": "10-14-official-0-1-17-parity",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "M1/M2/M3 and TASK-041 implementation/browser/file acceptance verified. Parent remains pending native Jianying desktop reopening/audio/text typography acceptance; see result.md. Do not mark aggregate complete.",
   "meta": {}
 }

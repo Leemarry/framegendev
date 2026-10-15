@@ -6,6 +6,73 @@ import { EpisodeNLEWorkbench } from "./EpisodeNLEWorkbench";
 afterEach(cleanup);
 
 describe("EpisodeNLEWorkbench", () => {
+	it("adds a valid caption when a legacy planned asset starts beyond the edited duration", () => {
+		render(
+			<EpisodeNLEWorkbench
+				episode={{
+					...sampleEpisode,
+					duration: 1.7,
+					tracks: [
+						{
+							id: "assets",
+							type: "asset",
+							label: "素材",
+							clips: [
+								{
+									id: "planned",
+									title: "计划",
+									content: "",
+									start: 24,
+									end: 30,
+									status: "draft",
+								},
+							],
+						},
+					],
+				}}
+				assets={[]}
+				selectedClipId="planned"
+				onSelectClip={vi.fn()}
+				onClose={vi.fn()}
+			/>,
+		);
+		fireEvent.click(within(screen.getByLabelText("素材分类")).getByRole("tab", { name: "字幕" }));
+		fireEvent.click(screen.getByRole("button", { name: "添加字幕" }));
+		expect(Number((screen.getByLabelText("开始（秒）") as HTMLInputElement).value)).toBeCloseTo(
+			50 / 30,
+		);
+		expect(Number((screen.getByLabelText("结束（秒）") as HTMLInputElement).value)).toBe(1.7);
+	});
+	it("reads native duration before inserting an audio asset with unknown API duration", () => {
+		const { container } = render(
+			<EpisodeNLEWorkbench
+				episode={{ ...sampleEpisode, tracks: [sampleEpisode.tracks[0]] }}
+				assets={[
+					{
+						id: "audio",
+						kind: "audio",
+						filename: "actual.wav",
+						mimeType: "audio/wav",
+						sizeBytes: 100,
+						url: "/actual.wav",
+						createdAt: "",
+						updatedAt: "",
+					},
+				]}
+				selectedClipId="clip-cold-open"
+				onSelectClip={vi.fn()}
+				onClose={vi.fn()}
+			/>,
+		);
+		fireEvent.click(within(screen.getByLabelText("素材分类")).getByRole("tab", { name: "音频" }));
+		fireEvent.click(screen.getByRole("button", { name: "actual.wav" }));
+		expect(screen.getByRole("button", { name: "添加到音轨" })).toBeDisabled();
+		const audio = container.ownerDocument.querySelector("audio");
+		if (!audio) throw new Error("missing audio preview");
+		Object.defineProperty(audio, "duration", { value: 8 });
+		fireEvent.loadedMetadata(audio);
+		expect(screen.getByRole("button", { name: "添加到音轨" })).not.toBeDisabled();
+	});
 	it("keeps edits on save failure, supports undo redo and canceling discard", async () => {
 		const onSave = vi
 			.fn()

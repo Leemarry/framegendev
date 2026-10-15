@@ -17,6 +17,10 @@ func TestEditedEpisodeSurvivesResolvedRead(t *testing.T) {
 		t.Fatal(err)
 	}
 	episode := model.EpisodeRecord{ID: "episode-nle", EditVersion: 1, Title: "Manual edit", Duration: 1.7, AspectRatio: "9:16", Sections: []model.EpisodeSectionRecord{}, Tracks: []model.TimelineTrackRecord{{ID: "v1", Type: "video", Label: "Video", Clips: []model.TimelineClipRecord{{ID: "clip", Title: "Edited", Start: 0, End: 1.7, Content: "manual", Status: "ready", VideoURL: "/api/v1/media-assets/a/content", Edit: &model.TimelineClipEditRecord{SourceIn: .5, Speed: 2, Volume: 0, Scale: 1.2, X: .1, Rotation: 15, Opacity: 0}}}}}}
+	episode.Tracks = append(episode.Tracks,
+		model.TimelineTrackRecord{ID: "c", Type: "caption", Clips: []model.TimelineClipRecord{{ID: "caption", Start: .5, End: 1.7, Content: "你好，字幕", Status: "ready"}}},
+		model.TimelineTrackRecord{ID: "a", Type: "voiceover", Clips: []model.TimelineClipRecord{{ID: "audio", Start: 0, End: 1.7, AudioURL: "/api/v1/media-assets/voice/content", Status: "ready", Edit: &model.TimelineClipEditRecord{Speed: 1, Volume: 0, Scale: 1, Opacity: 1}}}},
+	)
 	raw, err := json.Marshal(episode)
 	if err != nil {
 		t.Fatal(err)

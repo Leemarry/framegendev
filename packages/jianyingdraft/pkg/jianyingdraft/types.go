@@ -3,13 +3,14 @@ package jianyingdraft
 
 import "context"
 
-// DraftOptions configures a video-only Jianying draft.
+// DraftOptions configures a Jianying draft with video, audio and subtitle tracks.
 type DraftOptions struct {
-	Name           string
-	Width          int
-	Height         int
-	FPS            int
-	MetadataReader MetadataReader
+	Name                string
+	Width               int
+	Height              int
+	FPS                 int
+	MetadataReader      MetadataReader
+	AudioMetadataReader AudioMetadataReader
 }
 
 // Shot describes one local video clip to place on the timeline.
@@ -58,6 +59,29 @@ type VideoMetadata struct {
 // MetadataReader reads source video metadata.
 type MetadataReader interface {
 	Probe(ctx context.Context, path string) (VideoMetadata, error)
+}
+
+// AudioMetadataReader probes the actual audio stream duration in microseconds.
+type AudioMetadataReader interface {
+	ProbeAudio(ctx context.Context, path string) (int64, error)
+}
+
+// Audio describes a local audio source on a named independent track.
+type Audio struct {
+	Shot
+	Track string
+}
+
+// Caption describes plain timed subtitle text.
+type Caption struct {
+	Text     string
+	Start    int64
+	Duration int64
+}
+
+type normalizedAudio struct {
+	normalizedShot
+	track string
 }
 
 type normalizedShot struct {

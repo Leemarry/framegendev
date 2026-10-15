@@ -7,9 +7,10 @@ interface Props {
 	panel: "画面" | "音频" | "变速";
 	sourceDuration?: number;
 	onApply: (clip: TimelineClip) => void;
+	audio?: boolean;
 }
 
-export function EpisodeNLEInspector({ clip, panel, sourceDuration, onApply }: Props) {
+export function EpisodeNLEInspector({ clip, panel, sourceDuration, onApply, audio }: Props) {
 	const [draft, setDraft] = useState(clip);
 	const [error, setError] = useState("");
 	const edit = { ...defaultClipEdit, ...draft.edit };
@@ -71,11 +72,28 @@ export function EpisodeNLEInspector({ clip, panel, sourceDuration, onApply }: Pr
 					}
 				/>
 			</label>
+			{audio && (
+				<label className="nle-field">
+					<span>开始（秒）</span>
+					<input
+						type="number"
+						required
+						min={0}
+						max={86400}
+						step="any"
+						value={draft.start}
+						onChange={(event) => {
+							const start = event.target.valueAsNumber;
+							setDraft({ ...draft, start, end: start + draft.end - draft.start });
+						}}
+					/>
+				</label>
+			)}
 			{sourceDuration !== undefined && (
 				<p className="text-xs text-muted-foreground">素材 {sourceDuration.toFixed(3)} s · 30 fps</p>
 			)}
 			{field("素材起点（秒）", "sourceIn", 0, sourceDuration ?? 86400, 1 / 30)}
-			{panel === "画面" && (
+			{!audio && panel === "画面" && (
 				<>
 					{field("水平位置", "x", -1, 1, 0.01)}
 					{field("垂直位置", "y", -1, 1, 0.01)}
@@ -84,8 +102,8 @@ export function EpisodeNLEInspector({ clip, panel, sourceDuration, onApply }: Pr
 					{field("不透明度", "opacity", 0, 1, 0.01)}
 				</>
 			)}
-			{panel === "音频" && field("音量", "volume", 0, 2, 0.01)}
-			{panel === "变速" && field("播放速度", "speed", 0.25, 4, 0.05)}
+			{(audio || panel === "音频") && field("音量", "volume", 0, 2, 0.01)}
+			{(audio || panel === "变速") && field("播放速度", "speed", 0.25, 4, 0.05)}
 			{error && (
 				<p role="alert" className="text-xs text-error-foreground">
 					{error}

@@ -78,6 +78,10 @@ func (draft *Draft) buildContentJSON(mediaPaths map[string]string) ([]byte, int6
 	materials["videos"] = videos
 	materials["speeds"] = speeds
 	content["tracks"] = []map[string]any{trackObject(trackID, segments)}
+	if err := draft.appendAudioAndCaptions(content, materials, mediaPaths, &targetStart); err != nil {
+		return nil, 0, err
+	}
+	content["duration"] = targetStart
 
 	raw, err := json.MarshalIndent(content, "", "\t")
 	if err != nil {

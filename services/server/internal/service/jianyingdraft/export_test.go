@@ -103,6 +103,10 @@ func (reader staticMetadataReader) Probe(_ context.Context, _ string) (draftlib.
 	return reader.metadata, nil
 }
 
+func (reader staticMetadataReader) ProbeAudio(_ context.Context, _ string) (int64, error) {
+	return reader.metadata.Duration, nil
+}
+
 func TestExportEpisodeWritesJianyingDraftFromReadyVideoClips(t *testing.T) {
 	dir := t.TempDir()
 	first := writeServiceTestFile(t, dir, "first.mp4")

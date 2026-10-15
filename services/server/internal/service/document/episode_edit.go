@@ -20,6 +20,12 @@ func validateEditedEpisode(episode model.EpisodeRecord) error {
 		clips := append([]model.TimelineClipRecord(nil), track.Clips...)
 		sort.SliceStable(clips, func(i, j int) bool { return clips[i].Start < clips[j].Start })
 		for index, clip := range clips {
+			if track.Type == "caption" && (len([]rune(clip.Content)) > 2000 || len(clip.Content) == 0) {
+				return fmt.Errorf("invalid caption text: %s", clip.ID)
+			}
+			if (track.Type == "music" || track.Type == "voiceover") && clip.Status == "ready" && clip.AudioURL == "" {
+				return fmt.Errorf("audio source is required: %s", clip.ID)
+			}
 			if clip.ID == "" || ids[clip.ID] || clip.Start < 0 || clip.End-clip.Start < 1.0/30-1e-6 || clip.End > 86400 || math.Abs(clip.Start*30-math.Round(clip.Start*30)) > 1e-4 || math.Abs(clip.End*30-math.Round(clip.End*30)) > 1e-4 {
 				return fmt.Errorf("invalid clip timing or duplicate id: %s", clip.ID)
 			}

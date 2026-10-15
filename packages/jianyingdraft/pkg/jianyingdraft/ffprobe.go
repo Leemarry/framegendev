@@ -20,6 +20,36 @@ type FFProbeReader struct {
 	BinDir     string
 }
 
+// ProbeAudio reads duration from an actual audio stream using ffprobe.
+func (reader FFProbeReader) ProbeAudio(ctx context.Context, path string) (int64, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	binary, err := reader.resolveBinary()
+	if err != nil {
+		return 0, err
+	}
+	output, err := exec.CommandContext(ctx, binary, "-v", "error", "-print_format", "json", "-show_streams", "-show_format", path).Output()
+	if err != nil {
+		return 0, fmt.Errorf("probing audio: %w", err)
+	}
+	var payload ffprobeOutput
+	if err := json.Unmarshal(output, &payload); err != nil {
+		return 0, fmt.Errorf("decoding audio metadata: %w", err)
+	}
+	for _, stream := range payload.Streams {
+		if stream.CodecType != "audio" {
+			continue
+		}
+		duration, err := parseDurationMicros(stream.Duration)
+		if err != nil {
+			duration, err = parseDurationMicros(payload.Format.Duration)
+		}
+		return duration, err
+	}
+	return 0, errors.New("file has no audio stream")
+}
+
 // Probe returns duration, width, and height for the first video stream.
 func (reader FFProbeReader) Probe(ctx context.Context, path string) (VideoMetadata, error) {
 	if ctx == nil {

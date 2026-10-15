@@ -1,15 +1,10 @@
 import { Pause, Play, SkipBack } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Episode, TimelineClip } from "../lib/sample";
-import { defaultClipEdit, formatFrameTime, frameTime } from "../lib/nle-editing";
-
-export function sourceTimeForClip(clip: TimelineClip, timelineTime: number) {
-	const edit = { ...defaultClipEdit, ...clip.edit };
-	return (
-		edit.sourceIn +
-		Math.max(0, Math.min(timelineTime - clip.start, clip.end - clip.start)) * edit.speed
-	);
-}
+import type { Episode } from "../lib/sample";
+import { defaultClipEdit, formatFrameTime, frameTime, sourceTimeForClip } from "../lib/nle-editing";
+import { useNLEMediaGain } from "./useNLEMediaGain";
+import { EpisodeNLEAudio } from "./EpisodeNLEAudio";
+export { sourceTimeForClip } from "../lib/nle-editing";
 
 interface Props {
 	episode: Episode;
@@ -22,19 +17,20 @@ export function EpisodeNLEPlayer({ episode, seekTime = 0, onTimeChange }: Props)
 	const [playing, setPlaying] = useState(false);
 	const [error, setError] = useState("");
 	const video = useRef<HTMLVideoElement>(null);
-	const gain = useRef<GainNode | null>(null);
-	const audioContext = useRef<AudioContext | null>(null);
-	const graph = useRef<{
-		element: HTMLVideoElement;
-		context: AudioContext;
-		node: GainNode;
-		cleanup?: ReturnType<typeof setTimeout>;
-	} | null>(null);
 	const timeRef = useRef(time);
 	const clip = episode.tracks
 		.find((track) => track.type === "video")
 		?.clips.find((item) => time >= item.start && time < item.end);
 	const edit = { ...defaultClipEdit, ...clip?.edit };
+	useNLEMediaGain(video, clip ? `${clip.id}:${clip.videoUrl}` : undefined, edit.volume, playing);
+	const audioClips = episode.tracks
+		.filter((track) => track.type === "voiceover" || track.type === "music")
+		.flatMap((track) => track.clips)
+		.filter((item) => item.audioUrl);
+	const captions = episode.tracks
+		.filter((track) => track.type === "caption")
+		.flatMap((track) => track.clips)
+		.filter((item) => time >= item.start && time < item.end);
 	const updateTime = (value: number) => {
 		const next = Math.max(0, Math.min(value, episode.duration));
 		timeRef.current = next;
@@ -60,28 +56,6 @@ export function EpisodeNLEPlayer({ episode, seekTime = 0, onTimeChange }: Props)
 	}, [clip?.id, edit.sourceIn, edit.speed]);
 	useEffect(() => {
 		setError("");
-		const element = video.current;
-		if (!element || !clip?.videoUrl) return;
-		if (globalThis.AudioContext) {
-			// StrictMode reconnects effects on the same media element.
-			if (graph.current?.cleanup) clearTimeout(graph.current.cleanup);
-			if (graph.current?.element !== element) {
-				if (graph.current) void graph.current.context.close();
-				const context = new AudioContext();
-				const node = context.createGain();
-				context.createMediaElementSource(element).connect(node);
-				node.connect(context.destination);
-				graph.current = { element, context, node };
-			}
-			const { context, node } = graph.current;
-			gain.current = node;
-			audioContext.current = context;
-			return () => {
-				gain.current = null;
-				audioContext.current = null;
-				if (graph.current) graph.current.cleanup = setTimeout(() => void context.close(), 0);
-			};
-		}
 	}, [clip?.id, clip?.videoUrl]);
 	useEffect(() => {
 		const element = video.current;
@@ -91,10 +65,7 @@ export function EpisodeNLEPlayer({ episode, seekTime = 0, onTimeChange }: Props)
 		}
 		if (!element) return;
 		element.playbackRate = edit.speed;
-		if (gain.current) gain.current.gain.value = edit.volume;
-		else element.volume = Math.min(1, edit.volume);
 		if (playing) {
-			void audioContext.current?.resume();
 			void element.play().catch(() => {
 				setError("媒体播放失败，请检查素材或重试");
 				setPlaying(false);
@@ -129,6 +100,18 @@ export function EpisodeNLEPlayer({ episode, seekTime = 0, onTimeChange }: Props)
 	}, [playing, clip?.id, clip?.videoUrl, edit.sourceIn, edit.speed, episode.duration]);
 	return (
 		<div className="nle-player">
+			{audioClips.map((item) => (
+				<EpisodeNLEAudio
+					key={`${item.id}:${item.audioUrl}`}
+					clip={item}
+					time={time}
+					playing={playing}
+					onError={() => {
+						setError("音频无法读取或播放");
+						setPlaying(false);
+					}}
+				/>
+			))}
 			<div
 				className="nle-player-stage"
 				style={{ aspectRatio: episode.aspectRatio.replace(":", "/") }}
@@ -169,6 +152,11 @@ export function EpisodeNLEPlayer({ episode, seekTime = 0, onTimeChange }: Props)
 						{clip ? "当前片段暂无可预览媒体" : "无画面"}
 					</span>
 				)}
+				<div className="nle-player-captions" aria-live="off">
+					{captions.map((item) => (
+						<p key={item.id}>{item.content}</p>
+					))}
+				</div>
 			</div>
 			{error && (
 				<p role="alert" className="p-2 text-xs text-error-foreground">

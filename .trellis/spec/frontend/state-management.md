@@ -7,6 +7,65 @@ timeline, while legacy episodes still rebuild from Markdown and merge adopted me
 Generation reconciliation must not overwrite a manual edit or an open NLE draft.
 Use 30fps frame-aligned seconds; clip edit volume/opacity zero are valid values.
 
+## NLE Audio And Caption Contract
+
+### Scope
+
+TASK-041 extends the existing manual episode PUT/resolved-read contract; no new
+asset API or parallel persistence store. Browser/file acceptance does not prove
+native Jianying desktop reopening or subtitle typography compatibility.
+
+### Signatures
+
+`TimelineClip.audioUrl?: string` matches Go `TimelineClipRecord.AudioURL`.
+`addNLEClip(episode, type, clip)` and `removeNLEClip(episode, id)` return immutable
+episodes. Native `Draft.AddAudioContext(ctx, []Audio)` and
+`AddCaptionsContext(ctx, []Caption)` validate before appending.
+
+### Contracts
+
+Caption content/start/end and voice/music source/timing/sourceIn/speed/volume
+travel UI history -> episode PUT -> resolved read -> export. Timeline seconds
+align to 30fps; native timeranges use microseconds. Source duration equals target
+duration times speed. Audio sources resolve through existing local media IDs and
+project ownership; native export probes actual audio and optionally copies it.
+Overlapping audio is allocated separate native lanes. Text ranges use UTF-16.
+Only actual media and video/caption clips extend timeline duration; planned music
+placeholders do not. Default new caption timing must fit the edited duration even
+when selection is a legacy planned asset beyond its end.
+
+### Validation And Errors
+
+| Condition | Behavior |
+| --- | --- |
+| Empty caption / over 2000 characters / invalid timing | Reject edit or save |
+| Ready audio without a source | Reject save/export |
+| Source missing, wrong media kind, another project's media or range overflow | Reject export; no success artifact |
+| Save failure or cancel close | Retain draft until explicit discard |
+| Waveform fetch/decode fails or file exceeds 64MB | Visible error; no fabricated waveform |
+
+### Cases
+
+Good: source1s, speed1.5, target2.5s exports a3.75s audio source range.
+Base: silent PCM has zero peaks. Bad: treating a planned voice/music clip as audio
+because it has a label, or using illustrative waveform bars as real signal.
+
+### Required Checks
+
+Episode tests cover immutable edits/history and failed save recovery. Draft tests
+cover audio range/zero volume/copied media, Unicode text, cancellation and overlap
+lanes. Browser acceptance uses actual audio/video, decoded canvas pixels,
+caption boundaries, paused source mapping within one frame, error/retry, complete
+episode and document body/version equality across reload/restart. Verify
+StrictMode media source reuse and context cleanup; do not double-connect an
+HTMLMediaElement. Underlying preview unmounts while the NLE dialog is open.
+
+### Wrong And Correct
+
+Wrong: infer audio duration from the timeline or fake sample values when the
+asset API omits it. Correct: read native audio metadata before insertion and
+probe the actual source again at export; decode PCM for the waveform.
+
 Use React local state for temporary forms/dialogs, SWR for server-owned data,
 existing Zustand stores for shared UI preferences, and backend persistence for
 durable project/document state. Compute derived values rather than storing copies.

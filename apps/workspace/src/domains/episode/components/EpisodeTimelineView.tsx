@@ -790,7 +790,7 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 										</span>
 									</Button>
 								</div>
-								{episode.editVersion === 1 ? (
+								{nleOpen ? null : episode.editVersion === 1 ? (
 									<EpisodeNLEPlayer episode={episode} seekTime={selectedClip?.start ?? 0} />
 								) : (
 									<EpisodePreviewPlayer

@@ -161,6 +161,11 @@ func (service *Service) ExportEpisode(ctx context.Context, projectID string, doc
 	if err := draft.AddShotsContext(ctx, shots); err != nil {
 		return ExportResponse{}, err
 	}
+	if episode.EditVersion == 1 {
+		if err := service.addAudioAndCaptions(ctx, projectID, episode, draft); err != nil {
+			return ExportResponse{}, err
+		}
+	}
 	result, err := draft.ExportContext(ctx, draftsRoot, draftlib.ExportOptions{
 		ReplaceExisting: request.ReplaceExisting,
 		CopyMedia:       request.CopyMedia,

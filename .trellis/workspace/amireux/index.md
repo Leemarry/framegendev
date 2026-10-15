@@ -7,9 +7,8 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 29
+- **Total Sessions**: 30
 - **Last Active**: 2026-10-15
 <!-- @@@/auto:current-status -->
 
@@ -18,11 +17,9 @@
 ## Active Documents
 
 <!-- @@@auto:active-documents -->
-
-| File           | Lines | Status |
-| -------------- | ----- | ------ |
-| `journal-1.md` | ~948  | Active |
-
+| File | Lines | Status |
+|------|-------|--------|
+| `journal-1.md` | ~978 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -31,8 +28,9 @@
 
 <!-- @@@auto:session-history -->
 
-| #   | Date       | Title                                                             | Commits   | Branch                           |
-| --- | ---------- | ----------------------------------------------------------------- | --------- | -------------------------------- |
+| # | Date | Title | Commits | Branch |
+|---|------|-------|---------|--------|
+| 30 | 2026-10-15 | TASK-041 editable captions actual audio waveforms and native export | - | `codex/nle-export` |
 | 29  | 2026-10-15 | TASK-166 新截图基线复查与渐进资料整理                             | -         | `codex/nle-export`               |
 | 28  | 2026-10-15 | TASK-040 M3 playback and matching draft export                    | -         | `codex/nle-export`               |
 | 27  | 2026-10-15 | TASK-040 M2 durable NLE edits                                     | -         | `codex/nle-export`               |

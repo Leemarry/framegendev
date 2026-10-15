@@ -12,6 +12,7 @@ export interface TimelineClip {
 	prompt?: string;
 	source?: string;
 	videoUrl?: string;
+	audioUrl?: string;
 	posterUrl?: string;
 	thumbnailUrl?: string;
 	edit?: TimelineClipEdit;

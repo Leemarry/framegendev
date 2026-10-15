@@ -11,6 +11,7 @@ import {
 	Save,
 	Plus,
 	Download,
+	Trash2,
 } from "lucide-react";
 import { useState } from "react";
 import type { Episode, TimelineClip } from "@/domains/episode/lib/sample";
@@ -19,11 +20,20 @@ import type { MediaAsset } from "@/domains/workspace/api/media";
 import { EpisodeNLEInspector } from "./EpisodeNLEInspector";
 import { EpisodeNLEPlayer } from "./EpisodeNLEPlayer";
 import { EpisodeNLEExportDialog } from "./EpisodeNLEExportDialog";
+import { EpisodeNLECaptionInspector } from "./EpisodeNLECaptionInspector";
+import { EpisodeNLEWaveform } from "./EpisodeNLEWaveform";
 import type {
 	ExportWorkspaceEpisodeJianyingDraftRequest,
 	ExportWorkspaceEpisodeJianyingDraftResponse,
 } from "@/domains/workspace/api/workspace";
-import { defaultClipEdit, frameTime, replaceNLEClip, formatFrameTime } from "../lib/nle-editing";
+import {
+	defaultClipEdit,
+	frameTime,
+	replaceNLEClip,
+	formatFrameTime,
+	addNLEClip,
+	removeNLEClip,
+} from "../lib/nle-editing";
 import "./episode-nle.css";
 
 interface EpisodeNLEWorkbenchProps {
@@ -63,6 +73,7 @@ export function EpisodeNLEWorkbench({
 	});
 	const episode = history.present;
 	const [selectedId, setSelectedId] = useState(selectedClipId);
+	const [playhead, setPlayhead] = useState(0);
 	const [savedSnapshot, setSavedSnapshot] = useState(JSON.stringify(initialEpisode));
 	const [saving, setSaving] = useState(false);
 	const [saveError, setSaveError] = useState("");
@@ -103,6 +114,11 @@ export function EpisodeNLEWorkbench({
 	const [panel, setPanel] = useState<(typeof panels)[number]>("画面");
 	const [query, setQuery] = useState("");
 	const [inspectedAsset, setInspectedAsset] = useState<MediaAsset | null>(null);
+	const [audioTrack, setAudioTrack] = useState<"voiceover" | "music">("voiceover");
+	const [audioDurations, setAudioDurations] = useState<Record<string, number>>({});
+	const inspectedDuration =
+		inspectedAsset?.durationSeconds ??
+		(inspectedAsset ? audioDurations[inspectedAsset.url] : undefined);
 	const selected = episode.tracks
 		.flatMap((track) => track.clips)
 		.find((clip) => clip.id === selectedId);
@@ -167,7 +183,7 @@ export function EpisodeNLEWorkbench({
 							<option>1:1</option>
 						</select>
 						<span className="font-mono text-xs">
-							{formatFrameTime(selected?.start ?? 0)} / {formatFrameTime(episode.duration)}
+							{formatFrameTime(playhead)} / {formatFrameTime(episode.duration)}
 						</span>
 						<button
 							className="nle-icon"
@@ -266,6 +282,31 @@ export function EpisodeNLEWorkbench({
 									onChange={(event) => setQuery(event.target.value)}
 								/>
 							</label>
+							{bin === "字幕" && (
+								<button
+									type="button"
+									className="nle-command mx-3 mb-2"
+									disabled={saving}
+									onClick={() => {
+										const start = frameTime(
+											Math.max(0, Math.min(selected?.start ?? 0, episode.duration - 1 / 30)),
+										);
+										const clip: TimelineClip = {
+											id: `caption-${crypto.randomUUID()}`,
+											title: "新字幕",
+											content: "新字幕",
+											start,
+											end: frameTime(Math.min(episode.duration, start + 2)),
+											status: "ready",
+										};
+										change(addNLEClip(episode, "caption", clip));
+										select(clip.id);
+									}}
+								>
+									<Plus size={15} />
+									添加字幕
+								</button>
+							)}
 							<div className="nle-bin-items">
 								{bin === "分镜" || bin === "字幕" ? (
 									<>
@@ -330,7 +371,11 @@ export function EpisodeNLEWorkbench({
 						</aside>
 						<section className="nle-preview" aria-label="剪辑预览">
 							{!inspectedAsset ? (
-								<EpisodeNLEPlayer episode={episode} seekTime={selected?.start ?? 0} />
+								<EpisodeNLEPlayer
+									episode={episode}
+									seekTime={selected?.start ?? 0}
+									onTimeChange={setPlayhead}
+								/>
 							) : (
 								<>
 									<div
@@ -349,7 +394,17 @@ export function EpisodeNLEWorkbench({
 										) : source && previewKind === "image" ? (
 											<img src={source} alt={previewTitle} />
 										) : source && previewKind === "audio" ? (
-											<audio key={source} src={source} controls aria-label={previewTitle} />
+											<audio
+												key={source}
+												src={source}
+												controls
+												aria-label={previewTitle}
+												onLoadedMetadata={(event) => {
+													const duration = event.currentTarget.duration;
+													if (Number.isFinite(duration) && duration > 0)
+														setAudioDurations((current) => ({ ...current, [source]: duration }));
+												}}
+											/>
 										) : poster ? (
 											<img src={poster} alt={previewTitle} />
 										) : (
@@ -392,28 +447,57 @@ export function EpisodeNLEWorkbench({
 										<dt>类型</dt>
 										<dd>{inspectedAsset.mimeType}</dd>
 										<dt>时长</dt>
-										<dd>{inspectedAsset.durationSeconds ?? "未知"}</dd>
+										<dd>{inspectedDuration ?? "未知"}</dd>
 									</dl>
 								) : selected ? (
 									<fieldset disabled={saving}>
-										<EpisodeNLEInspector
-											key={JSON.stringify(selected)}
-											clip={selected}
-											panel={panel}
-											sourceDuration={
-												assets?.find((asset) => asset.url === selected.videoUrl)?.durationSeconds
-											}
-											onApply={(clip) =>
-												change(
-													replaceNLEClip(
-														episode,
-														clip.id,
-														clip,
-														assets?.find((asset) => asset.url === clip.videoUrl)?.durationSeconds,
-													),
-												)
-											}
-										/>
+										{selectedTrack?.type === "caption" ? (
+											<EpisodeNLECaptionInspector
+												key={JSON.stringify(selected)}
+												clip={selected}
+												onApply={(clip) => change(replaceNLEClip(episode, clip.id, clip))}
+											/>
+										) : (
+											<EpisodeNLEInspector
+												key={JSON.stringify(selected)}
+												clip={selected}
+												panel={panel}
+												audio={
+													selectedTrack?.type === "voiceover" || selectedTrack?.type === "music"
+												}
+												sourceDuration={
+													assets?.find(
+														(asset) => asset.url === (selected.audioUrl ?? selected.videoUrl),
+													)?.durationSeconds ?? audioDurations[selected.audioUrl ?? ""]
+												}
+												onApply={(clip) =>
+													change(
+														replaceNLEClip(
+															episode,
+															clip.id,
+															clip,
+															assets?.find(
+																(asset) => asset.url === (clip.audioUrl ?? clip.videoUrl),
+															)?.durationSeconds,
+														),
+													)
+												}
+											/>
+										)}
+										{selectedTrack?.type !== "video" && (
+											<button
+												type="button"
+												className="nle-command mt-3"
+												aria-label="删除片段"
+												title="删除片段"
+												onClick={() => {
+													change(removeNLEClip(episode, selected.id));
+													select("");
+												}}
+											>
+												<Trash2 size={15} />
+											</button>
+										)}
 									</fieldset>
 								) : (
 									<p className="text-xs text-muted-foreground">未选择片段</p>
@@ -443,14 +527,27 @@ export function EpisodeNLEWorkbench({
 											title={`${clip.title} ${(clip.end - clip.start).toFixed(2)}s`}
 											onClick={() => select(clip.id)}
 											style={{
-												left: `${(clip.start / Math.max(episode.duration, 1)) * 100}%`,
-												width: `${Math.max(((clip.end - clip.start) / Math.max(episode.duration, 1)) * 100, 0.5)}%`,
+												left: `${Math.min(99.5, (clip.start / Math.max(episode.duration, 1 / 30)) * 100)}%`,
+												width: `${Math.max(((Math.min(clip.end, episode.duration) - clip.start) / Math.max(episode.duration, 1 / 30)) * 100, 0.5)}%`,
 											}}
 										>
 											{track.type === "video" && <ClipThumbnail clip={clip} />}
-											<span>{track.type === "caption" ? clip.content : clip.title}</span>
+											{clip.audioUrl && <EpisodeNLEWaveform clip={clip} />}
+											<span>
+												{track.type === "caption" ? clip.content : clip.title}
+												{track.type !== "video" &&
+												track.type !== "caption" &&
+												!clip.audioUrl &&
+												!clip.videoUrl
+													? "【待生成】"
+													: ""}
+											</span>
 										</button>
 									))}
+									<div
+										className="nle-playhead"
+										style={{ left: `${Math.min(100, (playhead / episode.duration) * 100)}%` }}
+									/>
 								</div>
 							</div>
 						))}
@@ -462,6 +559,45 @@ export function EpisodeNLEWorkbench({
 							onExport={onExport}
 							onClose={() => setExportOpen(false)}
 						/>
+					)}
+					{inspectedAsset?.kind === "audio" && (
+						<div className="flex flex-wrap items-center justify-end gap-2 border-t border-border p-2">
+							<select
+								aria-label="音频目标轨道"
+								value={audioTrack}
+								onChange={(event) =>
+									setAudioTrack(event.target.value === "music" ? "music" : "voiceover")
+								}
+							>
+								<option value="voiceover">旁白</option>
+								<option value="music">音乐</option>
+							</select>
+							<button
+								type="button"
+								className="nle-command"
+								disabled={
+									saving || inspectedAsset.storageStatus === "missing" || !inspectedDuration
+								}
+								onClick={() => {
+									const start = selected?.start ?? 0;
+									const clip: TimelineClip = {
+										id: `audio-${crypto.randomUUID()}`,
+										title: inspectedAsset.filename,
+										content: "",
+										start,
+										end: frameTime(start + (inspectedDuration ?? 0)),
+										status: "ready",
+										audioUrl: inspectedAsset.url,
+										edit: { ...defaultClipEdit },
+									};
+									change(addNLEClip(episode, audioTrack, clip));
+									select(clip.id);
+								}}
+							>
+								<Plus size={15} />
+								添加到音轨
+							</button>
+						</div>
 					)}
 					{inspectedAsset?.kind === "video" && selected && selectedTrack?.type === "video" && (
 						<button
