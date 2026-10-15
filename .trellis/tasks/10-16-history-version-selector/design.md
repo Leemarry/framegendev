@@ -1,0 +1,5 @@
+# Synchronized Historical Selection
+
+Render the existing shared Select in a compact comparison band above the content tabs. Its value is selectedHash; onValueChange uses the same setter as sidebar buttons. Options display current/history, exact short hash and time, preserving commit identity without inventing numeric document versions from a capped50-item Git list. A decorative ArrowLeftRight separates the dropdown from the fixed current hash; it has no click behavior. Keep sidebar summary provenance and existing content views.
+
+Disable the dropdown while history is loading/revalidating/failed or no valid selected item exists. Response identity, diff failure, current-version restore disablement and frozen reviewedVersion remain unchanged. Selection changes invalidate the existing diff key; no new API, optimistic mutation, persistent store or callback. Actual current/old selection, exact source, cancel/offline/retry and full-record restart acceptance reuse the isolated previous-item fixture.

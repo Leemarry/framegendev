@@ -51,7 +51,8 @@
     "10-16-selection-project-isolation",
     "10-16-selection-media-isolation",
     "10-16-media-download-path",
-    "10-16-history-snapshot-views"
+    "10-16-history-snapshot-views",
+    "10-16-history-version-selector"
   ],
   "parent": null,
   "relatedFiles": [],

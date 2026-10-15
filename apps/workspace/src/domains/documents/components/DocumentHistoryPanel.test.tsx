@@ -43,6 +43,7 @@ const renderPanel = (value = document) =>
 describe("document history review", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		if (!HTMLElement.prototype.scrollIntoView) HTMLElement.prototype.scrollIntoView = vi.fn();
 		localStorage.clear();
 		useDocumentsStore.setState({ projectId: "project", documents: [document] });
 		vi.mocked(getWorkspaceDocumentHistory).mockResolvedValue({
@@ -86,6 +87,48 @@ describe("document history review", () => {
 		});
 	});
 	afterEach(cleanup);
+	it("keeps dropdown/sidebar selection and current comparison synchronized without writing", async () => {
+		const base = await vi.mocked(getWorkspaceDocumentHistoryDiff)(
+			"doc",
+			"current",
+			"project",
+			"old",
+		);
+		vi.mocked(getWorkspaceDocumentHistoryDiff).mockImplementation(
+			async (_id, _to, _project, from) => ({
+				...base,
+				diff: {
+					...base.diff,
+					from: from === "current" ? base.diff.to : base.diff.from,
+					lines: from === "current" ? [] : base.diff.lines,
+				},
+			}),
+		);
+		renderPanel();
+		await waitFor(() => expect(screen.getByRole("button", { name: "恢复所选版本" })).toBeEnabled());
+		const selector = screen.getByRole("combobox", { name: "选择历史版本" });
+		expect(selector).toHaveTextContent("old");
+		fireEvent.keyDown(selector, { key: "ArrowDown" });
+		fireEvent.click(await screen.findByRole("option", { name: /当前版本/ }));
+		await waitFor(() =>
+			expect(getWorkspaceDocumentHistoryDiff).toHaveBeenLastCalledWith(
+				"doc",
+				"current",
+				"project",
+				"current",
+			),
+		);
+		expect(screen.getByRole("button", { name: /^当前版本/ })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		expect(screen.getByRole("button", { name: "恢复所选版本" })).toBeDisabled();
+		fireEvent.click(screen.getByRole("button", { name: /^old/ }));
+		await waitFor(() => expect(selector).toHaveTextContent("old"));
+		await waitFor(() => expect(screen.getByRole("button", { name: "恢复所选版本" })).toBeEnabled());
+		expect(useDocumentsStore.getState().documents[0]).toEqual(document);
+		expect(restoreWorkspaceDocumentHistoryVersion).not.toHaveBeenCalled();
+	});
 	it("does not show or restore a snapshot returned for a different document", async () => {
 		const response = await vi.mocked(getWorkspaceDocumentHistoryDiff)(
 			"doc",
@@ -172,6 +215,7 @@ describe("document history review", () => {
 		vi.mocked(getWorkspaceDocumentHistory).mockRejectedValue(new Error("offline"));
 		renderPanel({ ...document, isDirty: true });
 		await screen.findByText("变更记录加载失败，请刷新重试。");
+		expect(screen.getByRole("combobox", { name: "选择历史版本" })).toBeDisabled();
 		expect(screen.getByRole("button", { name: "恢复所选版本" })).toBeDisabled();
 		fireEvent.click(screen.getByRole("button", { name: "刷新变更记录" }));
 		await waitFor(() => expect(getWorkspaceDocumentHistory).toHaveBeenCalledTimes(2));

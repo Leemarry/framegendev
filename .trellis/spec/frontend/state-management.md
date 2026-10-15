@@ -55,6 +55,11 @@ project/document/hash and verify response identity. Hide cached content during
 revalidation/failure and disable restore/navigation until reads recover. Switching
 views never changes the selected restore target or frozen reviewed version.
 Full snapshot reading is distinct from official diff-highlighted reading.
+The history dropdown and sidebar share selectedHash; current comparison stays
+fixed to the latest history hash. Disable selection on history load/revalidation
+failure. Display exact Git hash identity instead of inferring document version
+numbers from the capped history list. Official ArrowLeftRight is a decorative
+comparison indicator, not a version-swap command (actual0.1.17 DOM inspection).
 
 NLE manual edits live in local immutable history until explicit episode PUT succeeds.
 Failed writes retain the draft; discard requires confirmation. Saved episodes use

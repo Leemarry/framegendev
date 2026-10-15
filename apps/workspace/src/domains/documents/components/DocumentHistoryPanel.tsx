@@ -1,6 +1,15 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, History, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
+import {
+	ArrowLeftRight,
+	ChevronLeft,
+	ChevronRight,
+	History,
+	Loader2,
+	RefreshCw,
+	RotateCcw,
+	X,
+} from "lucide-react";
 import useSWR from "swr";
 import {
 	type DocumentHistoryItem,
@@ -20,6 +29,13 @@ import {
 	SheetTitle,
 } from "@/shared/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/shared/components/ui/select";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/shared/lib/utils";
 import { DocumentHistoryDiff } from "./DocumentHistoryDiff";
@@ -246,6 +262,39 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 						)}
 					</div>
 					<div className="flex min-h-0 min-w-0 flex-col">
+						<div
+							role="group"
+							aria-label="历史比较版本"
+							className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-border p-2"
+						>
+							<Select
+								value={selectedHash ?? ""}
+								onValueChange={setSelectedHash}
+								disabled={
+									loadingHistory ||
+									refreshingHistory ||
+									Boolean(historyError) ||
+									!selectedItem ||
+									restoring
+								}
+							>
+								<SelectTrigger aria-label="选择历史版本">
+									<SelectValue placeholder="选择历史版本" />
+								</SelectTrigger>
+								<SelectContent>
+									{items.map((item, index) => (
+										<SelectItem key={item.hash} value={item.hash}>
+											{index === 0 ? "当前版本" : "历史版本"} {shortHash(item.hash)} ·{" "}
+											{formatHistoryTime(item.createdAt)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<ArrowLeftRight aria-hidden="true" className="size-4 text-muted-foreground" />
+							<span className="min-w-0 truncate text-xs text-muted-foreground" title={currentHash}>
+								当前版本 {shortHash(currentHash ?? "")}
+							</span>
+						</div>
 						<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border p-2">
 							<Tabs value={contentView} onValueChange={setContentView}>
 								<TabsList aria-label="历史内容视图">
