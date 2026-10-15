@@ -1086,3 +1086,26 @@ Accepted local comment lifecycle/offline recovery/restart/context safety; integr
 ### Status
 
 [OK] **Completed**
+
+
+## Session 35: TASK-070 direct storyboard timeline and integrated NLE entry
+<!-- trellis-session: v=2 fp=e4411a6139164c46 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 direct storyboard timeline and integrated NLE entry
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+Accepted read-only storyboard timeline mode, actual switch/restart/body/version/history preservation, dirty guard/read retry/NLE cancel. Main376 tests, frontend gates and actual integrated entry pass; resources/native Jianying remain open.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `194b2e6` | feat(documents): open storyboard timelines without implicit document writes |
+| `2f171e4` | feat(documents): open storyboard timelines without implicit document writes |
+
+### Status
+
+[OK] **Completed**

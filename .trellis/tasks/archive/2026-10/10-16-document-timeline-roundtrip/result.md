@@ -72,3 +72,14 @@ visible; no Agent, generation, real video export, login or external send execute
 Durable evidence in evidence/: official empty timeline, local desktop/short/light/
 dark, NLE entry/cancel, request failure and dirty entry guard. Other temporary
 screenshots and exact before JSON in .cache/parity/task-070/.
+
+## Main Integration
+
+194b2e6 -> main2f171e4. Main66 files376 tests, lint/full702-fileformat/build and
+embedded Go build pass. Running mediago-server-timeline.exe on isolated31456.
+Actual main new storyboard doc-1792086655229-p93q5wy29wn -> timeline -> NLE -> close
+passed; empty document remains v1 with no workbenchDraft. Previous main document
+body, version3 and comment identity/body/resolved state retained. New-document
+creation reordered its sortOrder to1, updated metadata and normalized anchor
+context; this is not an assertion that all metadata stayed unchanged. Screenshot
+main-timeline.png in main integration cache. No whole TASK-150 completion claim.
