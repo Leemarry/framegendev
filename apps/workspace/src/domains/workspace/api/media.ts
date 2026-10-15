@@ -44,6 +44,36 @@ const mediaAssetsPath = (projectId?: string | null) => {
 
 export const mediaAssetsKey = mediaAssetsPath();
 
+export interface MediaAssetReference {
+	projectId: string;
+	projectName: string;
+	resourceTitle?: string;
+	resourceType?: string;
+	sortOrder: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface MediaAssetReferencesResponse {
+	references: MediaAssetReference[];
+}
+
+export const mediaAssetReferencesPath = (assetId?: string | null, projectId?: string | null) => {
+	const id = assetId?.trim();
+	if (!id) return null;
+	const scope = projectId?.trim();
+	return scope
+		? `/projects/${encodeURIComponent(scope)}/media-assets/${encodeURIComponent(id)}/references`
+		: `/media-assets/${encodeURIComponent(id)}/references`;
+};
+
+export const getMediaAssetReferences = async (assetId: string, projectId?: string | null) => {
+	const path = mediaAssetReferencesPath(assetId, projectId);
+	if (!path) throw new Error("asset id is required");
+	const response = await httpClient.get<MediaAssetReferencesResponse>(path);
+	return response.data;
+};
+
 export interface MediaAssetFilters {
 	kind?: "all" | MediaAssetKind;
 	projectId?: string;

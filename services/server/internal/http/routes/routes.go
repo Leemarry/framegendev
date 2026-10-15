@@ -114,6 +114,7 @@ func registerCoreRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
 	apiRoutes.GET("/media-assets/:assetId/poster", handlers.MediaAssets.HandleMediaAssetPoster)
 	apiRoutes.PUT("/media-assets/:assetId", handlers.MediaAssets.HandleUpdateMediaAsset)
 	apiRoutes.DELETE("/media-assets/:assetId", handlers.MediaAssets.HandleDeleteMediaAsset)
+	apiRoutes.GET("/media-assets/:assetId/references", handlers.MediaAssets.HandleMediaAssetReferences)
 	apiRoutes.Any("/internal/agent/document-mcp", handlers.MCP.HandleInternalDocumentMCP)
 	apiRoutes.Any("/internal/agent/generation-mcp", handlers.MCP.HandleInternalGenerationMCP)
 	apiRoutes.Any(
@@ -293,6 +294,7 @@ func registerProjectRoutes(projectRoutes *gin.RouterGroup, handlers Handlers) {
 	projectRoutes.GET("/media-assets/:assetId/poster", handlers.MediaAssets.HandleProjectMediaAssetPoster)
 	projectRoutes.PUT("/media-assets/:assetId", handlers.MediaAssets.HandleUpdateProjectMediaAsset)
 	projectRoutes.DELETE("/media-assets/:assetId", handlers.MediaAssets.HandleDeleteProjectMediaAsset)
+	projectRoutes.GET("/media-assets/:assetId/references", handlers.MediaAssets.HandleProjectMediaAssetReferences)
 	projectRoutes.GET(
 		"/generation/selected-assets",
 		handlers.GenerationTasks.HandleSelectedGenerationAssets,

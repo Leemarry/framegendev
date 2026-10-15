@@ -8,8 +8,10 @@ import {
 } from "@/domains/generation/api/generation";
 import { getProjects } from "@/domains/projects/api/projects";
 import {
+	getMediaAssetReferences,
 	getMediaAssets,
 	type MediaAsset,
+	type MediaAssetReference,
 	updateMediaAsset,
 	updateMediaAssetMetadata,
 } from "@/domains/workspace/api/media";
@@ -103,7 +105,16 @@ if (typeof HTMLElement !== "undefined") {
 
 vi.mock("@/domains/workspace/api/media", () => ({
 	deleteMediaAsset: vi.fn(),
+	getMediaAssetReferences: vi.fn(),
 	getMediaAssets: vi.fn(),
+	mediaAssetReferencesPath: (assetId?: string | null, projectId?: string | null) => {
+		const id = assetId?.trim();
+		if (!id) return null;
+		const scope = projectId?.trim();
+		return scope
+			? `/projects/${encodeURIComponent(scope)}/media-assets/${encodeURIComponent(id)}/references`
+			: `/media-assets/${encodeURIComponent(id)}/references`;
+	},
 	mediaAssetsKey: "/media-assets",
 	updateMediaAsset: vi.fn(),
 	updateMediaAssetMetadata: vi.fn(),
@@ -147,6 +158,7 @@ describe("AssetLibraryButton", () => {
 			workspaceDir: "/tmp",
 		});
 		vi.mocked(getWorkspaceDocuments).mockResolvedValue(workspaceDocuments());
+		vi.mocked(getMediaAssetReferences).mockResolvedValue({ references: [] });
 	});
 
 	afterEach(() => {
@@ -575,6 +587,69 @@ describe("AssetLibraryButton", () => {
 			);
 		});
 	});
+
+	it("lists the projects that selected the previewed media asset", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [mediaAsset({ filename: "hero.png", id: "media-a", projectId: "project-a" })],
+		});
+
+		vi.mocked(getMediaAssetReferences).mockResolvedValue({
+			references: [
+				reference({
+					projectId: "project-b",
+					projectName: "项目乙",
+					resourceTitle: "场景",
+					resourceType: "scene",
+				}),
+				reference({
+					projectId: "project-a",
+					projectName: "项目甲",
+					resourceTitle: "主角",
+					resourceType: "character",
+				}),
+			],
+		});
+
+		renderAssetLibraryButton("/");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "全局素材库" });
+		fireEvent.click(await screen.findByRole("button", { name: "预览 hero.png" }));
+
+		expect(await screen.findByText("引用（2）")).toBeTruthy();
+		expect(screen.getByText("项目甲")).toBeTruthy();
+		expect(screen.getByText("主角")).toBeTruthy();
+		expect(screen.getByText("项目乙")).toBeTruthy();
+		expect(screen.getByText("场景")).toBeTruthy();
+		expect(getMediaAssetReferences).toHaveBeenCalledWith("media-a", "project-a");
+	});
+
+	it("reports the empty reference state for an unselected media asset", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [mediaAsset({ filename: "lonely.png", id: "media-a" })],
+		});
+
+		renderAssetLibraryButton("/");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "全局素材库" });
+		fireEvent.click(await screen.findByRole("button", { name: "预览 lonely.png" }));
+
+		expect(await screen.findByText("未被任何项目引用")).toBeTruthy();
+	});
+
+	it("surfaces the reference request failure instead of a fake success", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [mediaAsset({ filename: "broken.png", id: "media-a" })],
+		});
+		vi.mocked(getMediaAssetReferences).mockRejectedValue(new Error("读取引用失败。"));
+
+		renderAssetLibraryButton("/");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "全局素材库" });
+		fireEvent.click(await screen.findByRole("button", { name: "预览 broken.png" }));
+
+		expect(await screen.findByText("读取引用失败。")).toBeTruthy();
+		expect(screen.queryByText("未被任何项目引用")).not.toBeInTheDocument();
+	});
 });
 
 const renderAssetLibraryButton = (initialEntry: string) => {
@@ -655,4 +730,15 @@ const workspaceProject = (overrides: { id: string; name: string }) => ({
 	status: "active" as const,
 	trashedAt: "",
 	updatedAt: "2026-06-01T06:30:00Z",
+});
+
+const reference = (overrides: Partial<MediaAssetReference> = {}): MediaAssetReference => ({
+	createdAt: "2026-06-01T10:00:00Z",
+	projectId: "project-a",
+	projectName: "项目甲",
+	resourceTitle: "主角",
+	resourceType: "character",
+	sortOrder: 0,
+	updatedAt: "2026-06-01T10:30:00Z",
+	...overrides,
 });

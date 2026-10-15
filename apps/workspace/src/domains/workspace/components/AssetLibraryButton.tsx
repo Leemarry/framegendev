@@ -46,7 +46,9 @@ import {
 } from "@/domains/documents/components/project-asset-preview.helpers";
 import {
 	deleteMediaAsset,
+	getMediaAssetReferences,
 	getMediaAssets,
+	mediaAssetReferencesPath,
 	mediaAssetsKey,
 	updateMediaAsset,
 	updateMediaAssetMetadata,
@@ -1295,6 +1297,13 @@ const AssetLibraryPreview: React.FC<{
 				) : null}
 			</div>
 			<AssetTagList tags={tags} className="shrink-0 gap-1.5" />
+			{item.mediaAsset ? (
+				<AssetLibraryReferences
+					key={`references:${item.mediaAsset.id}`}
+					assetId={item.mediaAsset.id}
+					projectId={item.mediaAsset.projectId}
+				/>
+			) : null}
 			{folderActions}
 			{item.mediaAsset ? (
 				<AssetLibraryMetadataEditor
@@ -1307,6 +1316,56 @@ const AssetLibraryPreview: React.FC<{
 				/>
 			) : null}
 		</aside>
+	);
+};
+
+const AssetLibraryReferences: React.FC<{ assetId: string; projectId?: string }> = ({
+	assetId,
+	projectId,
+}) => {
+	const referencesKey = mediaAssetReferencesPath(assetId, projectId);
+	const { data, error, isLoading } = useSWR(referencesKey, () =>
+		getMediaAssetReferences(assetId, projectId),
+	);
+	const references = data?.references ?? [];
+
+	return (
+		<div className="shrink-0 grid gap-1 border-t border-border pt-3">
+			<p className="text-xs font-medium text-foreground">
+				引用{references.length > 0 ? `（${references.length}）` : ""}
+			</p>
+			{isLoading ? (
+				<p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+					<Loader2 className="size-3 animate-spin" />
+					<span>正在读取引用</span>
+				</p>
+			) : error ? (
+				<p className="text-xs text-error-foreground">{errorMessage(error, "读取引用失败。")}</p>
+			) : references.length === 0 ? (
+				<p className="text-xs text-muted-foreground">未被任何项目引用</p>
+			) : (
+				<ul className="grid gap-1">
+					{references.map((reference, index) => (
+						<li
+							key={`${reference.projectId}:${reference.resourceType ?? ""}:${index}`}
+							className="flex min-w-0 items-center gap-1.5 text-xs"
+						>
+							<span className="min-w-0 flex-1 truncate text-foreground" title={reference.projectId}>
+								{reference.projectName || reference.projectId}
+							</span>
+							{reference.resourceType || reference.resourceTitle ? (
+								<span
+									className="shrink-0 max-w-28 truncate text-muted-foreground"
+									title={reference.resourceTitle || reference.resourceType}
+								>
+									{reference.resourceTitle || reference.resourceType}
+								</span>
+							) : null}
+						</li>
+					))}
+				</ul>
+			)}
+		</div>
 	);
 };
 

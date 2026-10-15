@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
+- **Total Sessions**: 22
 - **Last Active**: 2026-10-15
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~718 | Active |
+| `journal-1.md` | ~753 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-10-15 | TASK-164 素材引用关联详情 | - | `codex/task-004-document-reload` |
 | 21 | 2026-10-15 | 素材评分筛选与排序验收完成 | - | `codex/task-004-document-reload` |
 | 20 | 2026-10-15 | TASK-162 素材文件夹删除：真实浏览器验收与错误消息缺陷修复 | - | `codex/task-004-document-reload` |
 | 19 | 2026-10-15 | TASK-161 最新迭代与Git提交规则 | `216611e` | `codex/task-004-document-reload` |

@@ -716,3 +716,38 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 ### Next Steps
 
 - TASK-030/034剩余：重挂父级/物理扫描、关联详情，启动前核实必要性与复用
+
+
+## Session 22: TASK-164 素材引用关联详情
+<!-- trellis-session: v=2 fp=41f601ce2ee57e26 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-164 素材引用关联详情
+**Branch**: `codex/task-004-document-reload`
+
+### Summary
+
+新增媒体素材引用详情 API 与素材库预览面板引用区块；修正原 PRD 前提为单源 project_selected_assets
+
+### Main Changes
+
+- 后端 repository/service/handler/routes 全链路 + swagger 缓存补条；prd.md 记录数据来源修正
+- 前端 media.ts API + AssetLibraryButton 引用区块四态 + 两处测试
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 后端 go build/gofmt/vet/test(含新增单测) 全过
+- [OK] 前端 lint/format/build + 定向 vitest 19 项通过
+- [OK] 隔离实例(31432+31433)真实浏览器验收：双项目引用、空态、刷新持久、深色主题均通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-030/034 剩余：物理扫描与文档正文级引用检索，需独立设计

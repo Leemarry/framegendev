@@ -217,6 +217,53 @@ func (handler MediaAssets) HandleProjectMediaAssetPoster(context *gin.Context) {
 	handler.HandleMediaAssetPoster(context)
 }
 
+// HandleMediaAssetReferences godoc
+// @Summary 获取媒体资产引用详情
+// @Description 返回选入该媒体资产的项目列表（项目名、资源类型与资源标题）。
+// @Tags Media Assets
+// @Produce json
+// @Param assetId path string true "Asset ID"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/media-assets/{assetId}/references [get]
+func (handler MediaAssets) HandleMediaAssetReferences(context *gin.Context) {
+	id := strings.TrimSpace(context.Param("assetId"))
+	if id == "" {
+		httpresponse.Error(context, http.StatusBadRequest, "asset id is required")
+		return
+	}
+
+	references, ok, err := handler.service.ListAssetReferences(id)
+	if err != nil {
+		httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
+		return
+	}
+	if !ok {
+		httpresponse.Error(context, http.StatusNotFound, "media asset not found")
+		return
+	}
+
+	httpresponse.OK(context, references)
+}
+
+// HandleProjectMediaAssetReferences godoc
+// @Summary 获取项目媒体资产引用详情
+// @Description 返回选入该媒体资产的项目列表，路由按项目范围委托。
+// @Tags Media Assets
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param assetId path string true "Asset ID"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/media-assets/{assetId}/references [get]
+func (handler MediaAssets) HandleProjectMediaAssetReferences(context *gin.Context) {
+	handler.HandleMediaAssetReferences(context)
+}
+
 // HandleUpdateMediaAsset godoc
 // @Summary 更新媒体资产
 // @Description 更新媒体资产文件名或元数据。

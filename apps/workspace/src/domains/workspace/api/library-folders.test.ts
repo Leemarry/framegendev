@@ -6,7 +6,13 @@ import {
 	getLibraryFolders,
 	renameLibraryFolder,
 } from "./library-folders";
-import { uploadMediaAsset, updateMediaAssetFields, updateMediaAssetMetadata } from "./media";
+import {
+	getMediaAssetReferences,
+	mediaAssetReferencesPath,
+	uploadMediaAsset,
+	updateMediaAssetFields,
+	updateMediaAssetMetadata,
+} from "./media";
 
 vi.mock("@/shared/lib/http", () => ({
 	default: { delete: vi.fn(), get: vi.fn(), post: vi.fn(), put: vi.fn() },
@@ -66,4 +72,26 @@ it("uploads with the destination in multipart and shares the scoped media patch 
 		note: "",
 		rating: 0,
 	});
+});
+
+it("resolves reference routes by asset scope and keeps an empty path when there is no asset", async () => {
+	expect(mediaAssetReferencesPath("", "project/a")).toBeNull();
+	expect(mediaAssetReferencesPath(null)).toBeNull();
+	expect(mediaAssetReferencesPath("asset/a")).toBe("/media-assets/asset%2Fa/references");
+	expect(mediaAssetReferencesPath("asset/a", "project/a")).toBe(
+		"/projects/project%2Fa/media-assets/asset%2Fa/references",
+	);
+
+	vi.mocked(httpClient.get).mockResolvedValue({
+		data: { references: [] },
+		success: true,
+		code: 0,
+		message: "",
+	});
+	await getMediaAssetReferences("asset/a", "project/a");
+	expect(httpClient.get).toHaveBeenCalledWith(
+		"/projects/project%2Fa/media-assets/asset%2Fa/references",
+	);
+	await getMediaAssetReferences("global/asset");
+	expect(httpClient.get).toHaveBeenCalledWith("/media-assets/global%2Fasset/references");
 });

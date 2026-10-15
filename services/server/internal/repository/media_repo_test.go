@@ -7,6 +7,7 @@ import (
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
+	"gorm.io/gorm"
 )
 
 func TestMediaAssetRepositoryLifecycle(t *testing.T) {
@@ -197,6 +198,75 @@ func TestMediaAssetRepositoryListMediaAssetsFiltersByProject(t *testing.T) {
 	}
 	if got := mediaAssetIDs(alphaAssets); !equalStringSlices(got, []string{"asset-alpha", "asset-global"}) {
 		t.Fatalf("alpha asset IDs = %#v, want alpha and global", got)
+	}
+}
+
+func TestMediaAssetRepositoryListsReferences(t *testing.T) {
+	repo, err := NewMediaAssetRepository(filepath.Join(t.TempDir(), "workspace.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
+	if err != nil {
+		t.Fatalf("NewMediaAssetRepository() error = %v", err)
+	}
+	seedRepositoryProject(t, repo.db, "alpha")
+	seedRepositoryProject(t, repo.db, "beta")
+
+	for _, id := range []string{"asset-shared", "asset-other"} {
+		if err := repo.CreateMediaAsset(testAssetModel(id, "", "2026-05-22T00:00:00Z")); err != nil {
+			t.Fatalf("CreateMediaAsset(%q) error = %v", id, err)
+		}
+	}
+
+	now := domain.TimeFromString("2026-05-22T00:01:00Z")
+	selectedRows := []domain.ProjectSelectedAssetModel{
+		{
+			ID:            "selected-alpha",
+			ProjectID:     "alpha",
+			ResourceType:  "character",
+			AssetID:       "asset-shared",
+			ResourceTitle: domain.StringPtr("主角"),
+			CreatedAt:     now,
+			UpdatedAt:     now,
+		},
+		{
+			ID:           "selected-deleted",
+			ProjectID:    "beta",
+			ResourceType: "character",
+			AssetID:      "asset-shared",
+			DeletedAt:    gorm.DeletedAt{Time: now, Valid: true},
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		},
+		{
+			ID:           "selected-other",
+			ProjectID:    "beta",
+			ResourceType: "character",
+			AssetID:      "asset-other",
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		},
+	}
+	for _, row := range selectedRows {
+		if err := repo.db.Omit("Asset", "Project", "SourceTask").Create(&row).Error; err != nil {
+			t.Fatalf("creating selected asset fixture %q: %v", row.ID, err)
+		}
+	}
+
+	selected, err := repo.ListProjectSelectedAssetReferences("asset-shared")
+	if err != nil {
+		t.Fatalf("ListProjectSelectedAssetReferences() error = %v", err)
+	}
+	if len(selected) != 1 || selected[0].ID != "selected-alpha" {
+		t.Fatalf("selected references = %#v, want only the live alpha row", selected)
+	}
+
+	empty, err := repo.ListProjectSelectedAssetReferences("asset-unreferenced")
+	if err != nil {
+		t.Fatalf("ListProjectSelectedAssetReferences(unreferenced) error = %v", err)
+	}
+	if len(empty) != 0 {
+		t.Fatalf("unreferenced selected count = %d, want 0", len(empty))
 	}
 }
 

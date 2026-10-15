@@ -65,6 +65,17 @@ func (repo *MediaAssetRepository) GetMediaAsset(id string) (domain.AssetModel, e
 	return model, nil
 }
 
+// ListProjectSelectedAssetReferences returns project selection rows that reference one media asset.
+func (repo *MediaAssetRepository) ListProjectSelectedAssetReferences(assetID string) ([]domain.ProjectSelectedAssetModel, error) {
+	models := []domain.ProjectSelectedAssetModel{}
+	if err := repo.db.Where("asset_id = ?", strings.TrimSpace(assetID)).
+		Order("updated_at DESC").
+		Find(&models).Error; err != nil {
+		return nil, fmt.Errorf("listing project selected asset references: %w", err)
+	}
+	return models, nil
+}
+
 // FindMediaAssetBySourceURL returns the latest media asset for a source URL.
 func (repo *MediaAssetRepository) FindMediaAssetBySourceURL(sourceURL string) (domain.AssetModel, error) {
 	var model domain.AssetModel
