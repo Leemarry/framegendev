@@ -18,12 +18,6 @@ import {
 } from "lucide-react";
 
 export const pendingSettingsPages = {
-	account: {
-		title: "账户",
-		status: "待接入",
-		task: "TASK-140",
-		description: "账户登录、会员权益与积分服务尚未接入。本地项目和已有生成渠道不受模拟权益限制。",
-	},
 	browser: {
 		title: "浏览器设置",
 		status: "待开发",
