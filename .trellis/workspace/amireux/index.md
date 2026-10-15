@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 37
+- **Total Sessions**: 38
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1159 | Active |
+| `journal-1.md` | ~1181 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 38 | 2026-10-16 | TASK-080 local history import validation integrated | `90b07c9` | `codex/nle-export` |
 | 37 | 2026-10-16 | S1 recovery blocker and audio cache integration | `a747a54`, `9d7468b` | `codex/nle-export` |
 | 36 | 2026-10-16 | Asset aggregate accepted and update retry integrated | `6cc7b90`, `03cd506`, `1ec42e9`, `986ad37` | `codex/parity-s1` |
 | 35 | 2026-10-16 | TASK-070 direct storyboard timeline and integrated NLE entry | `194b2e6`, `2f171e4` | `codex/parity-s1` |

@@ -1157,3 +1157,25 @@ Integrated audio history hydration guard; main95files641tests and frontend/Elect
 ### Status
 
 [OK] **Completed**
+
+
+## Session 38: TASK-080 local history import validation integrated
+<!-- trellis-session: v=2 fp=1bff549fe12964c1 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-080 local history import validation integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Integrated full-selection validation, request deduplication and explicit session compatibility. Full Windows check/race and separate build passed after preserving failed attempts and restoring CRLF bytes. Main real HTTP and backend restart retained complete history and old documents. Archived only backend child; TASK-080 overall remains pending. User allowed original Edge restart; TASK-181 acceptance resumed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `90b07c9` | fix(generation): validate all media before importing history |
+
+### Status
+
+[OK] **Completed**

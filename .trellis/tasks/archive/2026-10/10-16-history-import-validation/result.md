@@ -21,4 +21,6 @@
 - 首轮Windows完整门为修复真实复验暴露的重复ID/无scope问题主动中止，退出201，不算通过。
 - 次轮tidy/fmt/vet/lint/build及generation race通过，但prompt快照因临时Go LF与检出golden CRLF不同失败，整门退出201，不算通过。
 - 补跑首次日志路径因脚本切换cwd解析失败，未进入门；改用绝对日志路径。最终同时临时规范化tracked Go/golden，完整Windows check通过：tidy/fmt/vet/lint、三个可执行构建、Swagger重新生成、全部`go test -race ./...`（generation45.562s、prompt1.368s）。finally精确恢复原字节，工作树只剩本项文件、无go.mod/go.sum变更。独立Windows build门`go build ./...`也退出0。日志在`.cache/parity/task-080-import/windows-check-final.log`。
-- 主目录尚未集成本项。完成Windows门、串行集成及主HTTP/持久化验证后再归档本后端子项；181旧窗口恢复及080音频UI子项保持in_progress。
+- 源提交`339e511`已串行集成为主`90b07c9`；任务登记冲突只保留主当前可用子项，未夹带181源码。两个工作树`services/server`源码完全一致，完整门验证适用同一后端树。主额外导入回归race通过，tagged嵌入服务构建通过，前端源码未变，沿用已验收702文件前端门。
+- 主31456运行`.cache/parity/s1-integration/mediago-server-import-history.exe`，同一独立配置/workspace；真实HTTP失败零写、已有会话不变、有效重复ID仅一次、来源/零外部用量、project/kind/scope查询与文件200全部通过，任务`media-library-e942bb7a7f13a29e`。再次停止并重启精确核对过的自有进程后，完整历史及原文档v1/v3/正文/非空批注全部不变。缓存`history-import-accepted.json`、`history-import-documents-before.json`可复核。
+- 本后端子项可归档；整体080和音频UI子项不归档。用户已明确允许恢复181原隔离Edge；9240同profile重开成功，新窗口ID`e0aa8023-233d-4afb-8577-45c155af8af5`，旧两份来源存储逐字节不变、三份草稿可发现；该项其余真实检查仍在继续，未集成。

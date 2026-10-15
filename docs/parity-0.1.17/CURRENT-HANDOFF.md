@@ -24,9 +24,10 @@
 4. TASK-030/034本地素材聚合6cc7b90→主03cd506已验收：真实导入/非空目录重挂/元数据/文档引用/失败取消/后端重启，素材ID/hash及正文v2/历史2不变；034完成，030保留官方详情/筛选结构与真实生成采用差距，见对应归档result。主68文件448测试、前端门/Electron/嵌入Go构建通过；测试Router/旧按钮契约修正986ad37。主31456现运行mediago-server-assets.exe；实际导入/列表失败无旧操作/重试/重载及既有文档完整记录不变通过。会话2更新失败重试44e3fce/617a80d已集成1ec42e9/bef6713，实际390px设置导航→更新显示真实浏览器fallback。
 5. 会话2原生新窗口8ccef8b未验收、未集成：完整Electron重启后旧窗口草稿仍在localStorage，但新sessionStorage窗口ID无法发现。会话1补项源码b7c3d79仅在codex/parity-s1，未集成、未归档：只读多稿发现/预览/下载/显式暂停载入，4文件53测试、lint/704文件format/build通过。真实产生两窗口三草稿并保存来源字节后关闭自有Edge9240；同profile重开被自动审批拒绝（blocked by policy），完整重启/下载载入/390px实测未跑。详见该分支 `.trellis/tasks/10-16-prior-window-recovery/result.md`；恢复条件为允许重开原隔离profile并完成剩余真实检查，不以单测接受。31450后端已恢复原task-070配置，9240已关闭；主31456继续已验收assets版本。继续无依赖TASK-080本地历史检查。项目导入/导出/新窗口归TASK-060/062；storage/transfer契约请求仍保留，安全导入服务尚未实现，不以CreateProject冒充。
 
-GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_save 变更，调用来源尚未确认。原 baseline 失败不能用新隔离数据通过替代，不重置原文件。
-
 6. TASK-080音频缓存遗漏已修复9c949f0→主a747a54：原version1持久化恢复过滤掉audio，现复用校验支持四类；先重现失败，再3文件26测试通过，主95文件641组合测试、lint/702文件format/build/Electron/Windows build通过。主31456已更新mediago-server-history.exe，实际HTTP200返回新构建，旧文档完整记录不变；浏览器重开/真实生成仍未跑，本项保持in_progress，详见 `.trellis/tasks/10-16-audio-history-recovery/result.md`。完整backend check/race沿此前素材聚合已通过记录，本次仅新跑build（后端源码未变）。040/041仍无可用剪映客户端可做原生重开，150整体不完成。下一无外部依赖项为080本地导入历史的失败一致性与查询；不发送生成请求。
+7. TASK-080本地导入校验339e511→主90b07c9已验收：校验全部素材后再写会话/历史，请求内去重、缺失/类型/跨项目及scope/kind拒绝零写；Windows完整check/race和独立build、主额外race/嵌入构建、实际HTTP/重启后完整历史和旧文档记录不变通过。失败/中止及CRLF快照问题保留在 `.trellis/tasks/archive/2026-10/10-16-history-import-validation/result.md`。主31456现运行mediago-server-import-history.exe。用户已允许恢复181同一隔离Edge；9240已恢复，新窗口ID与两份原存储逐字节保留/三份草稿发现通过，下载/载入/失败/390px仍在实测，b7c3d79尚未集成。会话2分支仍617a80d，无新增已验证提交。
+
+GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_save 变更，调用来源尚未确认。原 baseline 失败不能用新隔离数据通过替代，不重置原文件。
 
 ## 已核实环境
 
