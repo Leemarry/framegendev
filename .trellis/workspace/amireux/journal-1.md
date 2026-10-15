@@ -1335,3 +1335,34 @@ Configured media roots now propagate to history/adoption; source and main restar
 ### Next Steps
 
 - TASK-070 remaining history/source/read views; native dialog and real generation remain unverified.
+
+
+## Session 44: TASK-070 historical full views accepted in main
+<!-- trellis-session: v=2 fp=3a6ca6340f923e4c -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 historical full views accepted in main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Read-only complete historical Markdown and exact source accepted; official highlighted diff and comparison controls remain gaps.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d730d2a` | feat(documents): inspect historical snapshots as reading or exact source |
+| `3b88dab` | feat(documents): inspect historical snapshots as reading or exact source |
+
+### Testing
+
+- [OK] Source 47 files 266 tests; main 50 files 309 tests, frontend gates/Electron/embedded build; actual source/main restart and full records unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-070 version comparison/swap; track cross-project cold document-link canonicalization separately without editing session2-owned navigation.

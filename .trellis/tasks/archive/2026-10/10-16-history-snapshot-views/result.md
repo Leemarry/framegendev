@@ -13,7 +13,7 @@ Own31450/31451/9240; project-9d7c9e501f0f7284, doc-s1-history-views. Explicit lo
 - Actual history reading rendered heading/list/table and the real480x640 image, contenteditable=false. Current document retains a different v2 body.
 - Browser source text matched the complete historical snapshot exactly, including trailing spaces/newline. Selecting current version showed its distinct exact source and read-only content; restore disabled for current. Reselecting the old version restored only the preview.
 - Offline real Refresh hid cached preview, showed both history/diff errors and disabled restore; actual network restore/Refresh recovered. Cancel, page reload and real backend stop/restart left full project documents, version2, both Git entries and exact old snapshot unchanged.
-- Existing unified diff and next-change controls actually clicked after restart; reading/source switch does not alter restore safety. Desktop reading and390x844 source screenshots inspected; dialog390x844 equals its scroll dimensions. Short390x480 reading screenshot captured for inspection.
+- Existing unified diff and next-change controls actually clicked after restart; reading/source switch does not alter restore safety. Desktop reading and390x844 source screenshots inspected; dialog390x844 equals its scroll dimensions. Short390x480 reading screenshot inspected: separate list/body scroll, header/footer visible and no dialog overflow.
 - Regressions failed before implementation (missing reading/source controls), then3files12tests passed. Full affected document/sync/performance suite47files266tests passed; final2files10tests passed after padding adjustment. Frontend lint, full707-fileformat and build passed. No backend source changed: full Windows check/race from the immediately preceding configured-path integration remains valid for unchanged backend; do not claim it rerun here.
 
 ## Retained Failures
@@ -25,4 +25,8 @@ Own31450/31451/9240; project-9d7c9e501f0f7284, doc-s1-history-views. Explicit lo
 
 ## Main Integration
 
-Pending source commit and main acceptance. TASK-070 remains incomplete for official highlighted reading, version comparison/swap and resource/reference reopening. TASK-150 and native Jianying reopening remain unaccepted.
+Source d730d2a integrated as main3b88dab. Main50files309tests (documents/performance plus AppLayout/Settings/ProjectSettings), lint/full707-fileformat/build, Electron compile and embedded Go build passed. Main31456 now runs .cache/parity/s1-integration/mediago-server-history-views.exe with the existing isolated config/workspace.
+
+Actual main doc-s1-main-history-views: locally created formatted v1 and distinct current v2; full-document/history/snapshot baseline captured after setup. Actual reading rendered real480x640 image and rich content read-only, source text matched full historical snapshot exactly. Cancel, page reload and real backend stop/restart preserved all full records. Reopened history afterward; desktop dark reading screenshot inspected. Source light and main dark use existing theme state. Main direct cold navigation also canonicalized away documentId before loading; real sidebar click opens it and subsequent same-document reload preserves it. This separate navigation gap remains recorded, not fixed here.
+
+TASK-070 remains incomplete for official highlighted reading, version comparison/swap and resource/reference reopening. TASK-150 and native Jianying reopening remain unaccepted. Session2 remains617a80d with no new accepted commits.

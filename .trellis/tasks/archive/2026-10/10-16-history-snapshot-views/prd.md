@@ -12,10 +12,10 @@ Read selected historical Markdown as rendered content or exact source without mo
 
 ## Acceptance Criteria
 
-- [ ] Real official reading/source controls clicked and captured; bounded differences recorded.
-- [ ] Render headings/lists/tables/images using existing document schema, with contenteditable=false; exact source preserves whitespace and literal markup. Selecting another snapshot cannot show stale content from the previous document/version.
-- [ ] Existing source diff and restore safety remain covered; loading/failure hides preview and disables mutation. Actual source/main reading/source/diff switches, cancellation, reload and backend restart preserve full body/version/history.
-- [ ] Related frontend regressions, lint/full format/build and main embedded build pass. Record unrun or failed checks and remaining070 gaps.
+- [x] Real official reading/source controls clicked and captured; bounded differences recorded.
+- [x] Render headings/lists/tables/images using existing document schema, with contenteditable=false; exact source preserves whitespace and literal markup. Selecting another snapshot cannot show stale content from the previous document/version.
+- [x] Existing source diff and restore safety remain covered; loading/failure hides preview and disables mutation. Actual source/main reading/source/diff switches, cancellation, reload and backend restart preserve full body/version/history.
+- [x] Related frontend regressions, lint/full format/build and main embedded build pass. Record unrun or failed checks and remaining070 gaps.
 
 ## Notes
 
