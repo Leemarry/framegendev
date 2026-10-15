@@ -37,6 +37,7 @@ import {
 import { type SidecarConnection, startServerSidecar, stopServerSidecar } from "./sidecar.js";
 import { registerDesktopUpdater } from "./updater.js";
 import { applicationMenuTemplate } from "./application-menu.js";
+import { projectWindowSearch } from "./project-window.js";
 
 protocol.registerSchemesAsPrivileged([
 	{
@@ -50,6 +51,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let mainWindow: BrowserWindow | null = null;
+const workspaceWindows = new Set<BrowserWindow>();
 let promptPackEditorWindow: BrowserWindow | null = null;
 let promptPackEditorCloseAllowed = false;
 let pendingPromptPackEditorClose: { action: "close" | "quit"; requestId: string } | null = null;
@@ -157,8 +159,7 @@ const authenticateSidecarRequests = (sidecar: SidecarConnection) => {
 	);
 };
 
-const showMainWindow = () => {
-	const window = mainWindow;
+const showWorkspaceWindow = (window: BrowserWindow | null) => {
 	if (!window || window.isDestroyed()) return;
 
 	if (window.isMinimized()) {
@@ -178,6 +179,12 @@ const showMainWindow = () => {
 			}
 		}, 500).unref();
 	}
+};
+
+const showMainWindow = () => showWorkspaceWindow(mainWindow);
+const focusedWorkspaceWindow = () => {
+	const focused = BrowserWindow.getFocusedWindow();
+	return focused && workspaceWindows.has(focused) ? focused : mainWindow;
 };
 
 const secureRendererWindow = (window: BrowserWindow) => {
@@ -262,15 +269,15 @@ const openPromptPackEditorWindow = async (options: PromptPackEditorOpenOptions =
 	await loadRendererRoute(promptPackEditorWindow, "/prompt-pack-editor", search);
 };
 
-const createWindow = async () => {
-	mainWindow = new BrowserWindow({
+const createWindow = async (route = "/", search = "") => {
+	const window = new BrowserWindow({
 		title: "MediaGo Drama",
 		width: 1280,
 		height: 905,
 		minWidth: 960,
 		minHeight: 680,
 		center: true,
-		show: true,
+		show: false,
 		titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
 		trafficLightPosition: { x: 16, y: 25 },
 		webPreferences: {
@@ -282,20 +289,28 @@ const createWindow = async () => {
 		},
 	});
 
-	secureRendererWindow(mainWindow);
-
-	mainWindow.once("ready-to-show", showMainWindow);
-	mainWindow.webContents.once("did-finish-load", showMainWindow);
-	setTimeout(showMainWindow, 2_000).unref();
-	showMainWindow();
-	mainWindow.on("close", (event) => {
-		if (process.platform !== "darwin" || isQuitting) return;
+	workspaceWindows.add(window);
+	if (!mainWindow || mainWindow.isDestroyed()) mainWindow = window;
+	secureRendererWindow(window);
+	window.on("close", (event) => {
+		if (process.platform !== "darwin" || isQuitting || window !== mainWindow) return;
 		event.preventDefault();
-		mainWindow?.hide();
+		window.hide();
 	});
-
-	if (app.isPackaged) await mainWindow.webContents.session.clearCache();
-	await loadRendererRoute(mainWindow, "/");
+	window.on("closed", () => {
+		workspaceWindows.delete(window);
+		if (mainWindow === window) mainWindow = workspaceWindows.values().next().value ?? null;
+	});
+	try {
+		if (app.isPackaged && workspaceWindows.size === 1 && route === "/")
+			await window.webContents.session.clearCache();
+		await loadRendererRoute(window, route, search);
+		showWorkspaceWindow(window);
+		return window;
+	} catch (error) {
+		if (!window.isDestroyed()) window.destroy();
+		throw error;
+	}
 };
 
 app.on("before-quit", (event) => {
@@ -319,6 +334,11 @@ app.on("activate", () => {
 ipcMain.handle(desktopIpcChannel.openExternal, async (event, url: string) => {
 	authorizeDesktopIpc(event);
 	await openExternalURL(url);
+});
+
+ipcMain.handle(desktopIpcChannel.openProjectWindow, async (event, value: unknown) => {
+	authorizeDesktopIpc(event);
+	await createWindow("/projects", projectWindowSearch(value));
 });
 
 ipcMain.handle(desktopIpcChannel.openPath, async (event, path: string) => {
@@ -374,8 +394,9 @@ ipcMain.handle(desktopIpcChannel.pickDirectory, async (event, options?: { title?
 		title: options?.title,
 		properties: ["openDirectory"],
 	};
-	const result = mainWindow
-		? await dialog.showOpenDialog(mainWindow, dialogOptions)
+	const owner = BrowserWindow.fromWebContents(event.sender);
+	const result = owner
+		? await dialog.showOpenDialog(owner, dialogOptions)
 		: await dialog.showOpenDialog(dialogOptions);
 	return result.canceled ? null : (result.filePaths[0] ?? null);
 });
@@ -389,8 +410,9 @@ ipcMain.handle(
 			filters: options?.filters,
 			properties: ["openFile"],
 		};
-		const result = mainWindow
-			? await dialog.showOpenDialog(mainWindow, dialogOptions)
+		const owner = BrowserWindow.fromWebContents(event.sender);
+		const result = owner
+			? await dialog.showOpenDialog(owner, dialogOptions)
 			: await dialog.showOpenDialog(dialogOptions);
 		return result.canceled ? null : (result.filePaths[0] ?? null);
 	},
@@ -425,7 +447,8 @@ ipcMain.handle(desktopIpcChannel.showNotification, (event, options: DesktopNotif
 		notification: options,
 		onClick: id
 			? () => {
-					showMainWindow();
+					if (event.sender.isDestroyed()) return;
+					showWorkspaceWindow(BrowserWindow.fromWebContents(event.sender));
 					event.sender.send(desktopIpcChannel.notificationClicked, id);
 				}
 			: undefined,
@@ -508,7 +531,10 @@ const pathIsAvailable = async (path: string) => {
 
 const startApp = async () => {
 	registerRendererProtocol();
-	registerDesktopUpdater({ authorizeIpcSender: authorizeDesktopIpc, getWindow: () => mainWindow });
+	registerDesktopUpdater({
+		authorizeIpcSender: authorizeDesktopIpc,
+		getWindow: () => [...workspaceWindows],
+	});
 	const sidecar = startServerSidecar();
 	if (sidecar) authenticateSidecarRequests(sidecar);
 	await createWindow();
@@ -517,12 +543,14 @@ const startApp = async () => {
 			applicationMenuTemplate({
 				development: !app.isPackaged,
 				command: (command) => {
-					showMainWindow();
-					mainWindow?.webContents.send(desktopIpcChannel.menuCommand, command);
+					const window = focusedWorkspaceWindow();
+					showWorkspaceWindow(window);
+					window?.webContents.send(desktopIpcChannel.menuCommand, command);
 				},
 				about: () => {
-					if (!mainWindow || mainWindow.isDestroyed()) return;
-					void dialog.showMessageBox(mainWindow, {
+					const window = focusedWorkspaceWindow();
+					if (!window || window.isDestroyed()) return;
+					void dialog.showMessageBox(window, {
 						type: "info",
 						title: "关于 MediaGo Drama",
 						message: "MediaGo Drama",

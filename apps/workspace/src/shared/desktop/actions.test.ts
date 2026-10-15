@@ -2,10 +2,32 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	getDesktopCacheStatistics,
 	openNativePath,
+	openDesktopProjectWindow,
 	getDesktopUpdateCapability,
 	showDesktopNotification,
 	subscribeDesktopMenuCommands,
 } from "@/shared/desktop/actions";
+
+describe("native project windows", () => {
+	afterEach(() => {
+		delete window.mediagoDesktop;
+	});
+	it("rejects unsupported hosts and propagates window failures", async () => {
+		await expect(openDesktopProjectWindow("p")).rejects.toThrow("桌面客户端");
+		Object.defineProperty(window, "mediagoDesktop", {
+			configurable: true,
+			value: { isElectron: true },
+		});
+		await expect(openDesktopProjectWindow("p")).rejects.toThrow("未检测到项目新窗口接口");
+		const openProjectWindow = vi.fn().mockRejectedValue(new Error("native window failed"));
+		Object.defineProperty(window, "mediagoDesktop", {
+			configurable: true,
+			value: { isElectron: true, openProjectWindow },
+		});
+		await expect(openDesktopProjectWindow("p")).rejects.toThrow("native window failed");
+		expect(openProjectWindow).toHaveBeenCalledWith("p");
+	});
+});
 
 describe("native directory opening", () => {
 	afterEach(() => {

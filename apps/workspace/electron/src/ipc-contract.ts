@@ -16,6 +16,7 @@ export const desktopIpcChannel = {
 	setNativeThemeSource: "desktop:set-native-theme-source",
 	getAppVersion: "desktop:get-app-version",
 	getCacheStatistics: "desktop:get-cache-statistics",
+	openProjectWindow: "desktop:open-project-window",
 	getUpdateCapability: "desktop:get-update-capability",
 	checkUpdate: "desktop:check-update",
 	downloadUpdate: "desktop:download-update",

@@ -10,6 +10,18 @@ import { ConfirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import { ProjectRenameDialog } from "@/domains/projects/components/ProjectRenameDialog";
 import { AgentProjectCreateDialog } from "@/domains/workspace/components/AgentProjectCreateDialog";
 import type { ApiResponse } from "@/types/api";
+import { openDesktopProjectWindow } from "@/shared/desktop/actions";
+import { isDesktopRuntime } from "@/shared/desktop/runtime";
+
+const windowMocks = vi.hoisted(() => ({ error: vi.fn() }));
+vi.mock("@/shared/desktop/actions", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/shared/desktop/actions")>()),
+	openDesktopProjectWindow: vi.fn(),
+}));
+vi.mock("@/shared/desktop/runtime", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/shared/desktop/runtime")>()),
+	isDesktopRuntime: vi.fn(),
+}));
 
 vi.mock("@/shared/lib/http", () => ({
 	default: {
@@ -22,7 +34,7 @@ vi.mock("@/shared/lib/http", () => ({
 
 vi.mock("@/hooks/useToast", () => ({
 	useToast: () => ({
-		error: vi.fn(),
+		error: windowMocks.error,
 		info: vi.fn(),
 		success: vi.fn(),
 	}),
@@ -62,6 +74,8 @@ describe("Projects", () => {
 	beforeEach(() => {
 		localStorage.clear();
 		vi.clearAllMocks();
+		vi.mocked(isDesktopRuntime).mockReturnValue(false);
+		vi.mocked(openDesktopProjectWindow).mockReset().mockResolvedValue(undefined);
 		useProjectStore.getState().setActiveProjectId(null);
 		isProjectDeleted = false;
 		activeProjectStatus = "active";
@@ -259,6 +273,53 @@ describe("Projects", () => {
 		await waitFor(() =>
 			expect(httpClient.post).toHaveBeenCalledWith("/projects/project-111/archive"),
 		);
+	});
+
+	it("disables project new windows in browsers", async () => {
+		renderManagement();
+		fireEvent.pointerDown(await screen.findByRole("button", { name: "项目操作：短剧项目" }), {
+			button: 0,
+			ctrlKey: false,
+			pointerType: "mouse",
+		});
+		expect(
+			await screen.findByRole("menuitem", { name: "在新窗口中打开（仅桌面端）" }),
+		).toHaveAttribute("data-disabled");
+		expect(openDesktopProjectWindow).not.toHaveBeenCalled();
+	});
+	it("opens a native project window without changing source selection or route and retries errors", async () => {
+		vi.mocked(isDesktopRuntime).mockReturnValue(true);
+		vi.mocked(openDesktopProjectWindow).mockRejectedValueOnce(new Error("窗口暂不可用"));
+		renderManagement();
+		const trigger = await screen.findByRole("button", { name: "项目操作：短剧项目" });
+		fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+		fireEvent.click(await screen.findByRole("menuitem", { name: "在新窗口中打开" }));
+		await waitFor(() =>
+			expect(windowMocks.error).toHaveBeenCalledWith("打开项目新窗口失败", {
+				description: "窗口暂不可用",
+			}),
+		);
+		await waitFor(() => expect(trigger).toBeEnabled());
+		fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+		fireEvent.click(await screen.findByRole("menuitem", { name: "在新窗口中打开" }));
+		await waitFor(() => expect(openDesktopProjectWindow).toHaveBeenCalledTimes(2));
+		expect(openDesktopProjectWindow).toHaveBeenLastCalledWith("project-111");
+		expect(screen.getByTestId("location")).toHaveTextContent("/");
+		expect(useProjectStore.getState().activeProjectId).toBeNull();
+	});
+	it("rechecks active project existence before opening a window", async () => {
+		vi.mocked(isDesktopRuntime).mockReturnValue(true);
+		renderManagement();
+		const trigger = await screen.findByRole("button", { name: "项目操作：短剧项目" });
+		activeProjectStatus = "archived";
+		fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+		fireEvent.click(await screen.findByRole("menuitem", { name: "在新窗口中打开" }));
+		await waitFor(() =>
+			expect(windowMocks.error).toHaveBeenCalledWith("打开项目新窗口失败", {
+				description: expect.stringContaining("项目已归档"),
+			}),
+		);
+		expect(openDesktopProjectWindow).not.toHaveBeenCalled();
 	});
 
 	it("refreshes the trash list after permanently deleting a project", async () => {

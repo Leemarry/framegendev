@@ -18,6 +18,8 @@ import {
 } from "./ipc-contract.js";
 
 const api = {
+	openProjectWindow: (projectId: string): Promise<void> =>
+		ipcRenderer.invoke(desktopIpcChannel.openProjectWindow, projectId),
 	getCacheStatistics: async () => {
 		const value: unknown = await ipcRenderer.invoke(desktopIpcChannel.getCacheStatistics);
 		if (!isDesktopCacheStatistics(value)) throw new Error("桌面缓存统计返回了无效数据。");

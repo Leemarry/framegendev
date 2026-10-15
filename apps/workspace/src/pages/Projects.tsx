@@ -8,6 +8,7 @@ import {
 	Upload,
 	RotateCcw,
 	Trash2,
+	AppWindow,
 	type LucideIcon,
 } from "lucide-react";
 import type React from "react";
@@ -48,9 +49,11 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { analytics, AnalyticsEvent } from "@/shared/analytics";
 import { cn } from "@/shared/lib/utils";
+import { openDesktopProjectWindow } from "@/shared/desktop/actions";
+import { isDesktopRuntime } from "@/shared/desktop/runtime";
 
 type ProjectManagementTab = Exclude<ProjectStatusFilter, "all">;
-type ProjectAction = "archive" | "trash" | "restore" | "permanent" | "rename";
+type ProjectAction = "archive" | "trash" | "restore" | "permanent" | "rename" | "window";
 
 const projectTabs: Array<{ label: string; status: ProjectManagementTab }> = [
 	{ label: "项目", status: "active" },
@@ -131,6 +134,23 @@ export const Projects: React.FC = () => {
 			mutate(projectsKeyForStatus("archived")),
 			mutate(projectsKeyForStatus("trashed")),
 		]);
+	};
+
+	const openProjectWindow = async (project: WorkspaceProject) => {
+		if (action) return;
+		setAction({ kind: "window", projectId: project.id });
+		try {
+			const current = await getProjects();
+			if (!current.projects.some((item) => item.id === project.id))
+				throw new Error("项目已归档、移到垃圾箱或不可用，请刷新项目列表。");
+			await openDesktopProjectWindow(project.id);
+		} catch (error) {
+			toast.error("打开项目新窗口失败", {
+				description: projectManagementErrorMessage(error, "请重试。"),
+			});
+		} finally {
+			setAction(null);
+		}
 	};
 
 	const createNewProject = async () => {
@@ -358,6 +378,7 @@ export const Projects: React.FC = () => {
 								onArchive={() => void archiveCurrentProject(project)}
 								onRequestDelete={() => confirmDeleteProject(project)}
 								onOpen={openProject}
+								onOpenWindow={() => void openProjectWindow(project)}
 								onRename={() => renameCurrentProject(project)}
 								onRestore={() => void restoreCurrentProject(project)}
 								onRequestPermanentDelete={() => confirmPermanentlyDeleteProject(project)}
@@ -375,6 +396,7 @@ const ProjectManagementRow: React.FC<{
 	activeTab: ProjectManagementTab;
 	onArchive: () => void;
 	onOpen: (project: WorkspaceProject) => void;
+	onOpenWindow: () => void;
 	onRename: () => void;
 	onRequestDelete: () => void;
 	onRequestPermanentDelete: () => void;
@@ -385,6 +407,7 @@ const ProjectManagementRow: React.FC<{
 	activeTab,
 	onArchive,
 	onOpen,
+	onOpenWindow,
 	onRename,
 	onRequestDelete,
 	onRequestPermanentDelete,
@@ -400,6 +423,12 @@ const ProjectManagementRow: React.FC<{
 	const menuActions = canOpen
 		? [
 				{ label: "打开", icon: FolderOpen, run: () => onOpen(project) },
+				{
+					label: isDesktopRuntime() ? "在新窗口中打开" : "在新窗口中打开（仅桌面端）",
+					icon: AppWindow,
+					run: onOpenWindow,
+					disabled: !isDesktopRuntime(),
+				},
 				{ label: "重命名", icon: Pencil, run: onRename },
 				{ label: "归档", icon: Archive, run: onArchive },
 				{ label: "移到垃圾箱", icon: Trash2, run: onRequestDelete, destructive: true },
@@ -463,10 +492,10 @@ const ProjectManagementRow: React.FC<{
 							</button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							{menuActions.map(({ label, icon: Icon, run, destructive }) => (
+							{menuActions.map(({ label, icon: Icon, run, destructive, disabled }) => (
 								<DropdownMenuItem
 									key={label}
-									disabled={hasAction}
+									disabled={hasAction || disabled}
 									onSelect={run}
 									className={destructive ? "text-destructive" : undefined}
 								>
@@ -479,10 +508,10 @@ const ProjectManagementRow: React.FC<{
 				</article>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
-				{menuActions.map(({ label, icon: Icon, run, destructive }) => (
+				{menuActions.map(({ label, icon: Icon, run, destructive, disabled }) => (
 					<ContextMenuItem
 						key={label}
-						disabled={hasAction}
+						disabled={hasAction || disabled}
 						onSelect={run}
 						className={destructive ? "text-destructive" : undefined}
 					>

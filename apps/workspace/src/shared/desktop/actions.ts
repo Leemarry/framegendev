@@ -8,6 +8,13 @@ import type {
 } from "@/shared/desktop/types";
 import { desktopRuntime } from "@/shared/desktop/runtime";
 
+export const openDesktopProjectWindow = async (projectId: string) => {
+	if (desktopRuntime() !== "electron") throw new Error("请在桌面客户端中使用项目新窗口。");
+	if (!window.mediagoDesktop?.openProjectWindow)
+		throw new Error("未检测到项目新窗口接口，请重启或更新桌面客户端。");
+	await window.mediagoDesktop.openProjectWindow(projectId);
+};
+
 export const getDesktopCacheStatistics = async () => {
 	if (desktopRuntime() !== "electron") throw new Error("当前运行环境不支持桌面缓存统计。");
 	if (!window.mediagoDesktop?.getCacheStatistics) {

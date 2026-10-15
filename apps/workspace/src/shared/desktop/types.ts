@@ -36,6 +36,7 @@ import type {
 } from "../../../electron/src/ipc-contract";
 
 export interface MediagoDesktopAPI {
+	openProjectWindow(projectId: string): Promise<void>;
 	getCacheStatistics(): Promise<DesktopCacheStatistics>;
 	onMenuCommand(callback: (command: DesktopMenuCommand) => void): () => void;
 	platform: NodeJS.Platform;

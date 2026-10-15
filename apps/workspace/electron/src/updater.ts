@@ -68,13 +68,17 @@ const buildStatus = (
 	...partial,
 });
 
-const emit = (getWindow: () => BrowserWindow | null, status: DesktopUpdateStatus): void => {
-	const window = getWindow();
-	if (!window || window.isDestroyed()) return;
-	window.webContents.send(desktopIpcChannel.updateStatus, status);
+type UpdateWindows = () => BrowserWindow | BrowserWindow[] | null;
+
+const emit = (getWindow: UpdateWindows, status: DesktopUpdateStatus): void => {
+	const target = getWindow();
+	for (const window of Array.isArray(target) ? target : target ? [target] : []) {
+		if (!window.isDestroyed() && !window.webContents.isDestroyed())
+			window.webContents.send(desktopIpcChannel.updateStatus, status);
+	}
 };
 
-const attachListeners = (getWindow: () => BrowserWindow | null) => {
+const attachListeners = (getWindow: UpdateWindows) => {
 	if (listenersAttached) return;
 	listenersAttached = true;
 	autoUpdater.autoDownload = false;
@@ -121,7 +125,7 @@ const unsupportedAck = (message: string): DesktopUpdateAck => ({ ok: false, mess
 
 export interface DesktopUpdaterDeps {
 	authorizeIpcSender: (event: IpcMainInvokeEvent) => void;
-	getWindow: () => BrowserWindow | null;
+	getWindow: UpdateWindows;
 }
 
 export const registerDesktopUpdater = ({

@@ -1,0 +1,86 @@
+[
+  {
+    "window": 1117926,
+    "bounds": {
+      "left": 2449,
+      "top": 1329,
+      "right": 2512,
+      "bottom": 1392
+    },
+    "owner": 0,
+    "title": "",
+    "pid": 54224
+  },
+  {
+    "window": 790706,
+    "bounds": {
+      "left": 2449,
+      "top": 1329,
+      "right": 2512,
+      "bottom": 1392
+    },
+    "owner": 0,
+    "title": "",
+    "pid": 54224
+  },
+  {
+    "window": 3870748,
+    "bounds": {
+      "left": 489,
+      "top": 161,
+      "right": 1769,
+      "bottom": 881
+    },
+    "owner": 6360936,
+    "title": "S2 cancel-only validation",
+    "pid": 54224
+  },
+  {
+    "window": 6360936,
+    "bounds": {
+      "left": 480,
+      "top": 123,
+      "right": 2080,
+      "bottom": 1259
+    },
+    "owner": 0,
+    "title": "S2 Child Picker QA",
+    "pid": 54224
+  },
+  {
+    "window": 1249056,
+    "bounds": {
+      "left": 480,
+      "top": 123,
+      "right": 2080,
+      "bottom": 1259
+    },
+    "owner": 0,
+    "title": "MediaGo Drama",
+    "pid": 54224
+  },
+  {
+    "window": 594094,
+    "bounds": {
+      "left": -9,
+      "top": -9,
+      "right": 2569,
+      "bottom": 1389
+    },
+    "owner": 0,
+    "title": "project-4b5308dd0a846694 - 文件资源管理器",
+    "pid": 52296
+  },
+  {
+    "window": 6883856,
+    "bounds": {
+      "left": -9,
+      "top": -9,
+      "right": 2569,
+      "bottom": 1389
+    },
+    "owner": 0,
+    "title": "workspace - 文件资源管理器",
+    "pid": 52296
+  }
+]
