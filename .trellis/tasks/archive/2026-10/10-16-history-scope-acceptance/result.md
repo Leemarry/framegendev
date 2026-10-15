@@ -56,6 +56,10 @@ scrollWidth390. Cancel/reload and own backend restart retained complete project
 documents/histories/task records and immutable snapshot; both fixture checks pass.
 An attempted narrow-screen reopen missed the hidden navigation control; use the
 existing project navigation drawer before reopening, not a product read failure.
+The next generic first-dialog assertion returned false with512px avatars because
+it selected the still-open project navigation dialog. Actual named history-dialog
+inspection then confirmed LOCAL IMPORT ONLY and six480px images after restart;
+both dialogs were closed. Retain this selector failure, not a history-data failure.
 Main31456 serves mediago-server-history-ready.exe. Session2 still617a80d.
 
 Read-only billing API inspection found3local imports counted as provider calls
