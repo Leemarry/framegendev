@@ -10,8 +10,8 @@ REQ-018/045: restore the storyboard document resource-panel entry and real parse
 
 ## Acceptance
 
-- [ ] Official open/close/empty/nonempty behavior captured or uncovered limits recorded.
-- [ ] Actual source and main resource open/close/reload/restart preserve complete documents/version/history and existing episode records; current group content is derived from the real API.
-- [ ] Failure/retry, identity, dirty state and relevant navigation regression tests; frontend gates and integrated embedded build pass.
+- [x] Official open/close/empty/nonempty behavior captured or uncovered limits recorded.
+- [x] Actual source and main resource open/close/reload/restart preserve complete documents/version/history and existing episode records; current group content is derived from the real API.
+- [x] Failure/retry, identity, dirty state and relevant navigation regression tests; frontend gates and integrated embedded build pass.
 
 TASK-070 overall and reference authoring remain separate; this item only reconnects the existing read-only group summary safely.

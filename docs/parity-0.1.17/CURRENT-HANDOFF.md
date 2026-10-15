@@ -39,6 +39,8 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 11. TASK-070历史选择f2afc4a→49f9a35已验收：官方实际Version1下拉/侧栏/恢复标签同步，箭头为装饰SVG，纠正此前“版本互换”推断。源主实际当前/旧版切换、精确源码、取消/刷新及后端重启完整记录不变；源离线禁用/恢复和390px菜单Escape焦点通过。主50文件310测试、lint/full707format/build/Electron/嵌入构建通过。主31456现运行mediago-server-history-selector.exe，见history-version-selector归档。下一项核实资源栏/引用重开；官方差异高亮阅读仍缺，070/150整体未完成。会话2仍617a80d，无新增已验证提交。
 
+12. TASK-070只读资源摘要43c199a→bd6d803已验收：补接既有面板，真实两H2组/空态/开关/导航隔离、源离线失败重试及dirty保护、源主页面与后端重启完整文档历史/原始与解析时间轴零写。API无H2通用回退误显分镜组的真实失败已修，保留NLE后端行为。主50文件321测试、lint/full707format/build/Electron/嵌入构建及深浅/390px/短屏检查通过。主31456现运行mediago-server-resources.exe。见storyboard-resource-panel归档；官方开关/空态已补采，官方H2编辑后仍空且dirty，不宣称非空官方验收。完整资源操作/引用绑定、差异高亮阅读及070/150整体仍未完成；下一项核实官方差异高亮阅读。会话2仍617a80d。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |

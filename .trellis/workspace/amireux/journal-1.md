@@ -1388,3 +1388,25 @@ Official dropdown verified; decorative arrow correction recorded. Main50files310
 ### Status
 
 [OK] **Completed**
+
+
+## Session 46: TASK-070 safe resource summaries integrated
+<!-- trellis-session: v=2 fp=a60a6acac5c687ef -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 safe resource summaries integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Existing panel reconnected with H2/identity/timestamp/dirty/read-failure guards. Source278 and main321tests, frontend gates, Electron and embedded build passed. Actual open/close/offline/draft recovery/reload/restart preserve full records; official rich resource actions and highlighted diff remain unaccepted.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bd6d803` | feat(documents): reconnect safe storyboard resource summary |
+
+### Status
+
+[OK] **Completed**

@@ -3,7 +3,7 @@
   "name": "storyboard-resource-panel",
   "title": "TASK-070 storyboard resource panel reopen",
   "description": "Reconnect the existing storyboard resource summary to the document UI with safe identity/failure handling and verified close/reopen persistence.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "amireux",
   "assignee": "amireux",
   "createdAt": "2026-10-16",
-  "completedAt": null,
+  "completedAt": "2026-10-16",
   "branch": "codex/parity-s1",
   "base_branch": "codex/nle-export",
   "worktree_path": null,
@@ -22,5 +22,7 @@
   "parent": "10-14-official-0-1-17-parity",
   "relatedFiles": [],
   "notes": "",
-  "meta": { "ledger_id": "TASK-070" }
+  "meta": {
+    "ledger_id": "TASK-070"
+  }
 }

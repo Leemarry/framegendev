@@ -20,6 +20,8 @@ Actual offline editor typing suppressed saved groups and showed the unsafe-draft
 
 ## Quality And Remaining Acceptance
 
-Source final47files278tests, lint, full707-file format and build passed. After the final scope-only conditional layout adjustment, focused3files18tests, lint, full format and build passed again. Main integration and real smoke pending. No backend source changed; current backend embedded build will be checked on main. Full Windows gates last passed for configured media paths.
+Source final47files278tests, lint, full707-file format and build passed. After the final scope-only conditional layout adjustment, focused3files18tests, lint, full format and build passed again.43c199a cleanly cherry-picked into main as bd6d803. Main50files321tests (documents/performance/AppLayout/settings), lint, full707-file format, build, Electron compile and workspace_dist Go build passed. No backend source changed; full Windows gates last passed for configured media paths.
+
+Main actual own project project-007603943ed136ca displayed both real groups; resource opening closed comments, history source/cancel preserved state, and close/reopen/page reload/actual backend restart plus explicit refresh retained complete document/version/history/resolved/raw episode baselines. Prior history fixture also remained completely unchanged. Dark1440px desktop and390x480 short screenshots inspected. Main31456 now serves mediago-server-resources.exe using the existing independent integration config/workspace. Session2 remains617a80d without new submitted results. Main source is integrated and runnable; source/main isolated fixture data is cache-only.
 
 Only the safe resource-summary reconnection is in scope. Official rich resource actions/adoption/reference controls, real generation, native Jianying reopening and TASK-150 remain unaccepted. TASK-070 overall is not complete.
