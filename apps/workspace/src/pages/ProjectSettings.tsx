@@ -16,7 +16,8 @@ import { SettingsPanelLayout } from "@/domains/settings/components/SettingsPanel
 import { Button } from "@/shared/components/ui/button";
 import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import { useToast } from "@/hooks/useToast";
-import { isDesktopRuntime, openProjectDirectory } from "@/domains/projects/lib/project-directory";
+import { isDesktopRuntime } from "@/domains/projects/lib/project-directory";
+import { openNativePath } from "@/shared/desktop/actions";
 import { useDocumentsStore } from "@/domains/documents/stores";
 import { useProjectStore } from "@/domains/projects/stores";
 import { getRouteProjectId } from "@/domains/workspace/lib/workbench-route";
@@ -142,7 +143,7 @@ export const ProjectSettings: React.FC = () => {
 
 		setIsOpeningProjectFolder(true);
 		try {
-			await openProjectDirectory(projectDir);
+			await openNativePath(projectDir);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : "无法打开项目文件夹。";
 			toast.error("打开项目文件夹失败", { description: message });

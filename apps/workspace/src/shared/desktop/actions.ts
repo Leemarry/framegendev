@@ -99,7 +99,10 @@ export const openPromptPackEditor = async (options: PromptPackEditorOpenOptions 
 
 export const openNativePath = async (path: string) => {
 	const runtime = desktopRuntime();
-	if (runtime === "electron") return window.mediagoDesktop?.openPath(path);
+	if (runtime === "electron") {
+		if (!window.mediagoDesktop?.openPath) throw new Error("未检测到桌面端打开文件夹接口。");
+		return window.mediagoDesktop.openPath(path);
+	}
 	throw new Error("当前运行环境不支持打开本地文件夹。");
 };
 
