@@ -50,6 +50,7 @@ import {
 	getMediaAssets,
 	mediaAssetReferencesPath,
 	mediaAssetsKey,
+	scanMediaAssets,
 	updateMediaAsset,
 	updateMediaAssetMetadata,
 	updateMediaAssetFields,
@@ -534,15 +535,26 @@ export const AssetLibraryWorkspace: React.FC<{
 	);
 	const refresh = async () => {
 		try {
+			const result = await scanMediaAssets(mediaProjectId || undefined);
 			await Promise.all([
 				mutateMediaAssets(),
 				...(folderControls ? [folderControls.onRefresh()] : []),
 				...(projectMode ? [mutateSelectedAssets(), mutateDocuments()] : []),
 			]);
+			toast.success("素材已刷新", {
+				description: `新增 ${result.added}，更新 ${result.updated}，共扫描 ${result.scanned}`,
+			});
 		} catch (err) {
 			toast.error("刷新失败", { description: errorMessage(err, "素材列表刷新失败。") });
 		}
 	};
+	const hasActiveAssetFilter = Boolean(
+		query ||
+		kindFilter !== "all" ||
+		sourceFilter !== "all" ||
+		resourceFilter !== "all" ||
+		ratingFilter !== "all",
+	);
 	const content = (
 		<>
 			{isPage ? (
@@ -862,15 +874,8 @@ export const AssetLibraryWorkspace: React.FC<{
 						isPage ? (
 							<div className="asset-library-page-empty">
 								<File className="size-10 text-muted-foreground" />
-								<h2>
-									{query ||
-									kindFilter !== "all" ||
-									sourceFilter !== "all" ||
-									resourceFilter !== "all" ||
-									ratingFilter !== "all"
-										? "暂无匹配素材"
-										: "这里还没有素材"}
-								</h2>
+								<h2>{hasActiveAssetFilter ? "暂无匹配素材" : "这里还没有素材"}</h2>
+								{hasActiveAssetFilter ? null : <p>导入文件，或把文件放入素材目录后刷新。</p>}
 								<div>
 									{folderControls ? (
 										<Button

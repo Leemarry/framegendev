@@ -9,6 +9,8 @@ import {
 import {
 	getMediaAssetReferences,
 	mediaAssetReferencesPath,
+	mediaAssetsScanPath,
+	scanMediaAssets,
 	uploadMediaAsset,
 	updateMediaAssetFields,
 	updateMediaAssetMetadata,
@@ -94,4 +96,24 @@ it("resolves reference routes by asset scope and keeps an empty path when there 
 	);
 	await getMediaAssetReferences("global/asset");
 	expect(httpClient.get).toHaveBeenCalledWith("/media-assets/global%2Fasset/references");
+});
+
+it("scans the scope library directory and keeps the project route encoded", async () => {
+	expect(mediaAssetsScanPath()).toBe("/media-assets/scan");
+	expect(mediaAssetsScanPath("project/a")).toBe("/projects/project%2Fa/media-assets/scan");
+
+	vi.mocked(httpClient.post).mockResolvedValue({
+		data: { scanned: 3, added: 1, updated: 2 },
+		success: true,
+		code: 0,
+		message: "",
+	});
+	const result = await scanMediaAssets("project/a");
+	expect(httpClient.post).toHaveBeenCalledWith("/projects/project%2Fa/media-assets/scan", {
+		folderId: "",
+	});
+	expect(result).toEqual({ scanned: 3, added: 1, updated: 2 });
+
+	await scanMediaAssets();
+	expect(httpClient.post).toHaveBeenCalledWith("/media-assets/scan", { folderId: "" });
 });

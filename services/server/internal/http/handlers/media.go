@@ -111,6 +111,55 @@ func (handler MediaAssets) HandleUploadProjectMediaAsset(context *gin.Context) {
 	handler.HandleUploadMediaAsset(context)
 }
 
+// HandleScanMediaAssets godoc
+// @Summary 扫描素材目录
+// @Description 扫描全局素材目录，登记磁盘新增的媒体文件并刷新已存在文件的元数据。
+// @Tags Media Assets
+// @Accept json
+// @Produce json
+// @Param payload body SwaggerObject false "folderId 指定新发现文件所属的逻辑文件夹；省略则归入根目录"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/media-assets/scan [post]
+func (handler MediaAssets) HandleScanMediaAssets(context *gin.Context) {
+	payload, err := decodeOptionalJSON[service.MediaAssetScanRequest](context)
+	if err != nil {
+		httpresponse.ErrorFromStatus(context, http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := handler.service.Scan(context.Request.Context(), optionalProjectID(context), payload.FolderID)
+	if err != nil {
+		if errors.Is(err, service.ErrLibraryFolderNotFound) {
+			httpresponse.ErrorFromStatus(context, http.StatusNotFound, err)
+			return
+		}
+		httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
+		return
+	}
+
+	httpresponse.OK(context, result)
+}
+
+// HandleScanProjectMediaAssets godoc
+// @Summary 扫描项目素材目录
+// @Description 扫描指定项目的素材目录，登记磁盘新增的媒体文件并刷新已存在文件的元数据。
+// @Tags Media Assets
+// @Accept json
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param payload body SwaggerObject false "folderId 指定新发现文件所属的逻辑文件夹；省略则归入根目录"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/media-assets/scan [post]
+func (handler MediaAssets) HandleScanProjectMediaAssets(context *gin.Context) {
+	handler.HandleScanMediaAssets(context)
+}
+
 // HandleMediaAssetContent godoc
 // @Summary 下载媒体资产内容
 // @Description 返回媒体资产原始文件内容。

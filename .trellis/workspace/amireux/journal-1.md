@@ -751,3 +751,38 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 ### Next Steps
 
 - TASK-030/034 剩余：物理扫描与文档正文级引用检索，需独立设计
+
+
+## Session 23: TASK-165 素材目录物理扫描（刷新）
+<!-- trellis-session: v=2 fp=b315e80ad45b3fd3 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-165 素材目录物理扫描（刷新）
+**Branch**: `codex/task-004-document-reload`
+
+### Summary
+
+刷新按钮扫描项目/全局素材目录，登记磁盘新增媒体文件并同步已存在项元数据；补页面空态官方文案
+
+### Main Changes
+
+- 后端 shared MIME/忽略规则复用 + Repository ListMediaAssetsInScope 精确 scope + Service Scan + Handler/路由，修正 filename 仅对 imported 同步
+- 前端 media.ts scan API + AssetLibraryButton 刷新先扫描再重取并提示统计 + 页面空态官方文案；补齐 AssetLibrary 测试 media mock 缺失导出
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 后端 go build/gofmt/vet/定向 go test 全过
+- [OK] 前端 lint/format/build + 定向 vitest 31 项通过
+- [OK] 隔离实例(31432+31433)真实浏览器验收：登记新增1、toast统计、刷新持久、深色可读、全局空态文案均通过；API实测忽略项/幂等/updated/scope隔离
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-030/034 剩余：文档正文级引用检索，需独立核实与设计

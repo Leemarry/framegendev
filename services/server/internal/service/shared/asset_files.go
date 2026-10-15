@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -57,6 +59,47 @@ func KindFromMIMEType(mimeType string) string {
 // NormalizeMIMEType strips parameters and lowercases a MIME type.
 func NormalizeMIMEType(mimeType string) string {
 	return strings.ToLower(strings.TrimSpace(strings.Split(mimeType, ";")[0]))
+}
+
+// DetectFileMIMEType resolves a file's MIME type by extension, then by sniffing
+// the first bytes when the extension is unknown.
+func DetectFileMIMEType(path string) string {
+	if mimeType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path))); strings.TrimSpace(mimeType) != "" {
+		return NormalizeMIMEType(mimeType)
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	defer file.Close()
+
+	buffer := make([]byte, 512)
+	n, err := file.Read(buffer)
+	if err != nil && n == 0 {
+		return "application/octet-stream"
+	}
+	return NormalizeMIMEType(http.DetectContentType(buffer[:n]))
+}
+
+// ShouldIgnoreAssetEntry reports whether a scanned directory entry is an
+// operating-system or editor artifact that must not be registered as an asset.
+func ShouldIgnoreAssetEntry(name string) bool {
+	name = strings.TrimSpace(name)
+	if name == "" || strings.HasPrefix(name, ".") {
+		return true
+	}
+	lower := strings.ToLower(name)
+	if lower == ".ds_store" || lower == "thumbs.db" {
+		return true
+	}
+	if strings.HasSuffix(lower, "~") ||
+		strings.HasSuffix(lower, ".tmp") ||
+		strings.HasSuffix(lower, ".temp") ||
+		strings.HasSuffix(lower, ".swp") ||
+		strings.HasSuffix(lower, ".part") {
+		return true
+	}
+	return false
 }
 
 // SafeFilename returns a path-safe filename basename.

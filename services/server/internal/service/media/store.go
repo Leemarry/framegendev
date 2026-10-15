@@ -38,6 +38,7 @@ const (
 	MediaSourceGeneration   = "generation"
 	MediaSourceToolbox      = "toolbox"
 	MediaSourcePreview      = "preview"
+	MediaSourceImported     = "imported"
 )
 
 var mediaAssetHTTPClient = &http.Client{Timeout: 2 * time.Minute}
@@ -98,6 +99,11 @@ type MediaAssetUpdateRequest struct {
 	Note     *string   `json:"note,omitempty"`
 	Rating   *int      `json:"rating,omitempty"`
 	FolderID *string   `json:"folderId,omitempty"`
+}
+
+// MediaAssetScanRequest optionally assigns newly discovered files to one folder.
+type MediaAssetScanRequest struct {
+	FolderID string `json:"folderId"`
 }
 
 // MediaAssetSaveOptions describes where a new media asset should live.

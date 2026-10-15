@@ -35,7 +35,8 @@
     "10-14-asset-library-folder-page",
     "10-14-global-asset-library-page",
     "10-15-asset-library-folder-delete",
-    "10-15-asset-rating-filter-sort"
+    "10-15-asset-rating-filter-sort",
+    "10-15-asset-library-scan"
   ],
   "parent": null,
   "relatedFiles": [],

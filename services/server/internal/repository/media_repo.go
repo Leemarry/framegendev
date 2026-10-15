@@ -52,6 +52,25 @@ func (repo *MediaAssetRepository) ListAllMediaAssets() ([]domain.AssetModel, err
 	return models, nil
 }
 
+// ListMediaAssetsInScope returns media assets owned by exactly one library
+// scope: global rows for an empty project ID, project rows otherwise. Physical
+// library paths are only comparable within one scope, so scanning must not
+// widen the result the way ListMediaAssets does.
+func (repo *MediaAssetRepository) ListMediaAssetsInScope(projectID string) ([]domain.AssetModel, error) {
+	projectID = domain.CleanProjectID(projectID)
+	models := []domain.AssetModel{}
+	query := repo.db.Order("updated_at DESC")
+	if projectID == "" {
+		query = query.Where("project_id IS NULL")
+	} else {
+		query = query.Where("project_id = ?", projectID)
+	}
+	if err := query.Find(&models).Error; err != nil {
+		return nil, fmt.Errorf("listing media assets in scope: %w", err)
+	}
+	return models, nil
+}
+
 // GetMediaAsset returns a media asset by ID.
 func (repo *MediaAssetRepository) GetMediaAsset(id string) (domain.AssetModel, error) {
 	var model domain.AssetModel

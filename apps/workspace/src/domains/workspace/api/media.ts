@@ -90,6 +90,23 @@ export const getMediaAssets = async (filters: MediaAssetFilters = {}) => {
 	return response.data;
 };
 
+export interface MediaAssetScanResult {
+	scanned: number;
+	added: number;
+	updated: number;
+}
+
+export const mediaAssetsScanPath = (projectId?: string | null) =>
+	`${mediaAssetsPath(projectId)}/scan`;
+
+/** Registers media files copied onto disk and refreshes metadata of known files. */
+export const scanMediaAssets = async (projectId?: string | null, folderId?: string) => {
+	const response = await httpClient.post<MediaAssetScanResult>(mediaAssetsScanPath(projectId), {
+		folderId: folderId ?? "",
+	});
+	return response.data;
+};
+
 export const uploadMediaAsset = async (
 	file: File,
 	projectId?: string | null,

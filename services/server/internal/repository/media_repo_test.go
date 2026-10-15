@@ -201,6 +201,44 @@ func TestMediaAssetRepositoryListMediaAssetsFiltersByProject(t *testing.T) {
 	}
 }
 
+func TestMediaAssetRepositoryListMediaAssetsInScopeStaysExact(t *testing.T) {
+	repo, err := NewMediaAssetRepository(filepath.Join(t.TempDir(), "workspace.db"))
+	if repo != nil {
+		testutil.CloseDB(t, repo.db)
+	}
+	if err != nil {
+		t.Fatalf("NewMediaAssetRepository() error = %v", err)
+	}
+	seedRepositoryProject(t, repo.db, "alpha")
+	seedRepositoryProject(t, repo.db, "beta")
+
+	for _, asset := range []domain.AssetModel{
+		testAssetModel("asset-global", "", "2026-05-22T00:00:00Z"),
+		testAssetModel("asset-alpha", "alpha", "2026-05-22T00:01:00Z"),
+		testAssetModel("asset-beta", "beta", "2026-05-22T00:02:00Z"),
+	} {
+		if err := repo.CreateMediaAsset(asset); err != nil {
+			t.Fatalf("CreateMediaAsset(%q) error = %v", asset.ID, err)
+		}
+	}
+
+	globalAssets, err := repo.ListMediaAssetsInScope("")
+	if err != nil {
+		t.Fatalf("ListMediaAssetsInScope(global) error = %v", err)
+	}
+	if got := mediaAssetIDs(globalAssets); !equalStringSlices(got, []string{"asset-global"}) {
+		t.Fatalf("global scope asset IDs = %#v, want global only", got)
+	}
+
+	alphaAssets, err := repo.ListMediaAssetsInScope("alpha")
+	if err != nil {
+		t.Fatalf("ListMediaAssetsInScope(alpha) error = %v", err)
+	}
+	if got := mediaAssetIDs(alphaAssets); !equalStringSlices(got, []string{"asset-alpha"}) {
+		t.Fatalf("alpha scope asset IDs = %#v, want alpha only", got)
+	}
+}
+
 func TestMediaAssetRepositoryListsReferences(t *testing.T) {
 	repo, err := NewMediaAssetRepository(filepath.Join(t.TempDir(), "workspace.db"))
 	if repo != nil {

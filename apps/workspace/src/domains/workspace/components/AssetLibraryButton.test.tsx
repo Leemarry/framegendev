@@ -116,6 +116,7 @@ vi.mock("@/domains/workspace/api/media", () => ({
 			: `/media-assets/${encodeURIComponent(id)}/references`;
 	},
 	mediaAssetsKey: "/media-assets",
+	scanMediaAssets: vi.fn(),
 	updateMediaAsset: vi.fn(),
 	updateMediaAssetMetadata: vi.fn(),
 	uploadMediaAsset: vi.fn(),

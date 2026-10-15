@@ -4,8 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"mime"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -307,40 +305,11 @@ func projectAssetFolderPathByID(folders []string, projectID string) map[string]s
 }
 
 func detectProjectWorkAssetMIME(path string) string {
-	if mimeType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path))); strings.TrimSpace(mimeType) != "" {
-		return shared.NormalizeMIMEType(mimeType)
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return "application/octet-stream"
-	}
-	defer file.Close()
-
-	buffer := make([]byte, 512)
-	n, err := file.Read(buffer)
-	if err != nil && n == 0 {
-		return "application/octet-stream"
-	}
-	return shared.NormalizeMIMEType(http.DetectContentType(buffer[:n]))
+	return shared.DetectFileMIMEType(path)
 }
 
 func shouldIgnoreProjectWorkEntry(name string) bool {
-	name = strings.TrimSpace(name)
-	if name == "" || strings.HasPrefix(name, ".") {
-		return true
-	}
-	lower := strings.ToLower(name)
-	if lower == ".ds_store" || lower == "thumbs.db" {
-		return true
-	}
-	if strings.HasSuffix(lower, "~") ||
-		strings.HasSuffix(lower, ".tmp") ||
-		strings.HasSuffix(lower, ".temp") ||
-		strings.HasSuffix(lower, ".swp") ||
-		strings.HasSuffix(lower, ".part") {
-		return true
-	}
-	return false
+	return shared.ShouldIgnoreAssetEntry(name)
 }
 
 func projectWorkFileModTimeRFC3339(value time.Time) string {

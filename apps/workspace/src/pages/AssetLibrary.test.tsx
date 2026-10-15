@@ -4,6 +4,7 @@ import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	getMediaAssets,
+	scanMediaAssets,
 	type MediaAsset,
 	uploadMediaAsset,
 	updateMediaAssetFields,
@@ -41,6 +42,16 @@ vi.mock("@/domains/generation/api/generation", () => ({
 vi.mock("@/domains/workspace/api/media", () => ({
 	mediaAssetsKey: "/media-assets",
 	getMediaAssets: vi.fn(),
+	scanMediaAssets: vi.fn(),
+	mediaAssetReferencesPath: (assetId?: string | null, projectId?: string | null) => {
+		const id = assetId?.trim();
+		if (!id) return null;
+		const scope = projectId?.trim();
+		return scope
+			? `/projects/${encodeURIComponent(scope)}/media-assets/${encodeURIComponent(id)}/references`
+			: `/media-assets/${encodeURIComponent(id)}/references`;
+	},
+	getMediaAssetReferences: vi.fn(async () => ({ references: [] })),
 	uploadMediaAsset: vi.fn(),
 	updateMediaAsset: vi.fn(),
 	updateMediaAssetMetadata: vi.fn(),
@@ -60,6 +71,7 @@ afterEach(() => {
 });
 beforeEach(() => {
 	vi.mocked(getMediaAssets).mockResolvedValue({ assets: [] });
+	vi.mocked(scanMediaAssets).mockResolvedValue({ scanned: 0, added: 0, updated: 0 });
 	vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
 });
 
@@ -104,6 +116,7 @@ describe("project material library page", () => {
 			assetReturnState: { projectView: "document" },
 		});
 		expect(await screen.findByRole("heading", { name: "这里还没有素材" })).toBeInTheDocument();
+		expect(screen.getByText("导入文件，或把文件放入素材目录后刷新。")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "项目素材" })).toBeInTheDocument();
 		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 		expect(screen.getAllByRole("button", { name: "新建文件夹" })[0]).toBeEnabled();
@@ -144,6 +157,7 @@ describe("project material library page", () => {
 		const count = vi.mocked(getMediaAssets).mock.calls.length;
 		const documentCount = vi.mocked(getWorkspaceDocuments).mock.calls.length;
 		fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+		await waitFor(() => expect(scanMediaAssets).toHaveBeenCalledWith("project-a"));
 		await waitFor(() => expect(vi.mocked(getMediaAssets).mock.calls.length).toBeGreaterThan(count));
 		await waitFor(() =>
 			expect(vi.mocked(getWorkspaceDocuments).mock.calls.length).toBeGreaterThan(documentCount),
