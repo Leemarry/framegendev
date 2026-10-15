@@ -28,4 +28,6 @@ Actual roundtrip also exposed inconsistent omitted-title enrichment: select fill
 
 ## Main Integration
 
-Pending clean main integration and production acceptance before archive.
+Source1e0099e → main087932e; supporting sidebar test b8fc186 → a7e5827. Main extra selection race passed24.337s, embedded production build and Electron compile passed. Full235files1552tests passed in409.41s using2workers; first failed run remains above. Main frontend lint/build and full705-fileformat passed. Temporary LF normalization restored original bytes. Existing chunk-size warning and test environment media pause/scrollBy stubs remain.
+
+Main31456 now runs `.cache/parity/s1-integration/mediago-server-media.exe` with the existing independent config/workspace. Existing imported fixture asset-7ff794b1f04c315c was directly adopted into project-ee04787052fd3d84; six actual ID/URL/missing foreign requests404 with both complete document/history/selection sets unchanged. Adoption persisted exactly across a real backend stop/restart. Actual refresh displayed its reference; unadopt restored complete initial records and refresh showed no remaining references. The imported fixture remains unadopted. At390×844 no horizontal overflow; actual image loaded and the detail scroller exposed the unreferenced state. Three main screenshots in evidence inspected. No session2 changes or instances touched.

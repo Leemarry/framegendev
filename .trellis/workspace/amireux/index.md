@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 41
+- **Total Sessions**: 42
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1283 | Active |
+| `journal-1.md` | ~1306 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 42 | 2026-10-16 | TASK-030 direct media adoption boundaries and integration | `087932e`, `a7e5827` | `codex/nle-export` |
 | 41 | 2026-10-16 | Accept project task ownership before adoption | `dd34016` | `codex/nle-export` |
 | 40 | 2026-10-16 | Accept browser recovery of persisted audio failures | `a747a54`, `b776423` | `codex/nle-export` |
 | 39 | 2026-10-16 | Accept prior-window recovery in integrated production bundle | `7ea7f4e`, `f2517ad`, `e363a3c` | `codex/nle-export` |

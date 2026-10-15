@@ -16,7 +16,7 @@
 - NLE会话已实现 TASK-040 M1/M2/M3（`45fafa2`、`48ba31f`、`cdc01a6`）和 TASK-041 字幕/真实音频波形。浏览器、保存重启与实际导出文件验收通过，21文件100测试和前后端/剪映包完整门通过。原生剪映重开与字幕排版仍待验收，TASK-040/041不标整体完成；详情见 `.trellis/tasks/10-15-nle-workbench/result.md`。
 - TASK-010 模型接入仍待评审；TASK-170~178 自动化新方案实施未定。豆包四会话方案仅参考，未启用额外 agent。
 
-会话1集成质量补正唯一文件：`apps/workspace/src/pages/PromptPackEditor.test.tsx`，仅将旧 aria-hidden 断言同步到已提交 SidebarScreenStack 的 inert 契约并加强非活跃层不可交互检查；不修改会话2组件实现/工作树。全量235文件1552测试首次暴露此旧断言及高并发下AgentChat两次5000ms超时，后续结果见selection-media-isolation任务。
+会话1集成质量补正唯一文件：`apps/workspace/src/pages/PromptPackEditor.test.tsx`，b8fc186→a7e5827将旧断言同步到既有inert契约并加强仅活跃层可交互检查。首次全量失败及AgentChat超时保留；两worker完整235文件1552测试通过，未改超时/删测试。详见selection-media-isolation归档；会话2组件实现/工作树未修改。
 
 ## 下一步与限制
 
@@ -30,6 +30,8 @@
 7. TASK-080本地导入校验339e511→主90b07c9已验收，见history-import-validation归档。TASK-030任务来源项目隔离f2466dd→dd34016已验收：SQLite先失败、跨项目选择/取消选择及别名实际404零写，同项目采用/取消采用、重启全文/采用记录与真实素材引用增减通过；源完整Windows门/race、独立build及主97文件641测试/额外race/嵌入构建通过。主31456现运行mediago-server-selection.exe。结果见 `.trellis/tasks/archive/2026-10/10-16-selection-project-isolation/result.md`，含代理超时/离线失败及项目列表新增fixture导致旧整列表比较失败的完整记录；原任务逐ID全文不变。下一项核实直接素材ID来源边界，不发送生成请求；整体030/080/150仍未完成。会话2分支仍617a80d，无新增已验证提交。
 
 GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_save 变更，调用来源尚未确认。原 baseline 失败不能用新隔离数据通过替代，不重置原文件。
+
+8. TASK-030直接媒体来源隔离1e0099e→087932e已验收：缺失/外项目ID、URL、任务解析素材在写入前拒绝404；修复自动补标题后无法取消采用。实际同项目/全局双项目采用取消、双方完整正文历史/采用记录零写、重启及主生产包390px引用增减通过；完整Windows check/race、主235文件1552测试/前端门/Electron/嵌入构建通过。主31456现运行mediago-server-media.exe，结果见selection-media-isolation归档。下一项核实全局采用/历史downloadPath默认根目录投影；仅发现响应字符串，未访问默认目录。030/080/150整体仍未完成，会话2仍617a80d。
 
 ## 已核实环境
 

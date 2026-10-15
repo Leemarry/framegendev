@@ -1281,3 +1281,26 @@ TASK030 task-source project boundary accepted in source and integrated main; dir
 ### Next Steps
 
 - Check direct-media ownership separately; keep session2 native windows, native040/041 and150 pending.
+
+
+## Session 42: TASK-030 direct media adoption boundaries and integration
+<!-- trellis-session: v=2 fp=2d9648d735dcfd77 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-030 direct media adoption boundaries and integration
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Validated media ownership before writes and consistent cancellation; source full Windows gates, actual same/global adoption and restart, main production390px and235files1552tests passed. Retained initial failures and pending global path projection.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `087932e` | fix(generation): validate media ownership before adoption writes |
+| `a7e5827` | test(workspace): align pack navigation with inert screen contract |
+
+### Status
+
+[OK] **Completed**
