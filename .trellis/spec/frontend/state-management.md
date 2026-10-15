@@ -55,6 +55,12 @@ project/document/hash and verify response identity. Hide cached content during
 revalidation/failure and disable restore/navigation until reads recover. Switching
 views never changes the selected restore target or frozen reviewed version.
 Full snapshot reading is distinct from official diff-highlighted reading.
+The diff presentation selector defaults to reading (normal font with semantic
+line highlights) and can show exact source in monospace. Both presentations use
+the server's existing lines, alignment and change anchors; preserve literal text,
+whitespace, selected hash and frozen restore base. This is escaped line rendering,
+not a second rich editor or a client diff engine. Full snapshot reading remains
+available separately. Word-level/Markdown-transform parity needs further evidence.
 The history dropdown and sidebar share selectedHash; current comparison stays
 fixed to the latest history hash. Disable selection on history load/revalidation
 failure. Display exact Git hash identity instead of inferring document version

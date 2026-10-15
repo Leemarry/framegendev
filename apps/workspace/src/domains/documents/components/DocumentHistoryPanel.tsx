@@ -61,6 +61,7 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 	const [restoreError, setRestoreError] = useState("");
 	const [mode, setMode] = useState("parallel");
 	const [contentView, setContentView] = useState("diff");
+	const [diffContentView, setDiffContentView] = useState("reading");
 	const [changeIndex, setChangeIndex] = useState(-1);
 	const diffContainer = useRef<HTMLDivElement>(null);
 	const documentId = document?.id ?? null;
@@ -299,12 +300,21 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 							<Tabs value={contentView} onValueChange={setContentView}>
 								<TabsList aria-label="历史内容视图">
 									<TabsTrigger value="diff">差异</TabsTrigger>
-									<TabsTrigger value="reading">阅读视图</TabsTrigger>
+									<TabsTrigger value="reading">全文阅读</TabsTrigger>
 									<TabsTrigger value="source">源文件</TabsTrigger>
 								</TabsList>
 							</Tabs>
 							{!reading ? (
 								<>
+									<Select value={diffContentView} onValueChange={setDiffContentView}>
+										<SelectTrigger aria-label="选择文档差异内容视图" className="w-28">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="reading">阅读视图</SelectItem>
+											<SelectItem value="source">源文件</SelectItem>
+										</SelectContent>
+									</Select>
 									<Tabs value={mode} onValueChange={setMode}>
 										<TabsList aria-label="差异显示方式">
 											<TabsTrigger value="parallel">并排</TabsTrigger>
@@ -369,7 +379,11 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 									source={contentView === "source"}
 								/>
 							) : diff ? (
-								<DocumentHistoryDiff lines={diff.lines} parallel={mode === "parallel"} />
+								<DocumentHistoryDiff
+									lines={diff.lines}
+									parallel={mode === "parallel"}
+									reading={diffContentView === "reading"}
+								/>
 							) : (
 								<p className="p-4 text-sm text-muted-foreground">选择一个版本查看差异。</p>
 							)}

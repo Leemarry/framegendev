@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DocumentHistoryPanel } from "./DocumentHistoryPanel";
@@ -149,7 +149,13 @@ describe("document history review", () => {
 	it("reads complete historical content and exact source without changing the restore target or document", async () => {
 		renderPanel();
 		await waitFor(() => expect(screen.getByRole("button", { name: "恢复所选版本" })).toBeEnabled());
-		fireEvent.mouseDown(screen.getByRole("tab", { name: "阅读视图" }), {
+		const selector = screen.getByRole("combobox", { name: "选择文档差异内容视图" });
+		expect(screen.getByRole("region", { name: "文档版本差异" })).toHaveClass("font-sans");
+		fireEvent.keyDown(selector, { key: "ArrowDown" });
+		fireEvent.click(await screen.findByRole("option", { name: "源文件" }));
+		expect(screen.getByRole("region", { name: "文档版本差异" })).toHaveClass("font-mono");
+		expect(screen.getByRole("combobox", { name: "选择历史版本" })).toHaveTextContent("old");
+		fireEvent.mouseDown(screen.getByRole("tab", { name: "全文阅读" }), {
 			button: 0,
 			ctrlKey: false,
 		});
@@ -193,7 +199,11 @@ describe("document history review", () => {
 			),
 		);
 		fireEvent.mouseDown(screen.getByRole("tab", { name: "合并" }), { button: 0, ctrlKey: false });
-		await screen.findByText("- old");
+		await waitFor(() =>
+			expect(
+				within(screen.getByRole("region", { name: "文档版本差异" })).getByText("old").parentElement,
+			).toHaveTextContent("- old"),
+		);
 		fireEvent.click(screen.getByRole("button", { name: "恢复所选版本" }));
 		const confirmation = vi.mocked(confirmDialog).mock.calls[0][0];
 		useDocumentsStore.setState({ documents: [{ ...document, version: 5 }] });

@@ -53,7 +53,8 @@
     "10-16-media-download-path",
     "10-16-history-snapshot-views",
     "10-16-history-version-selector",
-    "10-16-storyboard-resource-panel"
+    "10-16-storyboard-resource-panel",
+    "10-16-history-reading-diff"
   ],
   "parent": null,
   "relatedFiles": [],
