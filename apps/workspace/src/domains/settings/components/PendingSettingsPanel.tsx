@@ -3,6 +3,7 @@ import { Button } from "@/shared/components/ui/button";
 import { useSettingsNavigationStore } from "@/lib/stores/settings";
 import {
 	existingModelSettingsLinks,
+	existingExtensionSettingsLinks,
 	pendingSettingsPages,
 	type PendingSettingsTab,
 } from "../lib/settings-navigation";
@@ -16,6 +17,12 @@ export function PendingSettingsPanel({
 	isCodexActive: boolean;
 }) {
 	const page = pendingSettingsPages[tab];
+	const existingLinks =
+		tab === "model-access"
+			? existingModelSettingsLinks
+			: tab === "extensions"
+				? existingExtensionSettingsLinks
+				: [];
 	const setActiveTab = useSettingsNavigationStore((state) => state.setActiveTab);
 	return (
 		<SettingsPanelLayout title={page.title}>
@@ -25,9 +32,9 @@ export function PendingSettingsPanel({
 					<span className="text-xs text-muted-foreground">{page.task}</span>
 				</div>
 				<p className="text-sm leading-6 text-muted-foreground">{page.description}</p>
-				{tab === "model-access" ? (
+				{existingLinks.length > 0 ? (
 					<div className="flex flex-wrap gap-2">
-						{existingModelSettingsLinks
+						{existingLinks
 							.filter((link) => link.value !== "codex-access" || isCodexActive)
 							.map((link) => (
 								<Button key={link.value} variant="outline" onClick={() => setActiveTab(link.value)}>
