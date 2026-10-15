@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { GenerationTask } from "@/domains/generation/api/generation";
 import {
 	readScopedGenerationMessages,
+	rehydrateScopedGenerationMessages,
+	scopedGenerationHistoryPersistStorageKey,
 	useScopedGenerationHistoryStore,
 	writeScopedGenerationMessages,
 	type ChatMessage,
@@ -107,6 +109,61 @@ describe("useGenerationMessages", () => {
 			"scope-a-message",
 		]);
 		expect(readScopedGenerationMessages("scope-b")).toEqual([]);
+	});
+
+	it.each(["audio", "image", "video", "text"] as const)(
+		"retains %s prompts and failed results when persisted history is rehydrated",
+		async (kind) => {
+			const scopeId = "project-a:audio-section";
+			const messages = [
+				message({ id: "audio-prompt", role: "user", kind, content: "Local audio prompt" }),
+				message({
+					id: "audio-failure",
+					kind,
+					content: "Audio request canceled",
+					status: "error",
+					error: "Canceled before submission",
+				}),
+			];
+			writeScopedGenerationMessages(scopeId, messages);
+			const persisted = localStorage.getItem(scopedGenerationHistoryPersistStorageKey);
+			expect(persisted).toBeTruthy();
+			useScopedGenerationHistoryStore.setState({ messagesByScope: {} });
+			localStorage.setItem(scopedGenerationHistoryPersistStorageKey, persisted ?? "");
+			await rehydrateScopedGenerationMessages();
+			const { result } = renderHook(() =>
+				useGenerationMessages({
+					catalog: fallbackCatalog,
+					historyScopeId: scopeId,
+					mediaAssets: [],
+					recentTasks: [],
+				}),
+			);
+			expect(result.current.conversationMessages).toEqual(messages);
+			expect(result.current.activeEntry).toMatchObject({
+				kind,
+				prompt: "Local audio prompt",
+				status: "error",
+				error: "Canceled before submission",
+			});
+			expect(readScopedGenerationMessages("project-b:audio-section")).toEqual([]);
+		},
+	);
+
+	it("excludes unknown message kinds when rehydrating versioned history", async () => {
+		localStorage.setItem(
+			scopedGenerationHistoryPersistStorageKey,
+			JSON.stringify({
+				version: 1,
+				state: {
+					messagesByScope: {
+						"invalid-scope": [message({}), { ...message({}), kind: "unknown" }],
+					},
+				},
+			}),
+		);
+		await rehydrateScopedGenerationMessages();
+		expect(readScopedGenerationMessages("invalid-scope")).toEqual([message({})]);
 	});
 
 	it("supports controlled active entry changes", () => {

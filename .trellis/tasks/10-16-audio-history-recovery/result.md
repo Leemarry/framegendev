@@ -1,0 +1,9 @@
+# TASK-080 audio history recovery checkpoint
+
+2026-10-16. Small internal persistence fix; TASK-080 overall is not accepted. UI reopening remains pending the documented browser-launch blocker.
+
+Root cause: generationHistory.isChatMessage accepted image/video/text only. Audio messages were persisted correctly but the version1 merge and legacy migration both filtered them out. useGenerationMessages uses that store for historyScopeId, including the project's audio conversation. Change only includes audio in the existing shared guard; no schema/key/version/API/dependency/navigation change.
+
+Regression first failed with both real stored audio messages disappearing after rehydrate. Final3files26tests pass, including four supported kinds restored from their actual version1localStorage record after clearing in-memory state, hook remount, prompt/error/status preservation, cross-scope exclusion and unknown-kind rejection. Existing merge/order/scope synchronization tests pass. Lint0warnings/errors, full704-fileformat and TypeScript/Vite build pass (existing chunk advisory). Temporary CRLF normalization restored. Initial task start rejected empty inline manifests; reran with --allow-empty-context before production edit. Test was written before successful activation; no production code was edited before activation. Task creation defaulted base_branch to its current branch; corrected toc​odex/nle-export before final record.
+
+No external generation request or fake successful output was created. Audio import into backend history is currently unsupported by the existing import service (image/video only), so it was not used as a substitute for audio generation. Browser UI route/reopen and real audio generation remain UNRUN; do not infer them from hook tests. Keep taskin_progress, not archived. The fix can be independently reviewed as an internal persisted-data correction, without treating the pending old-window recovery UI as its prerequisite.
