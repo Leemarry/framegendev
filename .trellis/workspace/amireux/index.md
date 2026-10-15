@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 46
+- **Total Sessions**: 47
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1412 | Active |
+| `journal-1.md` | ~1439 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 47 | 2026-10-16 | TASK-070 readable historical differences integrated | `c80be16`, `28f2240` | `codex/nle-export` |
 | 46 | 2026-10-16 | TASK-070 safe resource summaries integrated | `bd6d803` | `codex/nle-export` |
 | 45 | 2026-10-16 | TASK-070 synchronized historical selection accepted | `49f9a35` | `codex/nle-export` |
 | 44 | 2026-10-16 | TASK-070 historical full views accepted in main | `d730d2a`, `3b88dab` | `codex/nle-export` |

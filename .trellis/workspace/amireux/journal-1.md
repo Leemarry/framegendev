@@ -1410,3 +1410,30 @@ Existing panel reconnected with H2/identity/timestamp/dirty/read-failure guards.
 ### Status
 
 [OK] **Completed**
+
+
+## Session 47: TASK-070 readable historical differences integrated
+<!-- trellis-session: v=2 fp=0a13b649b1c5affe -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 readable historical differences integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Bounded normal-font line reading/source presentation accepted; short-screen duplicate sidebar hidden, actual source/main restart retained complete records. Main51files323tests and frontend/Electron/embedded build passed. Word-level and Markdown transformation remain unverified;070/150 incomplete.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c80be16` | feat(documents): add readable historical diff presentation |
+| `28f2240` | fix(documents): preserve history reading room on short screens |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-080 project/global history and local usage verification; session2 remains617a80d.

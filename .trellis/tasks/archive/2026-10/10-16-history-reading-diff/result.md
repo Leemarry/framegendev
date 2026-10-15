@@ -47,5 +47,21 @@ This is a bounded responsive correction; actual new screenshots/checks follow.
 
 ## Integration
 
-Pending serial main cherry-pick, combined checks, embedded build and real smoke.
-Only this bounded presentation item can be accepted; TASK-070/150 remain incomplete.
+Source e04969d -> main c80be16; short-screen fix0ed2e08 -> main28f2240.
+Main documents/AppLayout49files313tests plus ProjectSettings1file7tests and
+performance1file3tests passed (total51files323tests). Initial invocation used
+nonexistent performance/ProjectSettings filters, so those did not run there;
+ran the actual discovered paths separately and retained the original log.
+Lint, full708-file format, build, Electron compile and workspace_dist Go build
+passed. After the layout-only correction, both source/main focused2files9tests,
+lint/full format/build passed again and the main embedded binary was rebuilt.
+No backend source changed; full Windows check/race last passed for configured paths.
+
+Actual main reading/source/unified/navigation preserved oldf0ec5b5/currenta3f4df8;
+computed fonts matched their presentation. Cancel/reload and own backend restart
+retained complete records; existing fixture Check passed. Dark desktop and short
+screenshots were inspected. Main31456 uses mediago-server-history-reading-short.exe
+and the independent integration config/workspace. Session2 remains617a80d with
+no new submitted results. Only this bounded presentation is accepted; overall
+TASK-070/150, word-level/Markdown transformation, full resource/reference actions,
+native Jianying reopening and provider generation remain unaccepted.
