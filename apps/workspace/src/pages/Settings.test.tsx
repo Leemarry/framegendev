@@ -61,6 +61,7 @@ vi.mock("@/domains/settings/components/CodexSkillsPanel", () => ({
 }));
 
 vi.mock("@/shared/desktop/actions", () => ({
+	getDesktopCacheStatistics: vi.fn(),
 	openExternalUrl: vi.fn(),
 	pickDesktopDirectory: vi.fn(),
 }));

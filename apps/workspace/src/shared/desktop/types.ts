@@ -1,4 +1,5 @@
 export type {
+	DesktopCacheStatistics,
 	DesktopMenuCommand,
 	DesktopFileFilter,
 	DesktopNotificationOptions,
@@ -18,6 +19,7 @@ export type {
 } from "../../../electron/src/ipc-contract";
 
 import type {
+	DesktopCacheStatistics,
 	DesktopMenuCommand,
 	DesktopDownloadResult,
 	DesktopFileFilter,
@@ -34,6 +36,7 @@ import type {
 } from "../../../electron/src/ipc-contract";
 
 export interface MediagoDesktopAPI {
+	getCacheStatistics(): Promise<DesktopCacheStatistics>;
 	onMenuCommand(callback: (command: DesktopMenuCommand) => void): () => void;
 	platform: NodeJS.Platform;
 	isElectron: true;

@@ -24,12 +24,6 @@ export const pendingSettingsPages = {
 		task: "TASK-090",
 		description: "内置浏览器与搜索引擎配置尚未连接桌面服务。现有授权链接继续由系统浏览器打开。",
 	},
-	storage: {
-		title: "存储管理",
-		status: "待开发",
-		task: "TASK-100",
-		description: "本地分类统计、预算与安全清理尚待实现。项目文件和未知文件不会被自动清理。",
-	},
 	"comfyui-local": {
 		title: "本地 ComfyUI",
 		status: "待开发",

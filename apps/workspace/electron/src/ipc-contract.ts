@@ -15,6 +15,7 @@ export const desktopIpcChannel = {
 	startWindowDrag: "desktop:start-window-drag",
 	setNativeThemeSource: "desktop:set-native-theme-source",
 	getAppVersion: "desktop:get-app-version",
+	getCacheStatistics: "desktop:get-cache-statistics",
 	getUpdateCapability: "desktop:get-update-capability",
 	checkUpdate: "desktop:check-update",
 	downloadUpdate: "desktop:download-update",
@@ -28,6 +29,28 @@ export const isDesktopMenuCommand = (value: unknown): value is DesktopMenuComman
 	value === "settings" || value === "shortcuts" || value === "updates";
 
 export type NativeThemeSource = "light" | "dark" | "system";
+
+export interface DesktopCacheStatistics {
+	cacheBytes: number;
+	profilePath: string;
+	measuredAt: string;
+}
+
+export const isDesktopCacheStatistics = (value: unknown): value is DesktopCacheStatistics => {
+	if (!value || typeof value !== "object") return false;
+	return (
+		"cacheBytes" in value &&
+		typeof value.cacheBytes === "number" &&
+		Number.isSafeInteger(value.cacheBytes) &&
+		value.cacheBytes >= 0 &&
+		"profilePath" in value &&
+		typeof value.profilePath === "string" &&
+		value.profilePath.trim().length > 0 &&
+		"measuredAt" in value &&
+		typeof value.measuredAt === "string" &&
+		Number.isFinite(Date.parse(value.measuredAt))
+	);
+};
 
 export interface PromptPackEditorOpenOptions {
 	mode?: "create";

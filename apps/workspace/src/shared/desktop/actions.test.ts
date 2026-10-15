@@ -1,9 +1,37 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	getDesktopCacheStatistics,
 	getDesktopUpdateCapability,
 	showDesktopNotification,
 	subscribeDesktopMenuCommands,
 } from "@/shared/desktop/actions";
+
+describe("desktop cache capability", () => {
+	afterEach(() => {
+		delete window.mediagoDesktop;
+	});
+	it("rejects browsers and older bridges instead of reporting zero", async () => {
+		await expect(getDesktopCacheStatistics()).rejects.toThrow("不支持桌面缓存统计");
+		Object.defineProperty(window, "mediagoDesktop", {
+			configurable: true,
+			value: { isElectron: true },
+		});
+		await expect(getDesktopCacheStatistics()).rejects.toThrow("未检测到桌面缓存统计接口");
+	});
+	it("returns native data and propagates native failure", async () => {
+		const value = { cacheBytes: 42, profilePath: "E:/test", measuredAt: "2026-10-16T00:00:00Z" };
+		const getCacheStatistics = vi
+			.fn()
+			.mockResolvedValueOnce(value)
+			.mockRejectedValueOnce(new Error("native read failed"));
+		Object.defineProperty(window, "mediagoDesktop", {
+			configurable: true,
+			value: { isElectron: true, getCacheStatistics },
+		});
+		await expect(getDesktopCacheStatistics()).resolves.toEqual(value);
+		await expect(getDesktopCacheStatistics()).rejects.toThrow("native read failed");
+	});
+});
 
 describe("desktop menu subscription", () => {
 	afterEach(() => {

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import {
 	type DesktopMenuCommand,
 	isDesktopMenuCommand,
+	isDesktopCacheStatistics,
 	type DesktopFileFilter,
 	type DesktopNotificationOptions,
 	type DesktopPromptPackSaveOptions,
@@ -17,6 +18,11 @@ import {
 } from "./ipc-contract.js";
 
 const api = {
+	getCacheStatistics: async () => {
+		const value: unknown = await ipcRenderer.invoke(desktopIpcChannel.getCacheStatistics);
+		if (!isDesktopCacheStatistics(value)) throw new Error("桌面缓存统计返回了无效数据。");
+		return value;
+	},
 	platform: process.platform,
 	isElectron: true,
 	onMenuCommand: (callback: (command: DesktopMenuCommand) => void) => {
