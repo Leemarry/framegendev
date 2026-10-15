@@ -40,6 +40,11 @@ history-control click failed. Explicit cache-bypassing page reload recovered;
 complete-record check remained equal. One rg wildcard path command failed on
 Windows and was replaced with explicit paths. These are not counted as passes.
 
+Main390x480 screenshot exposed only one visible diff line because the duplicate
+version sidebar consumed144px. On narrow viewports below601px height, hide only
+that sidebar and let the existing version dropdown retain every selection action.
+This is a bounded responsive correction; actual new screenshots/checks follow.
+
 ## Integration
 
 Pending serial main cherry-pick, combined checks, embedded build and real smoke.

@@ -227,8 +227,8 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 						</Button>
 					</div>
 				</SheetHeader>
-				<div className="grid min-h-0 flex-1 grid-rows-[minmax(0,9rem)_minmax(0,1fr)] md:grid-cols-[15rem_minmax(0,1fr)] md:grid-rows-1">
-					<div className="min-h-0 overflow-y-auto border-b border-border p-2 md:border-b-0 md:border-r">
+				<div className="grid min-h-0 flex-1 grid-rows-[minmax(0,9rem)_minmax(0,1fr)] md:grid-cols-[15rem_minmax(0,1fr)] md:grid-rows-1 [@media(max-width:767px)_and_(max-height:600px)]:grid-rows-[minmax(0,1fr)]">
+					<div className="min-h-0 overflow-y-auto border-b border-border p-2 md:border-b-0 md:border-r [@media(max-width:767px)_and_(max-height:600px)]:hidden">
 						{loadingHistory ? (
 							<Loading />
 						) : historyError ? (
