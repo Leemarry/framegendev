@@ -4,8 +4,8 @@
 - [x] Inspect official screenshot 80 and baseline review 80-95.
 - [x] Implement catalogue, pending states and scrolling sidebar.
 - [x] Run relevant tests, lint, format and build.
-- [ ] Isolated official/development browser acceptance and evidence.
-- [ ] Record exact results, interface changes and outstanding issues; commit
+- [x] Isolated official/development browser acceptance and evidence.
+- [x] Record exact results, interface changes and outstanding issues; commit
   explicit paths locally before proceeding to TASK-090.
 
 Ports reserved after checking no listeners: backend 31452, frontend 31453,

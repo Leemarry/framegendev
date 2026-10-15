@@ -736,6 +736,7 @@ const SettingsPanelButton: React.FC<{
 }> = ({ active, disabled = false, icon, label, onClick, statusLabel }) => (
 	<button
 		type="button"
+		data-sidebar-navigation-item
 		aria-current={active ? "page" : undefined}
 		disabled={disabled}
 		onClick={onClick}

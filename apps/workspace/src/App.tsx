@@ -25,6 +25,7 @@ import {
 } from "@/domains/workspace/lib/workbench-route";
 import { useAgentLayoutStore } from "@/lib/stores/agent-layout";
 import { useWorkModeStore } from "@/lib/stores/work-mode";
+import { useSettingsNavigationStore } from "@/lib/stores/settings";
 import { AppRoutes } from "@/router/routes";
 import { AnalyticsRouteSync } from "@/shared/analytics";
 import { cn } from "@/shared/lib/utils";
@@ -44,6 +45,8 @@ export const App: React.FC = () => {
 	const isEpisodeRoute = isAgentDocumentRoute(location.pathname, location.search);
 	const routeIsSettings = isSettingsRoute(location.pathname);
 	const projectWorkspace = Boolean(routeProjectId) && (isProjectRoute || routeIsSettings);
+	const globalSettings = routeIsSettings && !projectWorkspace;
+	const globalSettingsTab = useSettingsNavigationStore((state) => state.activeTab);
 	const { data: projectsData } = useSWR(projectWorkspace ? projectsKey : null, getProjects);
 	const projectTitle =
 		projectsData?.projects.find((project) => project.id === routeProjectId)?.name ?? "加载项目";
@@ -109,7 +112,10 @@ export const App: React.FC = () => {
 				}
 				projectManagement={routeDescriptor.sidebarScreen === "projects"}
 				projectWorkspace={projectWorkspace}
-				navigationKey={location.pathname + location.search}
+				globalSettings={globalSettings}
+				navigationKey={
+					location.pathname + location.search + (globalSettings ? `:${globalSettingsTab}` : "")
+				}
 				sidebar={<ProjectNavigator activeProjectId={routeProjectId} />}
 				sidebarHidden={routeDescriptor.sidebarHidden}
 			>

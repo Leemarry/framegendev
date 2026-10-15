@@ -15,6 +15,7 @@ interface AppLayoutProps {
 	showHeader?: boolean;
 	projectManagement?: boolean;
 	projectWorkspace?: boolean;
+	globalSettings?: boolean;
 	navigationKey?: string;
 	sidebar: React.ReactNode;
 	sidebarHidden?: boolean;
@@ -32,6 +33,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 	showHeader = true,
 	projectManagement = false,
 	projectWorkspace = false,
+	globalSettings = false,
 	navigationKey = "",
 	sidebar,
 	sidebarHidden = false,
@@ -39,8 +41,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 	const [navigatorWidth, setNavigatorWidth] = useWorkspaceSidebarWidth();
 	const narrow = useSyncExternalStore(subscribeNarrowViewport, isNarrowViewport, () => false);
 	const [mobileNavigation, setMobileNavigation] = useState({ key: navigationKey, open: false });
+	const hasNarrowNavigation = (projectWorkspace || globalSettings) && narrow;
+	const navigationLabel = globalSettings ? "设置导航" : "项目导航";
 	const mobileOpen =
-		projectWorkspace && narrow && mobileNavigation.key === navigationKey && mobileNavigation.open;
+		hasNarrowNavigation && mobileNavigation.key === navigationKey && mobileNavigation.open;
 	const toggleRef = useRef<HTMLButtonElement>(null);
 	const sidebarRef = useRef<HTMLDivElement>(null);
 	const closeNavigation = () => {
@@ -48,26 +52,49 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 		toggleRef.current?.focus();
 	};
 	useEffect(() => {
-		if (mobileOpen) sidebarRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+		if (!mobileOpen) return;
+		sidebarRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+		return () => toggleRef.current?.focus();
 	}, [mobileOpen]);
-	const effectiveSidebarHidden = sidebarHidden || (projectWorkspace && narrow && !mobileOpen);
+	const effectiveSidebarHidden = sidebarHidden || (hasNarrowNavigation && !mobileOpen);
+	const navigationToggle = hasNarrowNavigation ? (
+		<button
+			ref={toggleRef}
+			type="button"
+			className="project-header-icon"
+			aria-label={`打开${navigationLabel}`}
+			aria-expanded={mobileOpen}
+			onClick={() => setMobileNavigation({ key: navigationKey, open: true })}
+		>
+			<Menu />
+		</button>
+	) : null;
 
 	return (
 		<SidebarContentLayout
-			className={`desktop-window-frame h-screen w-screen${projectManagement ? " project-management-shell" : ""}${projectWorkspace ? " project-workspace-shell" : ""}`}
+			className={`desktop-window-frame relative h-screen w-screen${projectManagement ? " project-management-shell" : ""}${projectWorkspace ? " project-workspace-shell" : ""}`}
 			contentInset={!sidebarHidden}
 			maxSidebarWidth={workspaceSidebarWidth.max}
 			minSidebarWidth={workspaceSidebarWidth.min}
 			resizeStep={workspaceSidebarWidth.resizeStep}
 			showDesktopDragRegion
 			sidebar={
-				projectWorkspace ? (
+				projectWorkspace || globalSettings ? (
 					<div
 						ref={sidebarRef}
 						className="h-full"
 						role={mobileOpen ? "dialog" : undefined}
 						aria-modal={mobileOpen || undefined}
-						aria-label={mobileOpen ? "项目导航" : undefined}
+						aria-label={mobileOpen ? navigationLabel : undefined}
+						onClick={(event) => {
+							if (
+								globalSettings &&
+								mobileOpen &&
+								event.target instanceof Element &&
+								event.target.closest("[data-sidebar-navigation-item]")
+							)
+								closeNavigation();
+						}}
 						onKeyDown={(event) => {
 							if (!mobileOpen || !event.currentTarget.contains(event.target as Node)) return;
 							if (event.key === "Escape") {
@@ -98,7 +125,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 							<button
 								type="button"
 								className="project-sidebar-close"
-								aria-label="关闭项目导航"
+								aria-label={`关闭${navigationLabel}`}
 								onClick={closeNavigation}
 							>
 								<X />
@@ -110,42 +137,33 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 					sidebar
 				)
 			}
-			sidebarClassName="text-ide-sidebar-foreground"
+			sidebarClassName={`text-ide-sidebar-foreground${globalSettings && narrow ? " absolute inset-y-0 left-0 z-30 max-w-[calc(100vw-48px)] border-r border-border bg-ide-sidebar shadow-lg" : ""}`}
 			sidebarHidden={effectiveSidebarHidden}
 			sidebarWidth={projectManagement || projectWorkspace ? 325 : navigatorWidth}
-			onSidebarWidthChange={projectManagement || projectWorkspace ? undefined : setNavigatorWidth}
+			onSidebarWidthChange={
+				projectManagement || projectWorkspace || hasNarrowNavigation ? undefined : setNavigatorWidth
+			}
 		>
 			<div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-ide-editor text-ide-editor-foreground">
-				{showHeader ? (
+				{showHeader || (globalSettings && narrow) ? (
 					<AppHeader
-						title={headerTitle}
+						title={globalSettings ? "软件设置" : headerTitle}
 						actions={headerActions}
-						navigationToggle={
-							projectWorkspace && narrow ? (
-								<button
-									ref={toggleRef}
-									type="button"
-									className="project-header-icon"
-									aria-label="打开项目导航"
-									aria-expanded={mobileOpen}
-									onClick={() => setMobileNavigation({ key: navigationKey, open: true })}
-								>
-									<Menu />
-								</button>
-							) : null
-						}
+						navigationToggle={navigationToggle}
 					/>
 				) : null}
 				{mobileOpen ? (
 					<button
 						type="button"
 						tabIndex={-1}
-						aria-label="关闭项目导航遮罩"
+						aria-label={`关闭${navigationLabel}遮罩`}
 						className="project-sidebar-backdrop"
 						onClick={closeNavigation}
 					/>
 				) : null}
-				<div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+				<div className="min-h-0 flex-1 overflow-hidden" inert={globalSettings && mobileOpen}>
+					{children}
+				</div>
 			</div>
 		</SidebarContentLayout>
 	);

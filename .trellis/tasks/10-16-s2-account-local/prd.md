@@ -20,7 +20,7 @@ Official guest account and membership sections with honest pending commercial st
 - [x] Local usage command opens existing BillingPanel; refresh returns truthful
       local state and no commercial requests.
 - [x] Relevant settings/navigation tests and lint/format/build checked.
-- [ ]390px global-shell limitation remains explicit; no whole140 completion.
+- [x]390px accepted after TASK-020 shell fix; no whole140 completion.
 
 ## Notes
 

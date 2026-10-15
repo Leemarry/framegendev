@@ -9,6 +9,54 @@ describe("AppLayout", () => {
 		cleanup();
 		vi.unstubAllGlobals();
 	});
+	it("uses global settings drawer without the project frame and closes on tab selection", () => {
+		vi.stubGlobal("matchMedia", () => ({
+			matches: true,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn(),
+		}));
+		const sidebar = (
+			<button type="button" data-sidebar-navigation-item>
+				账户入口
+			</button>
+		);
+		const { container, rerender } = render(
+			<AppLayout
+				globalSettings
+				showHeader={false}
+				navigationKey="settings:appearance"
+				headerTitle="设置"
+				sidebar={sidebar}
+			>
+				<button type="button">正文操作</button>
+			</AppLayout>,
+		);
+		expect(container.querySelector(".project-workspace-shell")).toBeNull();
+		expect(container.querySelector("aside")).toHaveAttribute("inert");
+		fireEvent.click(screen.getByRole("button", { name: "打开设置导航" }));
+		expect(screen.getByRole("dialog", { name: "设置导航" })).toBeInTheDocument();
+		expect(screen.getByText("正文操作").parentElement).toHaveAttribute("inert");
+		rerender(
+			<AppLayout
+				globalSettings
+				showHeader={false}
+				navigationKey="settings:account"
+				headerTitle="设置"
+				sidebar={sidebar}
+			>
+				<button type="button">正文操作</button>
+			</AppLayout>,
+		);
+		expect(container.querySelector("aside")).toHaveAttribute("inert");
+		expect(screen.getByRole("button", { name: "打开设置导航" })).toHaveFocus();
+		fireEvent.click(screen.getByRole("button", { name: "打开设置导航" }));
+		fireEvent.click(screen.getByRole("button", { name: "账户入口" }));
+		expect(container.querySelector("aside")).toHaveAttribute("inert");
+		fireEvent.click(screen.getByRole("button", { name: "打开设置导航" }));
+		fireEvent.keyDown(screen.getByRole("button", { name: "账户入口" }), { key: "Escape" });
+		expect(container.querySelector("aside")).toHaveAttribute("inert");
+		expect(screen.getByRole("button", { name: "打开设置导航" })).toHaveFocus();
+	});
 	it("opens narrow navigation, keeps portal Escape local, and closes after navigation", () => {
 		vi.stubGlobal("matchMedia", () => ({
 			matches: true,

@@ -1,8 +1,11 @@
 # TASK-140 Local Account Checkpoint
 
 2026-10-16. Official guest-account structure plus working local usage entry.
-Whole TASK-140 remains pending commercial integration.390px acceptance awaits
-TASK-020 shell change; this task is not archived yet.
+Whole TASK-140 remains pending commercial integration. Local account slice now
+passes390px after TASK-020 shell fix: main389px, all section/dl widths349px with
+no horizontal excess; actual View usage still opens local billing. New light/
+dark evidence retained. Historical checkpoint limitations below are superseded
+only for the narrow shell; no commercial capability has been added.
 
 Changes: new settings/components/AccountPanel.tsx, Settings.tsx wiring and
 settings-navigation.ts replaces the generic account pending page. Local identity

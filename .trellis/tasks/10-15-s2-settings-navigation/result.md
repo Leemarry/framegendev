@@ -1,8 +1,39 @@
 # TASK-020 session 2 checkpoint
 
-Status: implemented, **not complete / not archived**. Desktop entries verified;
-390px global shell fails by retaining the fixed 260px sidebar. This was found
-in actual browser acceptance, not hidden by passing unit tests.
+Latest status2026-10-16: settings navigation slice accepted after the narrow-shell
+fix below. Initial failed acceptance is preserved for traceability. Feature pages
+with missing protocols remain explicitly pending; this does not complete090/100/
+110/120/130/140 or whole-product parity.
+
+## Narrow-Shell Completion
+
+Session1 committed App.tsx ownership contract31e4fa1; read its current committed
+handoff before editing. App.tsx now passes globalSettings for global settings and
+keys drawer state by selected global tab. AppLayout reuses its existing narrow
+drawer, with a narrow-only toolbar and absolute sidebar. Desktop260px/persisted
+width and project325px behavior remain distinct. No shared CSS edits.
+
+SettingsPanelButton adds data-sidebar-navigation-item to close the drawer even
+when selecting the current page; tool menus are excluded. Narrow open content is
+inert. Escape/selection restore focus to toggle; normal sidebar tab changes also
+close via key. No API/IPC/dependency/route/model changes.
+
+Actual new acceptance:51 tests in AppLayout/ProjectNavigatorPanels/Settings/
+BasicSettingsPanel passed, zero lint warnings, production tsc/build passed.
+Full691-file format passed on cache-only LF snapshot with current source overlay
+and this worktree's dependency junction; checkoutCRLF failure remains historical.
+
+Browser-harness390x700 clicked all20 sidebar entries, verified correct heading,
+drawer closed, toggle focused and pageWidth==bodyWidth390 for every selection.
+Actual Escape and same-page selection both close correctly.390x480 drawer scrolls
+to the last advanced entry; footer remains visible. Reload leaves drawer closed.
+Actual Return in drawer reaches root project management. Light/dark basic/account
+screens are nonblank and all section/fieldset/dl widths have no horizontal excess.
+After resizing to1440, drawer toolbar disappears, sidebar260px/inert=false and
+main1179px return; inspected after the200ms transition. Evidence captures below.
+
+TASK-020 settings navigation is ready for session1 integration. Underlying
+pending pages and other product-task acceptance are not implied by this result.
 
 ## Integration Contract For Session 1
 
