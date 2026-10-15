@@ -10,6 +10,7 @@ import {
 } from "@/domains/workspace/api/media";
 import {
 	createLibraryFolder,
+	deleteLibraryFolder,
 	getLibraryFolders,
 	renameLibraryFolder,
 	type AssetLibraryFolder,
@@ -50,6 +51,7 @@ vi.mock("@/domains/workspace/api/library-folders", () => ({
 	libraryFoldersKey: (id: string) => `/folders/${id}`,
 	getLibraryFolders: vi.fn(),
 	createLibraryFolder: vi.fn(),
+	deleteLibraryFolder: vi.fn(),
 	renameLibraryFolder: vi.fn(),
 }));
 afterEach(() => {
@@ -279,6 +281,35 @@ describe("material folder workflows", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("路径分隔符");
 		fireEvent.click(screen.getByRole("button", { name: "取消" }));
 		expect(createLibraryFolder).not.toHaveBeenCalled();
+	});
+	it("confirms empty folder deletion, returns to its parent and preserves a failed delete", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({
+			folders: [folder("parent", "角色"), folder("child", "主角", "parent")],
+		});
+		vi.mocked(deleteLibraryFolder).mockResolvedValue(undefined);
+		mount(undefined, "?projectId=project-a&folderId=child");
+		await screen.findByRole("button", { name: "删除文件夹 主角" });
+		fireEvent.click(screen.getByRole("button", { name: "删除文件夹 主角" }));
+		expect(screen.getByRole("heading", { name: "删除文件夹" })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "取消" }));
+		expect(deleteLibraryFolder).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: "删除文件夹 主角" }));
+		fireEvent.click(screen.getByRole("button", { name: /^删除文件夹$/ }));
+		await waitFor(() => expect(deleteLibraryFolder).toHaveBeenCalledWith("project-a", "child"));
+		await waitFor(() =>
+			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=parent"),
+		);
+		cleanup();
+		vi.mocked(deleteLibraryFolder).mockRejectedValue({
+			code: 409,
+			message: "library folder is not empty",
+			details: null,
+		});
+		mount(undefined, "?projectId=project-a&folderId=child");
+		fireEvent.click(await screen.findByRole("button", { name: "删除文件夹 主角" }));
+		fireEvent.click(screen.getByRole("button", { name: /^删除文件夹$/ }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("library folder is not empty");
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=child");
 	});
 	it("restores a URL folder, limits content to its scope and disables nonexistent uploads", async () => {
 		vi.mocked(getLibraryFolders).mockResolvedValue({

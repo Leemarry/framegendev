@@ -61,6 +61,10 @@ func TestLibraryFoldersAPI(t *testing.T) {
 	if !strings.Contains(list, "主人公") || !strings.Contains(list, root) || strings.Contains(list, global) {
 		t.Fatalf("scope list: %s", list)
 	}
+	empty := folderID(request(http.MethodPost, base+"/asset-library-folders", `{"name":"空目录"}`, 200))
+	request(http.MethodDelete, base+"/asset-library-folders/"+empty, "", 200)
+	request(http.MethodDelete, base+"/asset-library-folders/"+empty, "", 404)
+	request(http.MethodDelete, base+"/asset-library-folders/"+root, "", 409)
 	asset := uploadImageAssetForTest(t, handler, project.ID, "stable.png")
 	path := base + "/media-assets/" + asset.ID
 	request(http.MethodDelete, "/api/v1/media-assets/"+asset.ID, "", 404)
@@ -72,6 +76,7 @@ func TestLibraryFoldersAPI(t *testing.T) {
 	if !strings.Contains(move, `"folderId":"`+child+`"`) || !strings.Contains(move, asset.URL) {
 		t.Fatalf("move: %s", move)
 	}
+	request(http.MethodDelete, base+"/asset-library-folders/"+child, "", 409)
 	request(http.MethodPut, path, `{"folderId":"`+global+`","note":"wrong"}`, 404)
 	request(http.MethodPut, "/api/v1/projects/"+other.ID+"/media-assets/"+asset.ID, `{"folderId":""}`, 404)
 	request(http.MethodPut, path, `{"folderId":"missing"}`, 404)

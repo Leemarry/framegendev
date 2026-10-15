@@ -1,0 +1,5 @@
+{"file":".trellis/spec/guides/project-workflow.md","reason":"项目授权、隔离、单项闭环与验收边界"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"素材目录 repository 与事务边界"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"HTTP 错误映射与真实失败语义"}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"目录控件、确认对话框和可访问性"}
+{"file":".trellis/spec/frontend/state-management.md","reason":"SWR scope cache 与 URL folderId 约定"}

@@ -1,5 +1,15 @@
 # 新对话交接摘要
 
+## 最新：TASK-162 空逻辑素材文件夹删除（2026-10-15）
+
+- 已实现 global/project DELETE 逻辑目录 API：按 owner scope 校验，含素材或子目录返回 `409`，跨 scope/缺失返回 `404`；空目录只删除逻辑行，不触碰物理媒体、ID、URL、路径、hash、元数据或引用。
+- 前端已加入删除图标、确认/取消、忙状态、真实失败保留当前目录；成功更新 SWR 并回到父目录。前端 API/page 13 项测试通过；lint、format、build 通过。
+- 后端 `check` 已通过 tidy、gofmt、vet、golangci-lint、Swagger、构建及 `go test -race ./...`；repository/service/app/HTTP 回归覆盖空目录、媒体/子目录冲突、重开持久化和项目清理。
+- 本轮已用 browser-use MCP（Qoder in-app 浏览器，真实 DOM 点击+真实 fetch+网络日志+可访问性快照）完成真实验收，替代上一轮损坏的 `browser-harness.exe`（uv trampoline 报错）：从当前工作树用 gap-003 mingw+CGO 重建后端于隔离 31430（task-162/server.yaml+workspace，health ready=true），前端 Vite 31431 代理。global/project 均验证——取消零 DELETE 请求、非空 `409` 保留父子目录、空目录 `200` 成功回父级并 SWR 更新、DB 与 reload 后 UI 持久化一致、深浅主题 token 适配（暗 `--background rgb(25 27 28)`／浅 `rgb(243 246 250)`，确认按钮=destructive、错误提示=error-foreground）、窄屏 popover 删除入口可达。流程证据 `.cache/parity/task-162/acceptance/flow-evidence.json`。
+- 验收中发现并修复真实缺陷：非空 409 原显示误导性通用"文件夹删除失败，请重试。"（根因 httpClient 拦截器 reject 普通 `ApiError` 对象而非 `Error`，`err instanceof Error` 落空；单测以 `new Error()` mock 掩盖了生产分歧）。删除弹窗改按既有约定（folder-actions.ts / generatedResultActions.ts / EpisodeTimelineView.tsx）读取 `.message`，单测同步为真实 `ApiError` 形状；前端 13 测试/lint/format/build 全过。范围仅删除弹窗，重命名/移动同模式与英文服务器消息本地化留待已登记 i18n 项。
+- 像素截图未捕获：in-app Browser 面板不可见（`visibilityState=hidden`），`take_screenshot`/原生 click 报 `NATIVE_BROWSER_VIEWPORT_UNAVAILABLE`，需用户手动聚焦面板；经用户确认以 DOM/网络/计算样式流程证据替代（交接允许截图/流程证据二选一）。视口无法程序化调整，窄屏经强制移动 CSS 验证。
+- 任务材料见 `.trellis/tasks/archive/2026-10/10-15-asset-library-folder-delete/`；TASK-162 已验收归档并按 DEC-029 本地提交（不推送）。TASK-030/TASK-034 整体仍开发中，重挂父级、物理扫描、评分筛选排序和关联详情未实施；下一步按 TASK-034 剩余真实依赖选独立单项，先核实个人必要性与可复用能力。
+
 ## 最新：REQ-044 / DEC-029 开发流程与Git规则
 
 2026-10-15：TASK-161已验收归档并记录Session19，规则与日志在同一本地提交中保存。

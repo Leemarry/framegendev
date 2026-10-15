@@ -40,3 +40,10 @@ export const renameLibraryFolder = async (projectId: string | null, id: string, 
 	);
 	return response.data;
 };
+
+export const deleteLibraryFolder = async (projectId: string | null, id: string) => {
+	const response = await httpClient.delete<void>(
+		`${libraryFoldersKey(projectId)}/${encodeURIComponent(id)}`,
+	);
+	return response.data;
+};

@@ -23,6 +23,9 @@ func libraryFolderFailure(c *gin.Context, err error) {
 	if errors.Is(err, service.ErrLibraryFolderNotFound) {
 		status = http.StatusNotFound
 	}
+	if errors.Is(err, service.ErrLibraryFolderNotEmpty) {
+		status = http.StatusConflict
+	}
 	httpresponse.ErrorFromStatus(c, status, err)
 }
 
@@ -96,6 +99,24 @@ func (handler MediaAssets) HandleRenameLibraryFolder(c *gin.Context) {
 	httpresponse.OK(c, folder)
 }
 
+// HandleDeleteLibraryFolder godoc
+// @Summary Delete an empty logical media folder
+// @Tags Media Assets
+// @Produce json
+// @Param folderId path string true "Folder ID"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 409 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/asset-library-folders/{folderId} [delete]
+func (handler MediaAssets) HandleDeleteLibraryFolder(c *gin.Context) {
+	if err := handler.service.DeleteLibraryFolder(c.Request.Context(), optionalProjectID(c), c.Param("folderId")); err != nil {
+		libraryFolderFailure(c, err)
+		return
+	}
+	httpresponse.OK(c, struct{}{})
+}
+
 // HandleProjectLibraryFolders godoc
 // @Summary List logical project media folders
 // @Tags Media Assets
@@ -140,4 +161,19 @@ func (handler MediaAssets) HandleCreateProjectLibraryFolder(c *gin.Context) {
 // @Router /api/v1/projects/{projectId}/asset-library-folders/{folderId} [put]
 func (handler MediaAssets) HandleRenameProjectLibraryFolder(c *gin.Context) {
 	handler.HandleRenameLibraryFolder(c)
+}
+
+// HandleDeleteProjectLibraryFolder godoc
+// @Summary Delete an empty logical project media folder
+// @Tags Media Assets
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param folderId path string true "Folder ID"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 409 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/asset-library-folders/{folderId} [delete]
+func (handler MediaAssets) HandleDeleteProjectLibraryFolder(c *gin.Context) {
+	handler.HandleDeleteLibraryFolder(c)
 }

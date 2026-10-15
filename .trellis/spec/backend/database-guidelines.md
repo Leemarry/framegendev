@@ -87,3 +87,6 @@ the currently viewed library; a global DELETE response must not replace a projec
 library cache. Test cross-owner rejection in temporary DB only; preserve runtime
 acceptance fixtures. Global GET contains global assets; project GET retains global
 visibility for compatibility, which is not permission to classify into project folders.
+### Logical Library Folder Deletion (TASK-162)
+
+`DeleteLibraryFolder` is the repository transaction boundary for logical folder removal. It scopes lookup and delete by both folder ID and owner scope, counts media references and child folders in the same transaction, and returns `ErrLibraryFolderNotEmpty` without writing when either count is non-zero. The service maps missing scope/folder to not-found and the HTTP handler maps non-empty folders to `409 Conflict`; cross-scope and missing requests must not reveal data. Deletion removes only the logical row and never changes physical media identity or references. Recursive deletion, reparenting, and disk scanning remain separate tasks.

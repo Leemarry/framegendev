@@ -75,6 +75,15 @@ func TestLibraryFolderMigrationAndReopen(t *testing.T) {
 	if err != nil || asset.LibraryFolderID != child.ID || asset.RelPath != before.RelPath || asset.URL != before.URL || asset.Filename != before.Filename || asset.ContentHash != before.ContentHash {
 		t.Fatalf("identity: %#v %v", asset, err)
 	}
+	if err := persisted.DeleteLibraryFolder(t.Context(), child.ID, ""); !errors.Is(err, ErrLibraryFolderNotEmpty) {
+		t.Fatalf("occupied child delete: %v", err)
+	}
+	if err := persisted.UpdateMediaAssetMetadata(before.ID, map[string]any{"library_folder_id": ""}); err != nil {
+		t.Fatal(err)
+	}
+	if err := persisted.DeleteLibraryFolder(t.Context(), child.ID, ""); err != nil {
+		t.Fatalf("empty child delete: %v", err)
+	}
 	projectRepo := NewWorkspaceRepository(reopened)
 	now := time.Now().UTC()
 	if err := projectRepo.UpsertProject(domain.WorkspaceProjectModel{ID: "project", Name: "test", ProjectDir: t.TempDir(), RelativeDir: "project", CreatedAt: now, UpdatedAt: now}); err != nil {
@@ -90,7 +99,7 @@ func TestLibraryFolderMigrationAndReopen(t *testing.T) {
 	if folders, err := persisted.ListLibraryFolders(t.Context(), "project"); err != nil || len(folders) != 0 {
 		t.Fatalf("orphan folders: %#v %v", folders, err)
 	}
-	if folders, err := persisted.ListLibraryFolders(t.Context(), ""); err != nil || len(folders) != 2 {
+	if folders, err := persisted.ListLibraryFolders(t.Context(), ""); err != nil || len(folders) != 1 {
 		t.Fatalf("global affected: %#v %v", folders, err)
 	}
 }

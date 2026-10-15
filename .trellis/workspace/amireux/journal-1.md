@@ -655,3 +655,40 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 ### Next Steps
 
 - 先评估TASK-034剩余功能个人必要性，形成单功能计划；TASK-030/034未完成、TASK-010待评审、TASK-170未定保持
+
+
+## Session 20: TASK-162 素材文件夹删除：真实浏览器验收与错误消息缺陷修复
+<!-- trellis-session: v=2 fp=83726229b38531af -->
+
+**Date**: 2026-10-15
+**Task**: TASK-162 素材文件夹删除：真实浏览器验收与错误消息缺陷修复
+**Branch**: `codex/task-004-document-reload`
+
+### Summary
+
+用 browser-use MCP 替代损坏的 browser-harness，从当前工作树重建隔离后端于31430，完成 global/project 删除的取消零请求/非空409保留/空目录200成功回父级/DB持久化/深浅主题token适配/窄屏入口可达真实验收；验收中发现并修复非空409显示误导性通用请重试的缺陷（httpClient 拦截器 reject 普通 ApiError 对象而非 Error 实例）。前端13测试/lint/format/build 全过。像素截图因 in-app Browser 面板不可见未捕获，经用户确认以流程证据替代。
+
+### Main Changes
+
+- 从当前工作树用 gap-003 mingw+CGO 重建 mediago-server.exe（fallback 嵌入）于隔离31430，前端 Vite31431 代理；browser-use MCP 驱动真实 DOM 点击+真实 fetch+网络日志验收
+- 修复 AssetLibraryFolderDeleteDialog catch：按既有约定从 Error 或 ApiError 形状对象读取 .message，通用文案仅兜底
+- AssetLibrary.test.tsx 删除失败用例改为真实 ApiError 形状 code:409 并断言真实消息浮现
+- 更新 result.md / CURRENT-HANDOFF.md / TASKS.md；task.json status 改 completed、completedAt 2026-10-15
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] vitest 13/13；oxlint 0 警告 0 错误；oxfmt --check 通过；tsc -b + vite build 通过
+- [OK] 浏览器：A1取消零DELETE、A2全局409保留父子、A3全局200回父级SWR更新、B1/B2项目路由409+200、DB与reload持久化一致、深浅主题计算样式token适配、窄屏popover删除入口可达
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按TASK-034剩余真实依赖选独立单项（重挂父级/物理扫描 或 评分筛选排序/关联详情），先核实个人必要性与可复用能力
+- 像素截图待用户聚焦 in-app Browser 面板后可补；服务器英文错误消息本地化留待已登记 i18n 项

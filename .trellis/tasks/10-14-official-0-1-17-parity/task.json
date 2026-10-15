@@ -33,7 +33,8 @@
     "10-14-project-asset-library-page",
     "10-14-asset-library-folder-api",
     "10-14-asset-library-folder-page",
-    "10-14-global-asset-library-page"
+    "10-14-global-asset-library-page",
+    "10-15-asset-library-folder-delete"
   ],
   "parent": null,
   "relatedFiles": [],

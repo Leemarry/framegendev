@@ -16,6 +16,9 @@ import (
 // ErrLibraryFolderNotFound identifies a missing folder or library scope.
 var ErrLibraryFolderNotFound = errors.New("library folder or scope not found")
 
+// ErrLibraryFolderNotEmpty identifies a folder that cannot be safely deleted.
+var ErrLibraryFolderNotEmpty = errors.New("library folder is not empty")
+
 // LibraryFolderRequest supplies a display name and an optional parent for creation.
 type LibraryFolderRequest struct {
 	Name     string `json:"name"`
@@ -28,6 +31,9 @@ func libraryFolderError(err error) error {
 	}
 	if errors.Is(err, repository.ErrLibraryFolderConflict) {
 		return fmt.Errorf("%w: folder name already exists", ErrInvalidMediaAssetUpdate)
+	}
+	if errors.Is(err, repository.ErrLibraryFolderNotEmpty) {
+		return ErrLibraryFolderNotEmpty
 	}
 	return err
 }
@@ -96,4 +102,17 @@ func (store *MediaAssets) RenameLibraryFolder(ctx context.Context, projectID, id
 		return folder, libraryFolderError(err)
 	}
 	return store.repo.GetLibraryFolder(ctx, folder.ID, projectID)
+}
+
+// DeleteLibraryFolder removes an empty logical folder without touching media files.
+func (store *MediaAssets) DeleteLibraryFolder(ctx context.Context, projectID, id string) error {
+	if store.initErr != nil {
+		return store.initErr
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if err := store.repo.DeleteLibraryFolder(ctx, strings.TrimSpace(id), domain.CleanProjectID(projectID)); err != nil {
+		return libraryFolderError(err)
+	}
+	return nil
 }

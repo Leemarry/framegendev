@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
@@ -13,6 +14,9 @@ import (
 
 // ErrLibraryFolderConflict identifies an existing sibling with the same name.
 var ErrLibraryFolderConflict = errors.New("library folder name already exists")
+
+// ErrLibraryFolderNotEmpty identifies a folder that still owns media or child folders.
+var ErrLibraryFolderNotEmpty = errors.New("library folder is not empty")
 
 // CheckLibraryScope verifies that a non-global library belongs to an existing project.
 func (repo *MediaAssetRepository) CheckLibraryScope(ctx context.Context, projectID string) error {
@@ -82,4 +86,39 @@ func (repo *MediaAssetRepository) RenameLibraryFolder(ctx context.Context, folde
 		return ErrLibraryFolderConflict
 	}
 	return nil
+}
+
+// DeleteLibraryFolder removes an empty logical folder from one library scope.
+func (repo *MediaAssetRepository) DeleteLibraryFolder(ctx context.Context, id, projectID string) error {
+	return repo.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var folder domain.AssetLibraryFolderModel
+		if err := tx.Where("id = ? AND project_id = ?", strings.TrimSpace(id), projectID).First(&folder).Error; err != nil {
+			if IsRecordNotFound(err) {
+				return ErrRecordNotFound
+			}
+			return fmt.Errorf("getting library folder for deletion: %w", err)
+		}
+
+		var mediaCount int64
+		if err := tx.Model(&domain.AssetModel{}).
+			Where("library_folder_id = ? AND COALESCE(project_id, '') = ?", folder.ID, projectID).
+			Count(&mediaCount).Error; err != nil {
+			return fmt.Errorf("counting library folder media: %w", err)
+		}
+		var childCount int64
+		if err := tx.Model(&domain.AssetLibraryFolderModel{}).
+			Where("project_id = ? AND parent_id = ?", projectID, folder.ID).
+			Count(&childCount).Error; err != nil {
+			return fmt.Errorf("counting library folder children: %w", err)
+		}
+		if mediaCount > 0 || childCount > 0 {
+			return ErrLibraryFolderNotEmpty
+		}
+		if result := tx.Delete(&domain.AssetLibraryFolderModel{}, "id = ? AND project_id = ?", folder.ID, projectID); result.Error != nil {
+			return fmt.Errorf("deleting library folder: %w", result.Error)
+		} else if result.RowsAffected == 0 {
+			return ErrRecordNotFound
+		}
+		return nil
+	})
 }

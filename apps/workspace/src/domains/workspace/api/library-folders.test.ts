@@ -1,9 +1,16 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import httpClient from "@/shared/lib/http";
-import { createLibraryFolder, getLibraryFolders, renameLibraryFolder } from "./library-folders";
+import {
+	createLibraryFolder,
+	deleteLibraryFolder,
+	getLibraryFolders,
+	renameLibraryFolder,
+} from "./library-folders";
 import { uploadMediaAsset, updateMediaAssetFields, updateMediaAssetMetadata } from "./media";
 
-vi.mock("@/shared/lib/http", () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }));
+vi.mock("@/shared/lib/http", () => ({
+	default: { delete: vi.fn(), get: vi.fn(), post: vi.fn(), put: vi.fn() },
+}));
 beforeEach(() => {
 	vi.clearAllMocks();
 	vi.mocked(httpClient.get).mockResolvedValue({
@@ -14,6 +21,12 @@ beforeEach(() => {
 	});
 	vi.mocked(httpClient.post).mockResolvedValue({ data: {}, success: true, code: 0, message: "" });
 	vi.mocked(httpClient.put).mockResolvedValue({ data: {}, success: true, code: 0, message: "" });
+	vi.mocked(httpClient.delete).mockResolvedValue({
+		data: undefined,
+		success: true,
+		code: 0,
+		message: "",
+	});
 });
 
 it("uses encoded project/global folder routes and a creation-only parent", async () => {
@@ -28,6 +41,10 @@ it("uses encoded project/global folder routes and a creation-only parent", async
 	expect(httpClient.put).toHaveBeenCalledWith("/asset-library-folders/folder%2Fa", {
 		name: "角色",
 	});
+	await deleteLibraryFolder("project/a", "folder/a");
+	expect(httpClient.delete).toHaveBeenCalledWith(
+		"/projects/project%2Fa/asset-library-folders/folder%2Fa",
+	);
 });
 
 it("uploads with the destination in multipart and shares the scoped media patch contract", async () => {

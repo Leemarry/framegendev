@@ -1,4 +1,4 @@
-import { Check, Folder, FolderPlus, Loader2, PencilLine, X } from "lucide-react";
+import { Check, Folder, FolderPlus, Loader2, PencilLine, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { AssetLibraryFolder } from "@/domains/workspace/api/library-folders";
 import type { MediaAsset } from "@/domains/workspace/api/media";
@@ -31,6 +31,7 @@ export interface AssetLibraryFolderControls {
 	onNavigate: (id: string) => void;
 	onCreate: () => void;
 	onRename: (folder: AssetLibraryFolder) => void;
+	onDelete: (folder: AssetLibraryFolder) => void;
 	onRefresh: () => Promise<unknown>;
 }
 
@@ -79,6 +80,18 @@ export function AssetLibraryFolders({ controls }: { controls: AssetLibraryFolder
 						}}
 					>
 						<PencilLine className="size-3.5" />
+					</Button>
+					<Button
+						size="icon"
+						variant="ghost"
+						aria-label={`删除文件夹 ${folder.name}`}
+						title="删除空文件夹"
+						onClick={() => {
+							setMenuOpen(false);
+							controls.onDelete(folder);
+						}}
+					>
+						<Trash2 className="size-3.5" />
 					</Button>
 				</div>
 			))}
@@ -218,6 +231,88 @@ export function AssetLibraryFolderNameDialog({
 						</Button>
 					</div>
 				</form>
+			</AlertDialogContent>
+		</AlertDialog>
+	);
+}
+
+export function AssetLibraryFolderDeleteDialog({
+	folder,
+	parentName,
+	onDelete,
+	onClose,
+}: {
+	folder: AssetLibraryFolder;
+	parentName: string;
+	onDelete: () => Promise<void>;
+	onClose: () => void;
+}) {
+	const [pending, setPending] = useState(false);
+	const [error, setError] = useState("");
+	const confirm = async () => {
+		if (pending) return;
+		setPending(true);
+		setError("");
+		try {
+			await onDelete();
+			onClose();
+		} catch (err) {
+			// httpClient rejects a plain ApiError object, not an Error; read .message from either
+			// shape so a permanent failure (non-empty folder) is not shown as retryable.
+			const message =
+				err instanceof Error
+					? err.message
+					: typeof err === "object" &&
+						  err !== null &&
+						  "message" in err &&
+						  typeof err.message === "string"
+						? err.message
+						: "";
+			setError(message.trim() || "文件夹删除失败，请重试。");
+		} finally {
+			setPending(false);
+		}
+	};
+	return (
+		<AlertDialog open onOpenChange={(open) => !open && !pending && onClose()}>
+			<AlertDialogContent
+				className="max-w-sm"
+				onEscapeKeyDown={(event) => {
+					if (pending) event.preventDefault();
+				}}
+			>
+				<div className="grid gap-4">
+					<AlertDialogTitle>删除文件夹</AlertDialogTitle>
+					<AlertDialogDescription className="break-all">
+						将删除“{folder.name}”这个逻辑目录，不会删除其中的素材文件。仅空目录可以删除。
+						<br />
+						{parentName}
+					</AlertDialogDescription>
+					{error ? (
+						<p role="alert" className="text-xs text-error-foreground">
+							{error}
+						</p>
+					) : null}
+					<div className="flex justify-end gap-2">
+						<Button variant="outline" type="button" disabled={pending} onClick={onClose}>
+							<X className="size-4" />
+							取消
+						</Button>
+						<Button
+							variant="destructive"
+							type="button"
+							disabled={pending}
+							onClick={() => void confirm()}
+						>
+							{pending ? (
+								<Loader2 className="size-4 animate-spin" />
+							) : (
+								<Trash2 className="size-4" />
+							)}
+							删除文件夹
+						</Button>
+					</div>
+				</div>
 			</AlertDialogContent>
 		</AlertDialog>
 	);

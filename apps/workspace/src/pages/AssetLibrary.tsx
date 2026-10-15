@@ -7,6 +7,7 @@ import { WorkspaceUserMenu } from "@/domains/workspace/components/WorkspaceUserM
 import { getRouteProjectId } from "@/domains/workspace/lib/workbench-route";
 import {
 	createLibraryFolder,
+	deleteLibraryFolder,
 	getLibraryFolders,
 	libraryFoldersKey,
 	renameLibraryFolder,
@@ -15,6 +16,7 @@ import {
 import {
 	AssetLibraryFolders,
 	AssetLibraryFolderNameDialog,
+	AssetLibraryFolderDeleteDialog,
 	type AssetLibraryFolderControls,
 } from "@/domains/workspace/components/AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
@@ -42,6 +44,7 @@ export function AssetLibrary() {
 	};
 	const folderId = new URLSearchParams(location.search).get("folderId") || "";
 	const [editingFolder, setEditingFolder] = useState<AssetLibraryFolder | "create" | null>(null);
+	const [deletingFolder, setDeletingFolder] = useState<AssetLibraryFolder | null>(null);
 	const {
 		data: folderData,
 		error: folderError,
@@ -66,6 +69,7 @@ export function AssetLibrary() {
 		onNavigate: navigateFolder,
 		onCreate: () => setEditingFolder("create"),
 		onRename: setEditingFolder,
+		onDelete: setDeletingFolder,
 		onRefresh: () => mutateFolders(),
 	};
 	const saveFolder = async (name: string) => {
@@ -84,6 +88,17 @@ export function AssetLibrary() {
 			{ revalidate: false },
 		);
 		if (editingFolder === "create") navigateFolder(saved.id);
+	};
+	const removeFolder = async () => {
+		if (!deletingFolder) return;
+		await deleteLibraryFolder(projectId, deletingFolder.id);
+		await mutateFolders(
+			(data) => ({
+				folders: (data?.folders ?? []).filter((folder) => folder.id !== deletingFolder.id),
+			}),
+			{ revalidate: false },
+		);
+		if (folderId === deletingFolder.id) navigateFolder(deletingFolder.parentId);
 	};
 	const savedReturn: unknown = location.state?.assetReturnTo;
 	const returnTo =
@@ -151,6 +166,18 @@ export function AssetLibrary() {
 					].join(" / ")}
 					onSave={saveFolder}
 					onClose={() => setEditingFolder(null)}
+				/>
+			) : null}
+			{deletingFolder ? (
+				<AssetLibraryFolderDeleteDialog
+					key={deletingFolder.id}
+					folder={deletingFolder}
+					parentName={[
+						"素材库根目录",
+						...libraryFolderPath(folders, deletingFolder.parentId).map((folder) => folder.name),
+					].join(" / ")}
+					onDelete={removeFolder}
+					onClose={() => setDeletingFolder(null)}
 				/>
 			) : null}
 		</main>

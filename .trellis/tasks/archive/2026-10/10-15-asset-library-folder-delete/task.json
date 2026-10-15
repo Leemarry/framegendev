@@ -1,0 +1,29 @@
+{
+  "id": "asset-library-folder-delete",
+  "name": "asset-library-folder-delete",
+  "title": "TASK-162 空逻辑素材文件夹删除",
+  "description": "为个人本地素材管理补齐空逻辑文件夹删除；含素材或子目录拒绝，保持媒体文件与引用不变；覆盖真实API、页面确认/失败/回根流程",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-15",
+  "completedAt": "2026-10-15",
+  "branch": "codex/task-004-document-reload",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "ledger_id": "TASK-162",
+    "requirement": "REQ-012"
+  }
+}
