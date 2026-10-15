@@ -65,6 +65,7 @@ import { openExternalUrl, pickDesktopDirectory } from "@/shared/desktop/actions"
 import { UpdatesPanel } from "@/domains/settings/components/UpdatesPanel";
 import { BasicSettingsPanel } from "@/domains/settings/components/BasicSettingsPanel";
 import { AccountPanel } from "@/domains/settings/components/AccountPanel";
+import { StoragePanel } from "@/domains/settings/components/StoragePanel";
 import { PendingSettingsPanel } from "@/domains/settings/components/PendingSettingsPanel";
 import {
 	isPendingSettingsTab,
@@ -87,6 +88,7 @@ const providerRowClassName = settingsInsetRowClassName;
 type SettingsTabValue =
 	| "appearance"
 	| "account"
+	| "storage"
 	| "api-keys"
 	| "billing"
 	| "codex-access"
@@ -100,6 +102,7 @@ type SettingsTabValue =
 const isSettingsTabValue = (value: string): value is SettingsTabValue =>
 	value === "appearance" ||
 	value === "account" ||
+	value === "storage" ||
 	value === "api-keys" ||
 	value === "billing" ||
 	value === "codex-access" ||
@@ -145,6 +148,7 @@ export const Settings: React.FC = () => {
 			) : null}
 			{visibleTab === "api-keys" ? <APIKeysPanel /> : null}
 			{visibleTab === "billing" ? <BillingPanel /> : null}
+			{visibleTab === "storage" ? <StoragePanel /> : null}
 			{visibleTab === "codex-access" ? <CodexAccessPanel /> : null}
 			{visibleTab === "codex-skills" ? <CodexSkillsPanel /> : null}
 			{visibleTab === "updates" ? <UpdatesPanel /> : null}

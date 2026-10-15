@@ -8,6 +8,14 @@ import type {
 } from "@/shared/desktop/types";
 import { desktopRuntime } from "@/shared/desktop/runtime";
 
+export const getDesktopCacheStatistics = async () => {
+	if (desktopRuntime() !== "electron") throw new Error("当前运行环境不支持桌面缓存统计。");
+	if (!window.mediagoDesktop?.getCacheStatistics) {
+		throw new Error("未检测到桌面缓存统计接口，请重启或更新桌面客户端。");
+	}
+	return window.mediagoDesktop.getCacheStatistics();
+};
+
 export const subscribeDesktopMenuCommands = (callback: (command: DesktopMenuCommand) => void) =>
 	window.mediagoDesktop?.onMenuCommand?.(callback) ?? (() => {});
 

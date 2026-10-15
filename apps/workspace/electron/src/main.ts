@@ -327,6 +327,15 @@ ipcMain.handle(desktopIpcChannel.openPath, async (event, path: string) => {
 	if (error) throw new Error(error);
 });
 
+ipcMain.handle(desktopIpcChannel.getCacheStatistics, async (event) => {
+	authorizeDesktopIpc(event);
+	return {
+		cacheBytes: await session.defaultSession.getCacheSize(),
+		profilePath: session.defaultSession.storagePath ?? app.getPath("userData"),
+		measuredAt: new Date().toISOString(),
+	};
+});
+
 ipcMain.handle(desktopIpcChannel.revealPath, (event, path: string) => {
 	authorizeDesktopIpc(event);
 	shell.showItemInFolder(path);
