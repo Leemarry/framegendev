@@ -12,9 +12,9 @@ Match the official historical-version dropdown and sidebar selection, with curre
 
 ## Acceptance Criteria
 
-- [ ] Real official dropdown choice updates the sidebar/diff; decorative arrow evidence retained.
-- [ ] Dropdown/sidebar changes stay synchronized across current and older snapshots, failed/retried reads and reload. Selection alone never writes; cancel and actual restart retain full records.
-- [ ] Current/empty/loading/failed history states disable unsafe actions; restore uses the selected hash and original reviewedVersion. Related regression tests and full frontend gates pass, main embedded build and real smoke pass.
+- [x] Real official dropdown choice updates the sidebar/diff; decorative arrow evidence retained.
+- [x] Dropdown/sidebar changes stay synchronized across current and older snapshots, failed/retried reads and reload. Selection alone never writes; cancel and actual restart retain full records.
+- [x] Current/empty/loading/failed history states disable unsafe actions; restore uses the selected hash and original reviewedVersion. Related regression tests and full frontend gates pass, main embedded build and real smoke pass.
 
 ## Notes
 

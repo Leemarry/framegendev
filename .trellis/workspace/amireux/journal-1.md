@@ -1366,3 +1366,25 @@ Read-only complete historical Markdown and exact source accepted; official highl
 ### Next Steps
 
 - TASK-070 version comparison/swap; track cross-project cold document-link canonicalization separately without editing session2-owned navigation.
+
+
+## Session 45: TASK-070 synchronized historical selection accepted
+<!-- trellis-session: v=2 fp=c8883e6fe567ee79 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 synchronized historical selection accepted
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Official dropdown verified; decorative arrow correction recorded. Main50files310tests, frontend gates, Electron and embedded build passed. Actual source/main selection, exact source, cancel/reload/restart preserve complete records; highlighted diff and resources remain.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `49f9a35` | feat(documents): synchronize historical version selection |
+
+### Status
+
+[OK] **Completed**

@@ -21,4 +21,8 @@ The existing shared Select and sidebar now share selectedHash. Current compariso
 
 ## Integration
 
-Pending clean main cherry-pick, combined frontend checks, embedded build and actual existing-fixture smoke/restart. This bounded item is not yet archived; TASK-070 overall still requires highlighted-diff reading and resource/reference review.
+Source f2afc4a cleanly cherry-picked as main49f9a35. Main50files310tests, lint, full707-file format, build, Electron compile and workspace_dist Go build passed. Actual main dropdown current/old switching synchronized sidebar and exact source; current restore disabled, historical image loaded480x640. Cancel/page reload and actual own backend restart retained complete documents/version/history/old snapshot. Mobile dark screenshot inspected. Main31456 now serves mediago-server-history-selector.exe with the existing independent integration config/workspace.
+
+The first redirected main test invocation did not run because its own cache directory was missing; PowerShell returned0 despite the redirection error. Created the cache directory and reran the actual tests, retaining this failure. No backend source changed; full Windows backend quality gates were last passed for the preceding configured-path change, and the current embedded binary build passed.
+
+Only this bounded selector item is accepted. TASK-070 overall still requires highlighted-diff reading and resource/reference review; no native desktop or provider-generation success is claimed. Session2 branch remains617a80d without new submitted results.

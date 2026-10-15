@@ -20,7 +20,7 @@
 
 ## 下一步与限制
 
-1. TASK-181已完成8fc428b。TASK-070历史差异/安全恢复b7bc362→主c2261df已验收：并排/合并/导航、两次409不写入、取消/离线重试/恢复v6、空标签、页面和后端重启全文与六条历史保留。完整Windows check/race已通过。历史阅读/源码/版本互换及资源引用仍未验收，070整体不完成。详见 `.trellis/tasks/archive/2026-10/10-16-document-history-parity/result.md`。GAP-004及旧外部无CAS客户端边界保留。
+1. TASK-181已完成8fc428b。TASK-070历史差异/安全恢复b7bc362→主c2261df已验收：并排/合并/导航、两次409不写入、取消/离线重试/恢复v6、空标签、页面和后端重启全文与六条历史保留。完整Windows check/race已通过。后续全文/源码/历史选择见第10/11项，070整体不完成。详见 `.trellis/tasks/archive/2026-10/10-16-document-history-parity/result.md`。GAP-004及旧外部无CAS客户端边界保留。
 2. TASK-050本地安全f6eb85d→主6ad83ca已验收集成：真实创建/编辑/手动解决/删除、离线保留/刷新恢复/显式合并和非空v12后端重启通过；上下文和结束不误解决由边界测试覆盖。主270测试/前端门/Electron/嵌入构建及实际批注刷新/390px通过。真实Agent未发送，codex-acp缺失503，050整体不完成。结果见 `.trellis/tasks/archive/2026-10/10-16-comment-context-safety/result.md`。会话2项目文件夹打开9b46896/484631f已审阅集成580838e/d2ec9db。
 3. TASK-070分镜正文/时间轴往返194b2e6→主2f171e4已验收：复用已有时间轴/NLE，去掉挂载隐式文档写入，加载/重验/失败无旧片段操作；实际v3全文/版本/历史3重启不变、NLE继续/放弃、离线编辑禁入和v4恢复通过。主66文件376测试、lint/full702-fileformat/build/嵌入Go构建通过，31456实际新分镜→时间轴→NLE→关闭通过。当前主运行mediago-server-timeline.exe；资源栏/引用及历史额外控件仍未完成。详见 `.trellis/tasks/archive/2026-10/10-16-document-timeline-roundtrip/result.md`。下一单项TASK-030/034素材聚合验收。
 4. TASK-030/034本地素材聚合6cc7b90→主03cd506已验收：真实导入/非空目录重挂/元数据/文档引用/失败取消/后端重启，素材ID/hash及正文v2/历史2不变；034完成，030保留官方详情/筛选结构与真实生成采用差距，见对应归档result。主68文件448测试、前端门/Electron/嵌入Go构建通过；测试Router/旧按钮契约修正986ad37。主31456现运行mediago-server-assets.exe；实际导入/列表失败无旧操作/重试/重载及既有文档完整记录不变通过。会话2更新失败重试44e3fce/617a80d已集成1ec42e9/bef6713，实际390px设置导航→更新显示真实浏览器fallback。
@@ -35,7 +35,9 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 9. TASK-030配置根目录投影7c4a3c1→bcb2c6e已验收：全局历史/采用downloadPath与实际配置MediaDir一致，兼容旧相对根/项目/绝对路径；源和主实际重启完整记录不变、文件/content/复制hash一致、取消采用还原，真实图片预览通过。完整Windows门/race、前端门及3文件57测试、主额外race与嵌入构建通过。主31456现运行mediago-server-path.exe；原生目录对话框未验收，030/080/150整体不完成。见media-download-path归档；下一项TASK-070历史/源码/阅读视图。会话2仍617a80d，无新增已验证提交。
 
-10. TASK-070历史全文阅读/精确源码d730d2a→3b88dab已验收：复用文档schema只读展示旧版全文及图片，源文件保留空白，视图切换不改变恢复目标或冻结基线；源离线/重试/取消/刷新及源主后端重启完整文档/版本/历史零写。源47文件266测试、主50文件309测试、前端门/full707format/Electron/嵌入构建通过，深浅/390px/短屏检查通过。主31456现运行mediago-server-history-views.exe。见history-snapshot-views归档。官方差异高亮阅读、版本互换与资源栏重开仍缺；首次跨项目直达documentId被提前规范化移除的导航问题另记，侧栏打开/同文档刷新正常。下一项核实历史比较版本/互换，不修改会话2导航文件；070/150整体未完成。
+10. TASK-070历史全文阅读/精确源码d730d2a→3b88dab已验收：复用文档schema只读展示旧版全文及图片，源文件保留空白，视图切换不改变恢复目标或冻结基线；源离线/重试/取消/刷新及源主后端重启完整文档/版本/历史零写。源47文件266测试、主50文件309测试、前端门/full707format/Electron/嵌入构建通过，深浅/390px/短屏检查通过。见history-snapshot-views归档。首次跨项目直达documentId被提前规范化移除的导航问题另记，侧栏打开/同文档刷新正常，不修改会话2导航文件。
+
+11. TASK-070历史选择f2afc4a→49f9a35已验收：官方实际Version1下拉/侧栏/恢复标签同步，箭头为装饰SVG，纠正此前“版本互换”推断。源主实际当前/旧版切换、精确源码、取消/刷新及后端重启完整记录不变；源离线禁用/恢复和390px菜单Escape焦点通过。主50文件310测试、lint/full707format/build/Electron/嵌入构建通过。主31456现运行mediago-server-history-selector.exe，见history-version-selector归档。下一项核实资源栏/引用重开；官方差异高亮阅读仍缺，070/150整体未完成。会话2仍617a80d，无新增已验证提交。
 
 ## 已核实环境
 
