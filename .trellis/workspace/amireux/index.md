@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 31
-- **Last Active**: 2026-10-15
+- **Total Sessions**: 33
+- **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1012 | Active |
+| `journal-1.md` | ~1064 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,8 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 33 | 2026-10-16 | TASK-070 safe history restore and dual-session integration | `b7bc362` | `codex/parity-s1` |
+| 32 | 2026-10-16 | TASK-181 conflict protection and serial integration | `0d9b182` | `codex/parity-s1` |
 | 31 | 2026-10-15 | TASK-166 补记虚拟桌面体验方法 | `2224675` | `codex/nle-export` |
 | 30 | 2026-10-15 | TASK-041 editable captions actual audio waveforms and native export | - | `codex/nle-export` |
 | 29  | 2026-10-15 | TASK-166 新截图基线复查与渐进资料整理                             | -         | `codex/nle-export`               |

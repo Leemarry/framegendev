@@ -121,7 +121,7 @@ func (store *Service) GetDocumentHistoryDiff(projectID string, documentID string
 }
 
 // RestoreDocumentHistoryVersion restores one historical document version and records the restore as a new commit.
-func (store *Service) RestoreDocumentHistoryVersion(projectID string, documentID string, commitHash string) (DocumentHistoryRestoreResponse, error) {
+func (store *Service) RestoreDocumentHistoryVersion(projectID string, documentID string, commitHash string, expectedVersion *int) (DocumentHistoryRestoreResponse, error) {
 	version, err := store.GetDocumentHistoryVersion(projectID, documentID, commitHash)
 	if err != nil {
 		return DocumentHistoryRestoreResponse{}, err
@@ -130,8 +130,9 @@ func (store *Service) RestoreDocumentHistoryVersion(projectID string, documentID
 	title := strings.TrimSpace(version.Version.Title)
 	content := version.Version.Content
 	request := UpdateWorkspaceDocumentRequest{
-		Content: &content,
-		IsDirty: &clean,
+		Content:         &content,
+		IsDirty:         &clean,
+		ExpectedVersion: expectedVersion,
 	}
 	if title != "" {
 		request.Title = &title
@@ -139,10 +140,8 @@ func (store *Service) RestoreDocumentHistoryVersion(projectID string, documentID
 	if category := NormalizeDocumentCategoryValue(version.Version.Category); category != "" && ValidateDocumentCategory(category) == nil {
 		request.Category = &category
 	}
-	if version.Version.Tags != nil {
-		tags := NormalizeDocumentTags(version.Version.Tags)
-		request.Tags = &tags
-	}
+	tags := NormalizeDocumentTags(version.Version.Tags)
+	request.Tags = &tags
 	document, state, err := store.UpdateWorkspaceDocument(version.ProjectID, version.DocumentID, request)
 	if err != nil {
 		return DocumentHistoryRestoreResponse{}, err

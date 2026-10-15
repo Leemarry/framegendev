@@ -1010,3 +1010,55 @@ Completed NLE subtitle/audio editing, real PCM waveforms, synchronized preview a
 ### Next Steps
 
 - 产品任务仍先TASK-181；本文档补记不代表新增功能或完整官方体验验收。
+
+
+## Session 32: TASK-181 conflict protection and serial integration
+<!-- trellis-session: v=2 fp=5e14f26d49c4a908 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-181 conflict protection and serial integration
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+Preserved local drafts on409/SSE/Agent conflicts, added per-window recovery and explicit merge; integrated as8fc428b with session2 accepted native menu454b90c/e6bf582. Main243 tests, lint/format/build, Electron compile and Windows check including race passed; isolated UI save/reload v2 unchanged. TASK-020 narrow failure and GAP-004 remain open.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0d9b182` | fix(documents): preserve local drafts across save conflicts |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 33: TASK-070 safe history restore and dual-session integration
+<!-- trellis-session: v=2 fp=dd29d837c6ca062d -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 safe history restore and dual-session integration
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+Accepted history diff/restore slice; main c2261df plus session2 verified settings/cache slices integrated and checked.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b7bc362` | feat(documents): compare history and restore with reviewed version checks |
+
+### Testing
+
+- [OK] 40 files237 document tests; main69 files406 tests; frontend gates/Electron; full Windows check/race; actual restore409/cancel/offline/restart and main390px.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-050 comment context and failure protection; whole070 views/resources remain open.

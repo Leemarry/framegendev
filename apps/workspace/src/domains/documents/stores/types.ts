@@ -63,6 +63,8 @@ export interface MarkdownDocument {
 	isDirty: boolean;
 	comments: DocumentComment[];
 	workbenchDraft: DocumentWorkbenchDraft | null;
+	/** Local-only; never advance the save base until the user resolves this conflict. */
+	saveConflict?: { server: MarkdownDocument | null };
 }
 
 export interface DocumentFolder {

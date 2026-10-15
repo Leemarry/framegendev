@@ -405,8 +405,8 @@ func (store *WorkspaceStateService) GetDocumentHistoryDiff(projectID string, doc
 }
 
 // RestoreDocumentHistoryVersion restores a historical document version.
-func (store *WorkspaceStateService) RestoreDocumentHistoryVersion(projectID string, documentID string, commitHash string) (documentHistoryRestoreResponse, error) {
-	return store.StateService().Documents.RestoreDocumentHistoryVersion(projectID, documentID, commitHash)
+func (store *WorkspaceStateService) RestoreDocumentHistoryVersion(projectID string, documentID string, commitHash string, expectedVersion *int) (documentHistoryRestoreResponse, error) {
+	return store.StateService().Documents.RestoreDocumentHistoryVersion(projectID, documentID, commitHash, expectedVersion)
 }
 
 // MoveWorkspaceDocument moves a document in the workspace tree.

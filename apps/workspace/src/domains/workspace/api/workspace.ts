@@ -331,6 +331,7 @@ export type WorkspaceStateRequest = Omit<
 > & {
 	documents: MarkdownDocument[];
 	operationLog: DocumentOperationLogEntry[];
+	expectedVersions?: Record<string, number>;
 };
 
 export const getWorkspaceState = async (projectId?: string | null) => {
@@ -475,9 +476,12 @@ export const restoreWorkspaceDocumentHistoryVersion = async (
 	documentId: string,
 	commitHash: string,
 	projectId?: string | null,
+	expectedVersion?: number,
 ) => {
 	const response = await httpClient.post<RestoreDocumentHistoryResponse>(
 		workspaceDocumentHistoryRestoreKey(documentId, commitHash, projectId),
+		undefined,
+		{ params: expectedVersion === undefined ? undefined : { expectedVersion } },
 	);
 	return response.data;
 };

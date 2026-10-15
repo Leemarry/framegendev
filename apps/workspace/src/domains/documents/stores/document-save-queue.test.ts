@@ -8,6 +8,7 @@ import {
 	resetDocumentSaveQueueForTests,
 	setDocumentSaveBackgroundRetryDelayForTests,
 	setDocumentSaveRetryDelayForTests,
+	resolveDocumentConflict,
 } from "./document-save-queue";
 import { useDocumentsStore } from "./store";
 import type { MarkdownDocument } from "./types";
@@ -91,6 +92,8 @@ const installManualSaveMock = () => {
 
 describe("document save queue", () => {
 	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
 		vi.mocked(updateWorkspaceDocumentRecord).mockReset();
 		vi.mocked(getWorkspaceDocuments).mockReset();
 		resetDocumentSaveQueueForTests();
@@ -137,7 +140,7 @@ describe("document save queue", () => {
 		expect(useDocumentsStore.getState().syncStatus).toBe("synced");
 	});
 
-	it("recovers from a version conflict by rebasing onto the server version without dropping local text", async () => {
+	it("pauses a conflict, retains both versions and saves only an explicit merge", async () => {
 		const calls = installManualSaveMock();
 		vi.mocked(getWorkspaceDocuments).mockResolvedValue({
 			workspaceDir: "/workspace/project-a",
@@ -152,8 +155,22 @@ describe("document save queue", () => {
 		// Backend rejects: someone advanced the server version behind our back.
 		calls[0].reject({ code: 409, message: "版本冲突" });
 
-		// The queue refetches the server version and retries with local content
-		// intact — no rollback of what the user typed.
+		await waitFor(() => expect(storeDocument("doc-a")?.saveConflict?.server?.version).toBe(7));
+		expect(calls).toHaveLength(1);
+		expect(storeDocument("doc-a")?.version).toBe(1);
+		useDocumentsStore.getState().updateDocumentContent("doc-a", "# 本地继续编辑\n");
+		expect(calls).toHaveLength(1);
+		const server = storeDocument("doc-a")?.saveConflict?.server;
+		if (!server) throw new Error("missing server snapshot");
+		resolveDocumentConflict(
+			{ get: useDocumentsStore.getState, set: useDocumentsStore.setState },
+			"doc-a",
+			server,
+			{
+				title: "doc-a",
+				content: "# doc-a\n\n用户刚输入的内容。\n",
+			},
+		);
 		await waitFor(() => expect(calls).toHaveLength(2));
 		expect(calls[1].payload).toMatchObject({
 			content: "# doc-a\n\n用户刚输入的内容。\n",
@@ -170,6 +187,100 @@ describe("document save queue", () => {
 				version: 8,
 			}),
 		);
+	});
+
+	it("does not adopt a newer SSE version or allow streaming edits to replace unsaved work", () => {
+		const calls = installManualSaveMock();
+		hydrateProject([makeDocument("doc-a")]);
+		useDocumentsStore.getState().updateDocumentContent("doc-a", "local");
+		useDocumentsStore.getState().applyWorkspaceDelta({
+			changedDocuments: [{ ...makeDocument("doc-a", 5), content: "remote" }],
+			removedDocumentIds: [],
+		});
+		useDocumentsStore
+			.getState()
+			.applyStreamingDocumentEdit({ documentId: "doc-a", content: "agent", status: "completed" });
+		expect(storeDocument("doc-a")).toMatchObject({
+			content: "local",
+			version: 1,
+			isDirty: true,
+			saveConflict: { server: { content: "remote", version: 5 } },
+		});
+		expect(calls).toHaveLength(1);
+	});
+
+	it("restores an unsaved draft on reload as a paused conflict without a write", () => {
+		installManualSaveMock();
+		hydrateProject([makeDocument("doc-a")]);
+		useDocumentsStore.getState().updateDocumentContent("doc-a", "recovery text");
+		useDocumentsStore.getState().prepareWorkspaceLoad("reload");
+		hydrateProject([{ ...makeDocument("doc-a", 4), content: "server text" }]);
+		expect(storeDocument("doc-a")).toMatchObject({
+			content: "recovery text",
+			version: 1,
+			isDirty: true,
+			saveConflict: { server: { content: "server text", version: 4 } },
+		});
+		expect(updateWorkspaceDocumentRecord).toHaveBeenCalledTimes(1);
+	});
+
+	it("ignores its own SSE echo while a save is in flight", async () => {
+		const calls = installManualSaveMock();
+		hydrateProject([makeDocument("doc-a")]);
+		useDocumentsStore.getState().updateDocumentContent("doc-a", "sent text");
+		const saved = { ...makeDocument("doc-a", 2), content: "sent text" };
+		useDocumentsStore
+			.getState()
+			.applyWorkspaceDelta({ changedDocuments: [saved], removedDocumentIds: [] });
+		expect(storeDocument("doc-a")?.saveConflict).toBeUndefined();
+		calls[0].resolve(saved);
+		await waitFor(() => expect(storeDocument("doc-a")?.isDirty).toBe(false));
+	});
+
+	it("keeps a deleted remote document recoverable after reload", () => {
+		installManualSaveMock();
+		hydrateProject([makeDocument("doc-a")]);
+		useDocumentsStore.getState().updateDocumentContent("doc-a", "deleted document recovery");
+		useDocumentsStore
+			.getState()
+			.applyWorkspaceDelta({ changedDocuments: [], removedDocumentIds: ["doc-a"] });
+		expect(storeDocument("doc-a")?.saveConflict).toEqual({ server: null });
+		useDocumentsStore.getState().prepareWorkspaceLoad("reload");
+		hydrateProject([]);
+		expect(storeDocument("doc-a")).toMatchObject({
+			content: "deleted document recovery",
+			version: 1,
+			isDirty: true,
+			saveConflict: { server: null },
+		});
+	});
+
+	it("does not continue an old project's save loop against a new project with the same document ID", async () => {
+		const calls = installManualSaveMock();
+		hydrateProject([makeDocument("doc-a")]);
+		useDocumentsStore.getState().updateDocumentContent("doc-a", "project a");
+		useDocumentsStore.getState().prepareWorkspaceLoad("switch");
+		useDocumentsStore
+			.getState()
+			.hydrateWorkspaceState([makeDocument("doc-a")], [], "/workspace/project-b", "project-b");
+		useDocumentsStore.getState().updateDocumentContent("doc-a", "project b");
+		expect(calls).toHaveLength(2);
+		calls[0].resolve({ ...makeDocument("doc-a", 2), content: "project a" });
+		calls[1].resolve({ ...makeDocument("doc-a", 2), content: "project b" });
+		await waitFor(() => expect(storeDocument("doc-a")?.isDirty).toBe(false));
+		expect(storeDocument("doc-a")?.content).toBe("project b");
+		expect(calls).toHaveLength(2);
+	});
+
+	it("retains the original base when the conflicting server copy cannot be loaded", async () => {
+		const calls = installManualSaveMock();
+		vi.mocked(getWorkspaceDocuments).mockRejectedValue(new Error("offline"));
+		hydrateProject([makeDocument("doc-a")]);
+		useDocumentsStore.getState().updateDocumentContent("doc-a", "local");
+		calls[0].reject({ code: 409 });
+		await waitFor(() => expect(storeDocument("doc-a")?.saveConflict).toEqual({ server: null }));
+		expect(storeDocument("doc-a")).toMatchObject({ content: "local", version: 1, isDirty: true });
+		expect(calls).toHaveLength(1);
 	});
 
 	it("keeps local content and the dirty flag when saving fails repeatedly", async () => {
