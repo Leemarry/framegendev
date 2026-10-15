@@ -1,6 +1,8 @@
 import { createTextAnchor, findMarkdownBlockForAnchor } from "@/domains/documents/lib/operations";
 import { isOverviewDocumentId } from "@/lib/overview/overview-template";
 import type { DocumentActionContext, DocumentsActions } from "./action-types";
+import { recoverDocument, recoverMissingDocuments } from "./document-recovery";
+import { isDocumentSaveEcho } from "./document-save-queue";
 import {
 	firstEditableDocumentId,
 	normalizeDocuments,
@@ -58,11 +60,17 @@ export const createDocumentSyncActions = ({ get, set }: DocumentActionContext): 
 				if (removed.has(document.id) && !document.isDirty) continue;
 				seen.add(document.id);
 				const incoming = changedById.get(document.id);
-				merged.push(incoming ? mergeIncomingDocument(document, incoming) : document);
+				merged.push(
+					removed.has(document.id) && document.isDirty
+						? { ...document, saveConflict: { server: null } }
+						: incoming
+							? mergeIncomingDocument(document, incoming, state.projectId)
+							: document,
+				);
 			}
 			for (const document of changedDocuments) {
 				if (!seen.has(document.id) && !removed.has(document.id)) {
-					merged.push(document);
+					merged.push(recoverDocument(state.projectId, document));
 				}
 			}
 
@@ -271,18 +279,22 @@ const hydratedSyncState = (
  *
  * - A dirty local copy always wins on content-bearing fields: unsaved edits are
  *   never overwritten by echoes of earlier saves or concurrent refetches. Only
- *   the version advances so the next save targets the current server version.
+ *   the original save base is retained; a newer server version pauses saving.
  * - A clean local copy accepts the incoming document unless it is stale, i.e.
  *   its version is older than what the server already confirmed to us.
  */
 const mergeIncomingDocument = (
 	local: MarkdownDocument,
 	incoming: MarkdownDocument,
+	projectId: string | null,
 ): MarkdownDocument => {
 	if (local.isDirty) {
 		return {
 			...local,
-			version: Math.max(local.version, incoming.version),
+			saveConflict:
+				incoming.version > local.version && !isDocumentSaveEcho(incoming, projectId)
+					? { server: incoming }
+					: local.saveConflict,
 			filename: incoming.filename ?? local.filename,
 		};
 	}
@@ -303,18 +315,24 @@ const mergeWorkspaceDocuments = (
 	incomingDocuments: MarkdownDocument[],
 ): MarkdownDocument[] => {
 	if (state.projectId !== incomingProjectId || state.documents.length === 0) {
-		return incomingDocuments;
+		return [
+			...incomingDocuments.map((document) => recoverDocument(incomingProjectId, document)),
+			...recoverMissingDocuments(
+				incomingProjectId,
+				new Set(incomingDocuments.map((document) => document.id)),
+			),
+		];
 	}
 
 	const localById = new Map(state.documents.map((document) => [document.id, document]));
 	const merged = incomingDocuments.map((incoming) => {
 		const local = localById.get(incoming.id);
-		return local ? mergeIncomingDocument(local, incoming) : incoming;
+		return local ? mergeIncomingDocument(local, incoming, incomingProjectId) : incoming;
 	});
 	const incomingIds = new Set(incomingDocuments.map((document) => document.id));
 	for (const document of state.documents) {
 		if (document.isDirty && !incomingIds.has(document.id)) {
-			merged.push(document);
+			merged.push({ ...document, saveConflict: { server: null } });
 		}
 	}
 	return merged;

@@ -130,6 +130,8 @@ const createFakeWorkspaceEventSource = (): FakeWorkspaceEventSource => {
 
 describe("documents store remote sync", () => {
 	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
 		vi.unstubAllGlobals();
 		vi.mocked(useSWR).mockReset();
 		vi.mocked(mutateSWR).mockClear();
@@ -924,11 +926,12 @@ describe("documents store remote sync", () => {
 		const state = useDocumentsStore.getState();
 		const byId = new Map(state.documents.map((document) => [document.id, document]));
 		expect([...byId.keys()].sort()).toEqual(["doc-clean", "doc-local", "doc-remote"]);
-		// Dirty local edits survive the reconcile; only the version advances.
+		// Dirty local edits retain their original base and expose the server copy.
 		expect(byId.get("doc-local")).toMatchObject({
 			content: "# 本地未保存\n",
 			isDirty: true,
-			version: 3,
+			version: 1,
+			saveConflict: { server: { version: 3 } },
 		});
 		// Clean documents accept newer backend content, and new documents appear.
 		expect(byId.get("doc-clean")?.content).toBe("# 服务端新内容\n");

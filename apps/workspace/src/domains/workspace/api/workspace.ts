@@ -331,6 +331,7 @@ export type WorkspaceStateRequest = Omit<
 > & {
 	documents: MarkdownDocument[];
 	operationLog: DocumentOperationLogEntry[];
+	expectedVersions?: Record<string, number>;
 };
 
 export const getWorkspaceState = async (projectId?: string | null) => {

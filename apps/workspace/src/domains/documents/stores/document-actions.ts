@@ -49,6 +49,17 @@ export const createDocumentMutationActions = ({
 		set((state) => {
 			const updatedAt = edit.updatedAt || new Date().toISOString();
 			const existing = state.documents.find((document) => document.id === documentId);
+			if (existing?.isDirty || existing?.saveConflict) {
+				return {
+					documents: state.documents.map((document) =>
+						document.id === documentId
+							? { ...document, saveConflict: document.saveConflict ?? { server: null } }
+							: document,
+					),
+					syncStatus: "error",
+					syncMessage: "Agent 正在修改文档，本地修改已保留，请处理冲突",
+				};
+			}
 			const title = edit.title?.trim() || existing?.title || "生成中文档";
 			const content = streamingDocumentContent(existing?.content ?? "", title, edit);
 			const parentId =

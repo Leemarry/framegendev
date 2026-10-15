@@ -13,6 +13,7 @@ import {
 } from "@/domains/workspace/api/workspace";
 import type { DocumentFolder, MarkdownDocument } from "@/domains/documents/stores";
 import { useDocumentsStore } from "@/domains/documents/stores";
+import { DocumentConflictNotice } from "./DocumentConflictNotice";
 
 interface DocumentStateSyncProps {
 	projectId?: string | null;
@@ -127,7 +128,7 @@ export const DocumentStateSync: React.FC<DocumentStateSyncProps> = ({ projectId 
 		};
 	}, [projectId]);
 
-	return null;
+	return <DocumentConflictNotice key={projectId} />;
 };
 
 const parseWorkspaceEvent = (raw: unknown): WorkspaceEventPayload | null => {

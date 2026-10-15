@@ -4,6 +4,7 @@ import {
 } from "@/domains/workspace/api/workspace";
 import { createStore } from "@/shared/lib/utils";
 import { createDocumentActions } from "./actions";
+import { persistDocumentRecovery } from "./document-recovery";
 import { editableDocuments } from "./helpers";
 import type { DocumentRollbackSnapshot } from "./action-types";
 import type {
@@ -107,6 +108,15 @@ export const selectActiveDocument = () => {
 		null
 	);
 };
+
+useDocumentsStore.subscribe((state, previous) => {
+	if (!state.projectId || state.documents === previous.documents) return;
+	try {
+		persistDocumentRecovery(state.projectId, state.documents);
+	} catch {
+		state.markWorkspaceSyncStatus("error", "本地恢复稿写入失败，请保留窗口并备份未保存内容");
+	}
+});
 
 export const selectActiveDocumentOpenComments = (() => {
 	let lastDocumentId = "";

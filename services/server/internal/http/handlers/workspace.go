@@ -254,6 +254,10 @@ func (handler Workspace) HandlePutWorkspaceState(context *gin.Context) {
 
 	state, err := handler.store.SaveWorkspaceState(projectID, payload)
 	if err != nil {
+		if handler.matchesVersionConflict(err) {
+			httpresponse.ErrorFromStatus(context, http.StatusConflict, err)
+			return
+		}
 		httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
 		return
 	}

@@ -10,9 +10,9 @@ import {
 	type DocumentOperation,
 } from "@/domains/documents/lib/operations";
 import { asOperationDocument, createId, rollbackSnapshot, snapshotDocument } from "./helpers";
-import { scheduleDocumentSave } from "./document-save-queue";
+import { refreshDocumentConflict, scheduleDocumentSave } from "./document-save-queue";
 import type { DocumentActionContext, DocumentsActions } from "./action-types";
-import type { DocumentOperationLogEntry } from "./types";
+import type { DocumentOperationLogEntry, MarkdownDocument } from "./types";
 
 type OperationActions = Pick<
 	DocumentsActions,
@@ -77,6 +77,9 @@ export const createDocumentOperationActions = ({
 		if (scheduledDocumentId) scheduleDocumentSave({ get, set }, scheduledDocumentId);
 	},
 	applyOperations: (documentId, operations, options) => {
+		if (get().documents.find((document) => document.id === documentId)?.saveConflict) {
+			return { applied: 0, rejected: [] };
+		}
 		let applied = 0;
 		let logEntryId: string | undefined;
 		let rejected: TemplateConstraintRejection<DocumentOperation>[] = [];
@@ -133,13 +136,25 @@ export const createDocumentOperationActions = ({
 						{
 							documents,
 							operationLog: nextOperationLog,
+							expectedVersions: Object.fromEntries(
+								state.documents.map((document) => [document.id, document.version]),
+							),
 						},
 						capturedProjectId,
 					)
 						.then((savedState) => {
 							dependencies.hydrateWorkspaceStateForProject(savedState, capturedProjectId);
 						})
-						.catch(() => {
+						.catch((error: unknown) => {
+							if (error && typeof error === "object" && "code" in error && error.code === 409) {
+								retainOperationConflict(
+									{ get, set },
+									capturedProjectId,
+									documentId,
+									rollback.documents,
+								);
+								return;
+							}
 							dependencies.rollbackWorkspaceStateForProject(
 								capturedProjectId,
 								rollback,
@@ -192,6 +207,11 @@ export const createDocumentOperationActions = ({
 		);
 	},
 	undoLastOperation: (documentId) => {
+		if (
+			get().documents.find((document) => document.id === (documentId ?? get().activeDocumentId))
+				?.saveConflict
+		)
+			return false;
 		let didUndo = false;
 		let persistMutation: (() => void) | null = null;
 
@@ -223,11 +243,29 @@ export const createDocumentOperationActions = ({
 			const capturedProjectId = state.projectId;
 			const rollback = rollbackSnapshot(state);
 			persistMutation = () => {
-				void updateWorkspaceState({ documents, operationLog }, capturedProjectId)
+				void updateWorkspaceState(
+					{
+						documents,
+						operationLog,
+						expectedVersions: Object.fromEntries(
+							state.documents.map((document) => [document.id, document.version]),
+						),
+					},
+					capturedProjectId,
+				)
 					.then((savedState) => {
 						dependencies.hydrateWorkspaceStateForProject(savedState, capturedProjectId);
 					})
-					.catch(() => {
+					.catch((error: unknown) => {
+						if (error && typeof error === "object" && "code" in error && error.code === 409) {
+							retainOperationConflict(
+								{ get, set },
+								capturedProjectId,
+								targetDocumentId,
+								rollback.documents,
+							);
+							return;
+						}
 						dependencies.rollbackWorkspaceStateForProject(
 							capturedProjectId,
 							rollback,
@@ -265,4 +303,29 @@ export const createDocumentOperationActions = ({
 
 const runDeferredMutation = (mutation: (() => void) | null) => {
 	if (mutation) mutation();
+};
+
+const retainOperationConflict = (
+	context: Pick<DocumentActionContext, "get" | "set">,
+	projectId: string | null,
+	documentId: string,
+	before: MarkdownDocument[],
+) => {
+	if (!projectId || context.get().projectId !== projectId) return;
+	const base = before.find((document) => document.id === documentId);
+	context.set((state) => ({
+		documents: state.documents.map((document) =>
+			document.id === documentId
+				? {
+						...document,
+						version: base?.version ?? document.version,
+						isDirty: true,
+						saveConflict: { server: null },
+					}
+				: document,
+		),
+		syncStatus: "error",
+		syncMessage: "文档操作发生冲突，本地修改已保留",
+	}));
+	void refreshDocumentConflict(context, documentId, projectId);
 };

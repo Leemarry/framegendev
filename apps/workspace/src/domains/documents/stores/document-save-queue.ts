@@ -24,6 +24,7 @@ interface DocumentSaveTask {
 	running: boolean;
 	rerun: boolean;
 	retryTimer: ReturnType<typeof setTimeout> | null;
+	sent?: MarkdownDocument;
 }
 
 export interface DocumentSaveQueueContext {
@@ -63,8 +64,12 @@ export const resetDocumentSaveQueueForTests = () => {
  * once the in-flight request settles.
  */
 export const scheduleDocumentSave = (context: DocumentSaveQueueContext, documentId: string) => {
-	const task = saveTasks.get(documentId) ?? { running: false, rerun: false, retryTimer: null };
-	saveTasks.set(documentId, task);
+	const projectId = context.get().projectId;
+	if (!projectId) return;
+	if (context.get().documents.find((document) => document.id === documentId)?.saveConflict) return;
+	const key = JSON.stringify([projectId, documentId]);
+	const task = saveTasks.get(key) ?? { running: false, rerun: false, retryTimer: null };
+	saveTasks.set(key, task);
 	if (task.retryTimer) {
 		clearTimeout(task.retryTimer);
 		task.retryTimer = null;
@@ -74,9 +79,9 @@ export const scheduleDocumentSave = (context: DocumentSaveQueueContext, document
 		return;
 	}
 	task.running = true;
-	void runDocumentSaveLoop(context, documentId, task).finally(() => {
+	void runDocumentSaveLoop(context, projectId, documentId, task).finally(() => {
 		task.running = false;
-		if (task.rerun) {
+		if (task.rerun && context.get().projectId === projectId) {
 			task.rerun = false;
 			scheduleDocumentSave(context, documentId);
 		}
@@ -85,6 +90,7 @@ export const scheduleDocumentSave = (context: DocumentSaveQueueContext, document
 
 const runDocumentSaveLoop = async (
 	context: DocumentSaveQueueContext,
+	projectId: string,
 	documentId: string,
 	task: DocumentSaveTask,
 ) => {
@@ -92,11 +98,12 @@ const runDocumentSaveLoop = async (
 	while (true) {
 		task.rerun = false;
 		const state = context.get();
-		const projectId = state.projectId;
+		if (state.projectId !== projectId) return;
 		const document = state.documents.find((item) => item.id === documentId);
-		if (!document || !document.isDirty || !projectId) return;
+		if (!document || !document.isDirty || !projectId || document.saveConflict) return;
 
 		try {
+			task.sent = document;
 			const { document: saved } = await updateWorkspaceDocumentRecord(
 				documentId,
 				{
@@ -118,26 +125,29 @@ const runDocumentSaveLoop = async (
 		} catch (error) {
 			attempts += 1;
 			if (isVersionConflictError(error)) {
-				// Someone else advanced the server version (echo of an unversioned
-				// write, agent edit, external file change). Local content wins:
-				// rebase onto the current server version and retry; document
-				// history keeps the overwritten server copy recoverable.
-				const rebased =
-					attempts < maxSaveAttemptsPerBurst &&
-					(await rebaseDocumentVersionFromServer(context, documentId, projectId));
-				if (!rebased) {
-					markSaveFailed(context, projectId, "文档保存冲突，本地修改已保留，稍后自动重试");
-					scheduleBackgroundRetry(context, documentId, task);
-					return;
-				}
-				continue;
+				context.set((state) =>
+					state.projectId !== projectId
+						? state
+						: {
+								documents: state.documents.map((item) =>
+									item.id === documentId
+										? { ...item, saveConflict: item.saveConflict ?? { server: null } }
+										: item,
+								),
+							},
+				);
+				markSaveFailed(context, projectId, "文档保存冲突，自动保存已暂停，本地修改已保留");
+				await refreshDocumentConflict(context, documentId, projectId);
+				return;
 			}
 			if (attempts >= maxSaveAttemptsPerBurst) {
 				markSaveFailed(context, projectId, "文档保存失败，本地修改已保留，稍后自动重试");
-				scheduleBackgroundRetry(context, documentId, task);
+				scheduleBackgroundRetry(context, projectId, documentId, task);
 				return;
 			}
 			await sleep(saveRetryDelayMs);
+		} finally {
+			task.sent = undefined;
 		}
 	}
 };
@@ -162,15 +172,12 @@ export const acknowledgeDocumentSave = (
 				if (document.isDirty) allClean = false;
 				return document;
 			}
+			if (document.saveConflict) {
+				allClean = false;
+				return document;
+			}
 			const unchangedSinceSend =
-				document.content === sent.content &&
-				document.title === sent.title &&
-				document.parentId === sent.parentId &&
-				document.folderId === sent.folderId &&
-				document.sortOrder === sent.sortOrder &&
-				document.category === sent.category &&
-				document.comments === sent.comments &&
-				document.workbenchDraft === sent.workbenchDraft;
+				!document.saveConflict && persistedFields(document) === persistedFields(sent);
 			if (!unchangedSinceSend) allClean = false;
 			return {
 				...document,
@@ -188,21 +195,22 @@ export const acknowledgeDocumentSave = (
 
 const scheduleBackgroundRetry = (
 	context: DocumentSaveQueueContext,
+	projectId: string,
 	documentId: string,
 	task: DocumentSaveTask,
 ) => {
 	if (task.retryTimer) return;
 	task.retryTimer = setTimeout(() => {
 		task.retryTimer = null;
-		scheduleDocumentSave(context, documentId);
+		if (context.get().projectId === projectId) scheduleDocumentSave(context, documentId);
 	}, saveBackgroundRetryDelayMs);
 };
 
 /**
  * After a version conflict, fetch the server's current version for the
- * document and adopt it as the new save base while keeping local content.
+ * document without adopting it as the save base or changing local content.
  */
-const rebaseDocumentVersionFromServer = async (
+export const refreshDocumentConflict = async (
 	context: DocumentSaveQueueContext,
 	documentId: string,
 	projectId: string,
@@ -215,13 +223,73 @@ const rebaseDocumentVersionFromServer = async (
 			if (state.projectId !== projectId) return state;
 			return {
 				documents: state.documents.map((document) =>
-					document.id === documentId ? { ...document, version: serverDocument.version } : document,
+					document.id === documentId && document.isDirty
+						? { ...document, saveConflict: { server: serverDocument } }
+						: document,
 				),
 			};
 		});
 		return true;
 	} catch {
 		return false;
+	}
+};
+
+const persistedFields = (document: MarkdownDocument) =>
+	JSON.stringify(
+		[
+			document.title,
+			document.content,
+			document.parentId,
+			document.folderId ?? null,
+			document.sortOrder,
+			document.category,
+			document.comments.map((comment) => ({
+				...comment,
+				updatedAt: comment.updatedAt ?? comment.createdAt,
+			})),
+			document.workbenchDraft,
+		],
+		(_key, value: unknown) =>
+			value && typeof value === "object" && !Array.isArray(value)
+				? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+				: value,
+	);
+
+export const isDocumentSaveEcho = (incoming: MarkdownDocument, projectId: string | null) => {
+	const sent = saveTasks.get(JSON.stringify([projectId, incoming.id]))?.sent;
+	return Boolean(
+		sent &&
+		incoming.version === sent.version + 1 &&
+		persistedFields(incoming) === persistedFields(sent),
+	);
+};
+
+/** Resolving against the displayed version deliberately allows a fresh 409. */
+export const resolveDocumentConflict = (
+	context: DocumentSaveQueueContext,
+	documentId: string,
+	server: MarkdownDocument,
+	merged?: { title: string; content: string },
+) => {
+	context.set((state) => ({
+		documents: state.documents.map((local) => {
+			if (local.id !== documentId || !local.saveConflict) return local;
+			if (!merged) return { ...server, isDirty: false, saveConflict: undefined };
+			const comments = new Map(server.comments.map((comment) => [comment.id, comment]));
+			for (const comment of local.comments) comments.set(comment.id, comment);
+			return {
+				...server,
+				...merged,
+				comments: [...comments.values()],
+				isDirty: true,
+				saveConflict: undefined,
+			};
+		}),
+	}));
+	if (merged) scheduleDocumentSave(context, documentId);
+	else if (!context.get().documents.some((document) => document.isDirty)) {
+		context.get().markWorkspaceSyncStatus("synced", "已重载服务器版本，本地副本已保留");
 	}
 };
 

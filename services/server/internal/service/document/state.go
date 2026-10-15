@@ -34,6 +34,25 @@ func (store *Service) save(projectID string, request workspaceStateRequest) (wor
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
+	if request.ExpectedVersions != nil {
+		current, err := store.loadUnlocked(projectID)
+		if err != nil {
+			return workspaceStateResponse{}, err
+		}
+		seen := make(map[string]bool, len(current.Documents))
+		for _, document := range current.Documents {
+			seen[document.ID] = true
+			expected, ok := request.ExpectedVersions[document.ID]
+			if !ok || expected != document.Version {
+				return workspaceStateResponse{}, workspaceVersionConflictError{DocumentID: document.ID, Expected: expected, Current: document.Version}
+			}
+		}
+		for id, expected := range request.ExpectedVersions {
+			if !seen[id] {
+				return workspaceStateResponse{}, workspaceVersionConflictError{DocumentID: id, Expected: expected, Current: 0}
+			}
+		}
+	}
 	return store.saveUnlocked(projectID, request)
 }
 

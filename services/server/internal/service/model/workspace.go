@@ -41,8 +41,9 @@ type WorkspaceStateResponse struct {
 
 // WorkspaceStateRequest replaces workspace documents and operation history.
 type WorkspaceStateRequest struct {
-	Documents    []mediamcp.WorkspaceDocument `json:"documents"`
-	OperationLog []DocumentOperationLogRecord `json:"operationLog"`
+	Documents        []mediamcp.WorkspaceDocument `json:"documents"`
+	OperationLog     []DocumentOperationLogRecord `json:"operationLog"`
+	ExpectedVersions map[string]int               `json:"expectedVersions,omitempty"`
 }
 
 // WorkspaceDocumentsResponse is the document list payload for a workspace project.
