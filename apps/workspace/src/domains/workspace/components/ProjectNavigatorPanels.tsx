@@ -7,13 +7,10 @@ import {
 	FileText,
 	File,
 	Film,
-	Download,
 	Image as ImageIcon,
-	Keyboard,
 	KeyRound,
 	Loader2,
 	Network,
-	ReceiptText,
 	Settings,
 	SlidersHorizontal,
 	SquarePen,
@@ -49,6 +46,7 @@ import { projectSettingsGeneralTab, type SettingsTabValue } from "@/lib/stores/s
 import { openExternalUrl } from "@/shared/desktop/actions";
 import { cn } from "@/shared/lib/utils";
 import { debugTabs, type DebugTabValue } from "@/pages/Debug";
+import { officialSettingsGroups } from "@/domains/settings/lib/settings-navigation";
 import { GenerationNotificationButton } from "./GenerationNotificationButton";
 import { openGenerationConversationCreateDialog } from "./GenerationConversationCreateDialog";
 import { GlobalToolboxButton } from "./GlobalToolboxDrawer";
@@ -630,22 +628,11 @@ const settingsNavGroups = (activeAgentBackendId = "codex"): SettingsNavGroup[] =
 		generationItems.push({ value: "codex-access", label: "Codex 接入", icon: Network });
 	}
 	generationItems.push({ value: "codex-skills", label: "Codex 技能", icon: Blocks });
-	generationItems.push(debugNavItem("instructions"), debugNavItem("prompt-packs"));
-	return [
-		{
-			label: "工作区",
-			items: [
-				{ value: "appearance", label: "基础设置", icon: SlidersHorizontal },
-				{ value: "shortcuts", label: "快捷键", icon: Keyboard },
-				{ value: "billing", label: "用量与账单", icon: ReceiptText },
-				{ value: "updates", label: "应用更新", icon: Download },
-			],
-		},
-		{
-			label: "生成配置",
-			items: generationItems,
-		},
-	];
+	generationItems.push(debugNavItem("instructions"));
+	return officialSettingsGroups.map((group) => ({
+		...group,
+		items: group.label === "生成配置" ? [...group.items, ...generationItems] : group.items,
+	}));
 };
 
 export const SettingsSidebarPanel: React.FC<{
@@ -699,17 +686,17 @@ export const SettingsSidebarPanel: React.FC<{
 			</div>
 		);
 	return (
-		<div className="flex h-full flex-col">
+		<div className="flex h-full min-h-0 flex-col">
 			<button
 				type="button"
 				onClick={onBack}
-				className="flex h-9 w-full items-center gap-2 rounded-sm px-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-ide-list-hover"
+				className="flex h-9 w-full shrink-0 items-center gap-2 rounded-sm px-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-ide-list-hover"
 			>
 				<ChevronLeft className="size-4 shrink-0 text-muted-foreground" />
 				<span className="min-w-0 flex-1 truncate">返回</span>
 			</button>
 
-			<div className="space-y-4 mt-2">
+			<div className="mt-2 min-h-0 flex-1 space-y-4 overflow-y-auto" aria-label="设置导航">
 				{settingsNavGroups(activeAgentBackendId).map((group) => (
 					<section key={group.label} className="space-y-1">
 						<p className="px-2 text-2xs font-semibold text-muted-foreground">{group.label}</p>
@@ -728,7 +715,7 @@ export const SettingsSidebarPanel: React.FC<{
 					</section>
 				))}
 			</div>
-			<div className="mt-auto flex justify-end gap-1 pt-2">
+			<div className="mt-auto flex shrink-0 justify-end gap-1 pt-2">
 				<AssetLibraryButton />
 				<GlobalToolboxButton />
 				{onOpenGenerationNotification ? (

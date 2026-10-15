@@ -73,6 +73,11 @@ import { getProjects, projectsKey } from "@/domains/projects/api/projects";
 import { isDesktopRuntime, openProjectDirectory } from "@/domains/projects/lib/project-directory";
 import { openExternalUrl, pickDesktopDirectory } from "@/shared/desktop/actions";
 import { UpdatesPanel } from "@/domains/settings/components/UpdatesPanel";
+import { PendingSettingsPanel } from "@/domains/settings/components/PendingSettingsPanel";
+import {
+	isPendingSettingsTab,
+	type PendingSettingsTab,
+} from "@/domains/settings/lib/settings-navigation";
 
 const jianyingDraftSettingsEnabled: boolean = false;
 const customProvidersEnabled = import.meta.env.VITE_ENABLE_CUSTOM_PROVIDERS !== "false";
@@ -96,6 +101,7 @@ type SettingsTabValue =
 	| "jianying-draft"
 	| "updates"
 	| "shortcuts"
+	| PendingSettingsTab
 	| DebugTabValue;
 
 const isSettingsTabValue = (value: string): value is SettingsTabValue =>
@@ -107,6 +113,7 @@ const isSettingsTabValue = (value: string): value is SettingsTabValue =>
 	value === "updates" ||
 	(jianyingDraftSettingsEnabled && value === "jianying-draft") ||
 	value === "shortcuts" ||
+	isPendingSettingsTab(value) ||
 	debugTabs.some((tab) => tab.value === value);
 
 const normalizeSettingsTab = (value: string) =>
@@ -151,6 +158,9 @@ export const Settings: React.FC = () => {
 			{visibleTab === "codex-skills" ? <CodexSkillsPanel /> : null}
 			{visibleTab === "updates" ? <UpdatesPanel /> : null}
 			{visibleTab === "shortcuts" ? <ShortcutKeysPanel /> : null}
+			{isPendingSettingsTab(visibleTab) ? (
+				<PendingSettingsPanel tab={visibleTab} isCodexActive={isCodexActive} />
+			) : null}
 
 			{debugTabs.map((tab) =>
 				visibleTab === tab.value ? <DebugTabPanel key={tab.value} value={tab.value} /> : null,
