@@ -1,7 +1,10 @@
 # Project Workflow and Parity Evidence
 
-Development root: `E:/AI/framegendev`. Source/screenshots outside it are
-reference-only. Never access `%APPDATA%/mediago-drama/workspace-v2`.
+Integration root: `E:/AI/framegendev`. User-authorized development worktrees are
+`E:/AI/framegendev-wt/session-1` and `E:/AI/framegendev-wt/session-2`; see
+CURRENT-HANDOFF for their shared baseline, file owners and isolated runtime ports.
+Other source/screenshots are reference-only. Never access
+`%APPDATA%/mediago-drama/workspace-v2`.
 
 Authoritative sources relative to repository root:
 

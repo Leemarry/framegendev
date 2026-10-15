@@ -4,6 +4,12 @@
 
 ## 任务与协作
 
+- 2026-10-15 双会话隔离：源码共同起点 `c5a173841473210ea1b100f83c4a6b11ef54cba7`；两开发分支从包含本约定的同一提交建立（精确提交用 `git merge-base codex/parity-s1 codex/parity-s2` 核实）。主目录 `E:/AI/framegendev`（`codex/nle-export`）只做串行集成；会话1 `E:/AI/framegendev-wt/session-1` / `codex/parity-s1`；会话2 `E:/AI/framegendev-wt/session-2` / `codex/parity-s2`。不覆盖或重置已有分支；只合并对方已提交且有实际验证的独立项，不修改对方工作树/实例。
+- 会话1负责 TASK-181 → 070/050/030/034/080（按真实依赖）、040/041剩余验收与150组合流程；拥有前端 `domains/documents/`、`generation/`、`episode/`、`agent/`、`pages/AssetLibrary.tsx` 及对应测试/后端 document/generation/episode/media/projectasset 服务。会话2负责项目管理、导航、设置、桌面与商业页；拥有 `domains/projects/`、`settings/`、`pages/Projects.tsx`、`pages/Settings.tsx`、`electron/`、`shared/desktop/`，以及对应后端 projects/settings/billing 服务与测试。TASK-010仍待评审，TASK-042及170~178不自动实施。
+- `domains/workspace/` 不作整目录认领。会话1独占：`api/workspace.ts`、`api/media.ts`、`api/project-assets.ts`、`api/library-folders.ts` 及测试；`components/AssetLibraryButton*`、`AssetLibraryFolders.tsx`、`AssetLibraryMetadataEditor*`、`AssetLibraryScopes.tsx`、`NewDocumentDialog*`、`NewReferenceDocumentDialog*`、`GenerationNotificationButton*`、`GenerationConversationCreateDialog.tsx`、`AgentProjectCreateDialog.tsx`、`AgentWorkbenchTopBar*`、`ProjectDirectory.tsx`、`ProjectDirectoryTree*`、`directory/*`；`lib/asset-library*`、`lib/library-folders.ts`。会话2独占其余现有 workspace 组件（含 AppLayout/ProjectNavigator/ProjectWorkspaceShell/ProjectDocumentSearchDialog/WorkspaceUserMenu）与其测试及导航、路由描述/设置返回等 lib 文件。新增跨界文件先在本节登记。
+- 公共文件唯一负责人为会话1：本交接、TASKS/REQUIREMENTS/DECISIONS/BASELINE-REVIEW、AGENTS自定义区、共享模型 `src/types/`、`router/`、`shared/components/ui/`、`shared/lib/`、`shared/stores/`、样式与依赖/锁文件、后端 `domain/`、`repository/`、`app/`、`http/routes/routes.go`、`service/workspace_state_service*`、`http/handlers/workspace.go`。会话2仅在自己任务目录记录结果/所需公共契约，通过独立提交供会话1读取；公共修改由会话1小提交提供契约。各自 Trellis 任务目录独立；公共日志由会话1串行维护。
+- 运行约定（启动前重新检查占用）：会话1 backend/frontend `31450/31451`，浏览器CDP `9240`，官方CDP `9242`；会话2 `31452/31453`、`9241`、`9243`。各自在自己的 `.cache/parity/<任务>/` 保存配置/DB/workspace/log/profile，BU_NAME 分别以 `parity-s1-` / `parity-s2-` 开头，desktop以 `MediaGoParityS1` / `MediaGoParityS2` 开头。当前这些预留端口均空闲。真实 workspace-v2 禁止访问；既有NLE/素材/用户官方实例不接管。冲突改号并在本节记录。
+
 - TASK-166 已完成：本轮新截图与源码复查、隔离官方体验、任务补项和资料收敛；结果与证据见 [复查索引](BASELINE-REVIEW.md)。产品整体仍未验收。
 - NLE会话已实现 TASK-040 M1/M2/M3（`45fafa2`、`48ba31f`、`cdc01a6`）和 TASK-041 字幕/真实音频波形。浏览器、保存重启与实际导出文件验收通过，21文件100测试和前后端/剪映包完整门通过。原生剪映重开与字幕排版仍待验收，TASK-040/041不标整体完成；详情见 `.trellis/tasks/10-15-nle-workbench/result.md`。
 - TASK-010 模型接入仍待评审；TASK-170~178 自动化新方案实施未定。豆包四会话方案仅参考，未启用额外 agent。
