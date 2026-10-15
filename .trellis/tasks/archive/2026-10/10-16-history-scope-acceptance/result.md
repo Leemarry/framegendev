@@ -47,6 +47,20 @@ Original ready-state/font failures from the preceding item remain in its archive
 
 ## Integration
 
-Pending main integration and actual main smoke. TASK-080 overall/local usage,
+Source bfd9912 -> main b266bc7 cleanly integrated. Main103files711tests,
+lint/full708-file format/build, Electron compile and workspace_dist Windows build
+passed. Actual main project drawer displayed its existing2local imports and the
+new media-library-9e0e7cd0cc8b3028 import. Blocked read hid all cached images/actions;
+explicit recovery restored records.390px dark screenshot inspected with body
+scrollWidth390. Cancel/reload and own backend restart retained complete project
+documents/histories/task records and immutable snapshot; both fixture checks pass.
+An attempted narrow-screen reopen missed the hidden navigation control; use the
+existing project navigation drawer before reopening, not a product read failure.
+Main31456 serves mediago-server-history-ready.exe. Session2 still617a80d.
+
+Read-only billing API inspection found3local imports counted as provider calls
+with zero tokens/unpriced media-library row. This requires its own bounded080
+repository/statistics follow-up; no statistics change was folded into this item.
+TASK-080 overall/local usage,
 media-editor history, provider generation, native Jianying and TASK-150 remain
 unaccepted. Existing HTTP/1.1 multi-window SSE pressure and GAP-004 are unchanged.

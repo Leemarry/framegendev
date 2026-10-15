@@ -1437,3 +1437,29 @@ Bounded normal-font line reading/source presentation accepted; short-screen dupl
 ### Next Steps
 
 - TASK-080 project/global history and local usage verification; session2 remains617a80d.
+
+
+## Session 48: TASK-080 scoped history read failures integrated
+<!-- trellis-session: v=2 fp=e0743ed20ab6c14e -->
+
+**Date**: 2026-10-16
+**Task**: TASK-080 scoped history read failures integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Shared project/global history read states and retry accepted with real local import, failure/recovery and complete record persistence across source/main backend restarts. Main103files711tests and frontend/Electron/embedded build passed. No provider request. Separate local-import billing overcount found.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b266bc7` | fix(generation): expose failed history reads and scoped retry |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-080 exclude internal local imports from provider usage; repository-only contract and actual zero-usage UI/API check.
