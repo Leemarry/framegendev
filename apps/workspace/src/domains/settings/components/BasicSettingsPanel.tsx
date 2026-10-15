@@ -157,7 +157,7 @@ export function BasicSettingsPanel() {
 					<div className="divide-y divide-border">
 						<PendingPreference
 							name="匿名使用数据"
-							reason="【待接入】当前未接入匿名统计服务，不发送使用数据。"
+							reason="【待接入】匿名统计偏好尚未连接现有统计模块。"
 						/>
 						<PendingPreference
 							name="调试模式"
