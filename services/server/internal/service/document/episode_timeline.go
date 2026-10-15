@@ -9,6 +9,7 @@ import (
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/platform/timestamp"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
+	servicemodel "github.com/mediago-dev/mediago-drama/services/server/internal/service/model"
 )
 
 func (store *Service) getEpisodeTimelineState(projectID string, documentID string) (episodeTimelineStateResponse, bool, error) {
@@ -58,6 +59,15 @@ func (store *Service) saveEpisodeTimelineState(
 	}
 	if !json.Valid(episodeJSON) {
 		return episodeTimelineStateResponse{}, fmt.Errorf("episode must be valid JSON")
+	}
+	var edited servicemodel.EpisodeRecord
+	if err := json.Unmarshal(episodeJSON, &edited); err != nil {
+		return episodeTimelineStateResponse{}, fmt.Errorf("decoding episode: %w", err)
+	}
+	if edited.EditVersion != 0 {
+		if err := validateEditedEpisode(edited); err != nil {
+			return episodeTimelineStateResponse{}, err
+		}
 	}
 
 	store.mu.Lock()

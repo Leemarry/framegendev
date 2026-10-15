@@ -872,3 +872,23 @@ Verified full-screen bins, selection, focus and isolated browser flow; M2 editin
 ### Status
 
 [OK] **Completed**
+
+
+## Session 27: TASK-040 M2 durable NLE edits
+<!-- trellis-session: v=2 fp=e8b3e69fe5e89ad5 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-040 M2 durable NLE edits
+**Branch**: `codex/nle-export`
+
+### Summary
+
+93 frontend tests, full backend check/race/build and real edit/failure/restart/asset workflows passed; M3 next
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**

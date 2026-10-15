@@ -89,7 +89,11 @@ func (store *Service) GetResolvedEpisodeTimelineState(projectID string, document
 		if err := json.Unmarshal(persisted.Episode, &persistedEpisode); err != nil {
 			return EpisodeTimelineResolvedResponse{}, fmt.Errorf("decoding persisted episode: %w", err)
 		}
-		episode = mergeEpisodeGeneratedMedia(episode, persistedEpisode)
+		if persistedEpisode.EditVersion == 1 {
+			episode = persistedEpisode
+		} else {
+			episode = mergeEpisodeGeneratedMedia(episode, persistedEpisode)
+		}
 		persistedUpdatedAt = persisted.UpdatedAt
 	}
 

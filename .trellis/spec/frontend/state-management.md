@@ -1,5 +1,12 @@
 # State Management
 
+NLE manual edits live in local immutable history until explicit episode PUT succeeds.
+Failed writes retain the draft; discard requires confirmation. Saved episodes use
+optional `editVersion: 1`; backend resolved reads preserve the complete manual
+timeline, while legacy episodes still rebuild from Markdown and merge adopted media.
+Generation reconciliation must not overwrite a manual edit or an open NLE draft.
+Use 30fps frame-aligned seconds; clip edit volume/opacity zero are valid values.
+
 Use React local state for temporary forms/dialogs, SWR for server-owned data,
 existing Zustand stores for shared UI preferences, and backend persistence for
 durable project/document state. Compute derived values rather than storing copies.

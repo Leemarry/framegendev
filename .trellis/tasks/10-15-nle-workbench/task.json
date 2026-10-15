@@ -19,7 +19,8 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "10-15-nle-shell"
+    "10-15-nle-shell",
+    "10-15-nle-editing"
   ],
   "parent": "10-14-official-0-1-17-parity",
   "relatedFiles": [],

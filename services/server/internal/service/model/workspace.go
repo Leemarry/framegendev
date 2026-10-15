@@ -104,6 +104,7 @@ type EpisodeTimelineResolvedResponse struct {
 
 // EpisodeRecord is the timeline view model consumed by the frontend workbench.
 type EpisodeRecord struct {
+	EditVersion int                    `json:"editVersion,omitempty"`
 	ID          string                 `json:"id"`
 	Title       string                 `json:"title"`
 	Duration    float64                `json:"duration"`
@@ -131,17 +132,30 @@ type TimelineTrackRecord struct {
 
 // TimelineClipRecord describes one clip on a timeline track.
 type TimelineClipRecord struct {
-	ID           string  `json:"id"`
-	Title        string  `json:"title"`
-	Start        float64 `json:"start"`
-	End          float64 `json:"end"`
-	Content      string  `json:"content"`
-	Status       string  `json:"status"`
-	Prompt       string  `json:"prompt,omitempty"`
-	Source       string  `json:"source,omitempty"`
-	VideoURL     string  `json:"videoUrl,omitempty"`
-	PosterURL    string  `json:"posterUrl,omitempty"`
-	ThumbnailURL string  `json:"thumbnailUrl,omitempty"`
+	Edit         *TimelineClipEditRecord `json:"edit,omitempty"`
+	ID           string                  `json:"id"`
+	Title        string                  `json:"title"`
+	Start        float64                 `json:"start"`
+	End          float64                 `json:"end"`
+	Content      string                  `json:"content"`
+	Status       string                  `json:"status"`
+	Prompt       string                  `json:"prompt,omitempty"`
+	Source       string                  `json:"source,omitempty"`
+	VideoURL     string                  `json:"videoUrl,omitempty"`
+	PosterURL    string                  `json:"posterUrl,omitempty"`
+	ThumbnailURL string                  `json:"thumbnailUrl,omitempty"`
+}
+
+// TimelineClipEditRecord stores explicit non-destructive NLE parameters.
+type TimelineClipEditRecord struct {
+	SourceIn float64 `json:"sourceIn"`
+	Speed    float64 `json:"speed"`
+	Volume   float64 `json:"volume"`
+	X        float64 `json:"x"`
+	Y        float64 `json:"y"`
+	Scale    float64 `json:"scale"`
+	Rotation float64 `json:"rotation"`
+	Opacity  float64 `json:"opacity"`
 }
 
 // SaveEpisodeTimelineStateRequest saves an editing timeline for a document.

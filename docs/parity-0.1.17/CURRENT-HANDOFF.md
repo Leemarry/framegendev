@@ -2,6 +2,8 @@
 
 ## NLE 专项进行中（2026-10-15）
 
+M1已提交 `45fafa2`。M2参数/撤销/保存及重开已完成：93测试、前端三门、后端完整check（含race）和显式build通过；默认代理失败保留，镜像末轮退出0。真实browser-harness验证1.7秒、所有参数、失败保留/重试、取消放弃、关闭重开及服务重启完整episode一致；实际上传/替换两段合成测试视频并保存4+5秒通过。证据`s2-nle/m2-*`；31438最新`mediago-server-m2.exe` PID45256，31439保持。下一项M3真实参数预览与剪映草稿一致，然后TASK-041；整体尚未完成。
+
 用户指定 TASK-040→041。分支 `codex/nle-export`；M1全屏框架/四bin/选中态已实际验收，TASK-040整体未完成，下一项M2参数编辑撤销与持久化，再M3预览导出一致，最后TASK-041字幕/真实波形。材料 `.trellis/tasks/10-15-nle-workbench/` 与子任务。独立前后端31438/31439，配置/data `.cache/parity/s2-nle/server.yaml`、`workspace`，专用Chromium9225；未使用生产数据。
 
 M1末轮10测试、前端lint/format/build与browser-harness通过；截图 `s2-nle/m1-*`。初次上游编辑器/overview流程为fixture补section-id导致version1→3，原快照断言失败保留；后续NLE-only完整document payload前后相同。不能据此关闭GAP-004。焦点恢复缺陷已修复复验。附件分支/协作建议只是参考，现行记录/提交规则按DEC-029。

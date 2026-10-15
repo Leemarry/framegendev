@@ -1,9 +1,12 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Clapperboard, Film, Music2, Search, X } from "lucide-react";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
+import { Clapperboard, Film, Music2, Search, X, Undo2, Redo2, Save, Plus } from "lucide-react";
 import { useState } from "react";
 import type { Episode, TimelineClip } from "@/domains/episode/lib/sample";
 import { formatTimelineTime } from "@/domains/episode/lib/sample";
 import type { MediaAsset } from "@/domains/workspace/api/media";
+import { EpisodeNLEInspector } from "./EpisodeNLEInspector";
+import { defaultClipEdit, frameTime, replaceNLEClip, formatFrameTime } from "../lib/nle-editing";
 import "./episode-nle.css";
 
 interface EpisodeNLEWorkbenchProps {
@@ -14,32 +17,77 @@ interface EpisodeNLEWorkbenchProps {
 	onSelectClip: (id: string) => void;
 	onClose: () => void;
 	onRestoreFocus?: () => void;
+	onSave?: (episode: Episode) => Promise<void>;
 }
 
 const bins = ["分镜", "素材", "音频", "字幕"] as const;
 const panels = ["画面", "音频", "变速"] as const;
 
 export function EpisodeNLEWorkbench({
-	episode,
+	episode: initialEpisode,
 	assets,
 	assetsError,
 	selectedClipId,
 	onSelectClip,
 	onClose,
 	onRestoreFocus,
+	onSave,
 }: EpisodeNLEWorkbenchProps) {
+	const [history, setHistory] = useState<{ past: Episode[]; present: Episode; future: Episode[] }>({
+		past: [],
+		present: initialEpisode,
+		future: [],
+	});
+	const episode = history.present;
+	const [selectedId, setSelectedId] = useState(selectedClipId);
+	const [savedSnapshot, setSavedSnapshot] = useState(JSON.stringify(initialEpisode));
+	const [saving, setSaving] = useState(false);
+	const [saveError, setSaveError] = useState("");
+	const [discardOpen, setDiscardOpen] = useState(false);
+	const dirty = JSON.stringify(episode) !== savedSnapshot;
+	const change = (next: Episode) => {
+		setHistory((current) => ({
+			past: [...current.past.slice(-99), current.present],
+			present: next,
+			future: [],
+		}));
+		setSaveError("");
+	};
+	const requestClose = () => {
+		if (saving) return;
+		if (dirty) setDiscardOpen(true);
+		else onClose();
+	};
+	const save = async () => {
+		if (!onSave || saving) return;
+		setSaving(true);
+		try {
+			await onSave(episode);
+			setSavedSnapshot(JSON.stringify(episode));
+			setSaveError("");
+		} catch (error) {
+			setSaveError(
+				typeof error === "object" && error && "message" in error
+					? String(error.message)
+					: "保存失败，请重试",
+			);
+		} finally {
+			setSaving(false);
+		}
+	};
 	const [bin, setBin] = useState<(typeof bins)[number]>("分镜");
 	const [panel, setPanel] = useState<(typeof panels)[number]>("画面");
 	const [query, setQuery] = useState("");
 	const [inspectedAsset, setInspectedAsset] = useState<MediaAsset | null>(null);
 	const selected = episode.tracks
 		.flatMap((track) => track.clips)
-		.find((clip) => clip.id === selectedClipId);
+		.find((clip) => clip.id === selectedId);
 	const selectedTrack = episode.tracks.find((track) =>
-		track.clips.some((clip) => clip.id === selectedClipId),
+		track.clips.some((clip) => clip.id === selectedId),
 	);
 	const select = (id: string) => {
 		setInspectedAsset(null);
+		setSelectedId(id);
 		onSelectClip(id);
 	};
 	const matchingClips = episode.tracks
@@ -62,7 +110,7 @@ export function EpisodeNLEWorkbench({
 		<Dialog.Root
 			open
 			onOpenChange={(open) => {
-				if (!open) onClose();
+				if (!open) requestClose();
 			}}
 		>
 			<Dialog.Portal>
@@ -82,14 +130,81 @@ export function EpisodeNLEWorkbench({
 							剪辑工作台
 						</Dialog.Title>
 						<span className="nle-title">{episode.title}</span>
-						<span className="text-muted-foreground">{episode.aspectRatio}</span>
+						<select
+							aria-label="画幅"
+							value={episode.aspectRatio}
+							disabled={saving}
+							onChange={(event) =>
+								change({ ...episode, editVersion: 1, aspectRatio: event.target.value })
+							}
+						>
+							<option>16:9</option>
+							<option>9:16</option>
+							<option>1:1</option>
+						</select>
 						<span className="font-mono text-xs">
-							{formatTimelineTime(selected?.start ?? 0)} / {formatTimelineTime(episode.duration)}
+							{formatFrameTime(selected?.start ?? 0)} / {formatFrameTime(episode.duration)}
 						</span>
-						<Dialog.Close className="nle-icon ml-auto" aria-label="关闭剪辑工作台" title="关闭">
+						<button
+							className="nle-icon"
+							type="button"
+							aria-label="撤销"
+							title="撤销"
+							disabled={saving || history.past.length === 0}
+							onClick={() =>
+								setHistory((current) => ({
+									past: current.past.slice(0, -1),
+									present: current.past.at(-1) ?? current.present,
+									future: [current.present, ...current.future],
+								}))
+							}
+						>
+							<Undo2 size={17} />
+						</button>
+						<button
+							className="nle-icon"
+							type="button"
+							aria-label="重做"
+							title="重做"
+							disabled={saving || history.future.length === 0}
+							onClick={() =>
+								setHistory((current) => ({
+									past: [...current.past, current.present],
+									present: current.future[0] ?? current.present,
+									future: current.future.slice(1),
+								}))
+							}
+						>
+							<Redo2 size={17} />
+						</button>
+						<button
+							className="nle-command ml-auto"
+							type="button"
+							disabled={!dirty || saving || !onSave}
+							onClick={() => void save()}
+						>
+							<Save size={15} />
+							{saving ? "保存中" : "保存草稿"}
+						</button>
+						<span className="text-xs text-muted-foreground" role="status">
+							{dirty ? "未保存" : "已保存"}
+						</span>
+						<button
+							className="nle-icon"
+							type="button"
+							disabled={saving}
+							onClick={requestClose}
+							aria-label="关闭剪辑工作台"
+							title="关闭"
+						>
 							<X size={18} />
-						</Dialog.Close>
+						</button>
 					</header>
+					{saveError && (
+						<p className="px-4 py-2 text-xs text-error-foreground" role="alert">
+							{saveError}
+						</p>
+					)}
 					<div className="nle-main">
 						<aside className="nle-bin" aria-label="剪辑素材区">
 							<div className="nle-tabs" role="tablist" aria-label="素材分类">
@@ -126,7 +241,7 @@ export function EpisodeNLEWorkbench({
 										{matchingClips.map((clip) => (
 											<button
 												className="nle-media"
-												aria-pressed={!inspectedAsset && selectedClipId === clip.id}
+												aria-pressed={!inspectedAsset && selectedId === clip.id}
 												key={clip.id}
 												type="button"
 												onClick={() => select(clip.id)}
@@ -240,24 +355,26 @@ export function EpisodeNLEWorkbench({
 										<dd>{inspectedAsset.durationSeconds ?? "未知"}</dd>
 									</dl>
 								) : selected ? (
-									<dl>
-										<dt>轨道</dt>
-										<dd>{selectedTrack?.label}</dd>
-										<dt>开始</dt>
-										<dd>{selected.start.toFixed(3)} s</dd>
-										<dt>结束</dt>
-										<dd>{selected.end.toFixed(3)} s</dd>
-										<dt>时长</dt>
-										<dd>{(selected.end - selected.start).toFixed(3)} s</dd>
-										<dt>{panel === "画面" ? "内容" : panel === "音频" ? "音频" : "速度"}</dt>
-										<dd>
-											{panel === "画面"
-												? selected.content || "—"
-												: panel === "音频"
-													? "原始音频"
-													: "1.0×"}
-										</dd>
-									</dl>
+									<fieldset disabled={saving}>
+										<EpisodeNLEInspector
+											key={JSON.stringify(selected)}
+											clip={selected}
+											panel={panel}
+											sourceDuration={
+												assets?.find((asset) => asset.url === selected.videoUrl)?.durationSeconds
+											}
+											onApply={(clip) =>
+												change(
+													replaceNLEClip(
+														episode,
+														clip.id,
+														clip,
+														assets?.find((asset) => asset.url === clip.videoUrl)?.durationSeconds,
+													),
+												)
+											}
+										/>
+									</fieldset>
 								) : (
 									<p className="text-xs text-muted-foreground">未选择片段</p>
 								)}
@@ -282,7 +399,7 @@ export function EpisodeNLEWorkbench({
 											type="button"
 											key={clip.id}
 											aria-label={`${track.label}：${clip.title}`}
-											aria-pressed={!inspectedAsset && selectedClipId === clip.id}
+											aria-pressed={!inspectedAsset && selectedId === clip.id}
 											title={`${clip.title} ${(clip.end - clip.start).toFixed(2)}s`}
 											onClick={() => select(clip.id)}
 											style={{
@@ -298,6 +415,53 @@ export function EpisodeNLEWorkbench({
 							</div>
 						))}
 					</section>
+					{inspectedAsset?.kind === "video" && selected && selectedTrack?.type === "video" && (
+						<button
+							type="button"
+							className="nle-command"
+							disabled={saving || inspectedAsset.storageStatus === "missing"}
+							onClick={() => {
+								const duration = frameTime(
+									inspectedAsset.durationSeconds ?? selected.end - selected.start,
+								);
+								change(
+									replaceNLEClip(
+										episode,
+										selected.id,
+										{
+											videoUrl: inspectedAsset.url,
+											posterUrl: inspectedAsset.posterUrl,
+											status: "ready",
+											end: selected.start + duration,
+											edit: { ...defaultClipEdit },
+										},
+										inspectedAsset.durationSeconds,
+									),
+								);
+								setInspectedAsset(null);
+							}}
+						>
+							<Plus size={15} />
+							替换选中分镜素材
+						</button>
+					)}
+					<AlertDialog.Root open={discardOpen} onOpenChange={setDiscardOpen}>
+						<AlertDialog.Portal>
+							<AlertDialog.Overlay className="nle-confirm-overlay" />
+							<AlertDialog.Content className="nle-confirm">
+								<AlertDialog.Title>放弃未保存的剪辑？</AlertDialog.Title>
+								<AlertDialog.Description className="my-3 text-xs text-muted-foreground">
+									尚未保存的参数将被丢弃。
+								</AlertDialog.Description>
+								<div className="flex justify-end gap-3">
+									<AlertDialog.Cancel className="nle-command">继续编辑</AlertDialog.Cancel>
+									<AlertDialog.Action className="nle-command" onClick={onClose}>
+										放弃更改
+									</AlertDialog.Action>
+								</div>
+							</AlertDialog.Content>
+						</AlertDialog.Portal>
+					</AlertDialog.Root>
 				</Dialog.Content>
 			</Dialog.Portal>
 		</Dialog.Root>

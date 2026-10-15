@@ -14,6 +14,18 @@ export interface TimelineClip {
 	videoUrl?: string;
 	posterUrl?: string;
 	thumbnailUrl?: string;
+	edit?: TimelineClipEdit;
+}
+
+export interface TimelineClipEdit {
+	sourceIn: number;
+	speed: number;
+	volume: number;
+	x: number;
+	y: number;
+	scale: number;
+	rotation: number;
+	opacity: number;
 }
 
 export interface TimelineTrack {
@@ -32,6 +44,7 @@ export interface EpisodeSection {
 }
 
 export interface Episode {
+	editVersion?: 1;
 	id: string;
 	title: string;
 	duration: number;

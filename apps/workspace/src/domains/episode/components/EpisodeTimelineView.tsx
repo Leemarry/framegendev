@@ -612,6 +612,7 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 		}
 
 		const currentEpisode = useEpisodeStore.getState().episode;
+		if (nleOpen || currentEpisode.editVersion === 1) return;
 		const syncedEpisode = reconcileEpisodeStoryboardVideoState(
 			currentEpisode,
 			latestStoryboardVideoTaskByClipId,
@@ -639,6 +640,7 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 	}, [
 		episodeDocumentId,
 		latestStoryboardVideoTaskByClipId,
+		nleOpen,
 		mutateEpisodeState,
 		mutateMediaAssets,
 		projectId,
@@ -700,6 +702,14 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 					onSelectClip={handleTimelineClipSelect}
 					onClose={() => setNleOpen(false)}
 					onRestoreFocus={() => nleEntryRef.current?.focus()}
+					onSave={async (next) => {
+						await updateWorkspaceEpisode(episodeDocumentId, next, projectId);
+						setEpisode(next);
+						await mutateEpisodeState(
+							resolvedEpisodeState ? { ...resolvedEpisodeState, episode: next } : undefined,
+							{ revalidate: false },
+						);
+					}}
 				/>
 			)}
 			<main className="flex min-h-0 flex-1 flex-col overflow-hidden">
