@@ -219,6 +219,8 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
 	const [uploading, setUploading] = useState<"media" | null>(null);
+	const [refreshing, setRefreshing] = useState(false);
+	const [refreshError, setRefreshError] = useState<unknown>(null);
 	const isPage = presentation === "page";
 	const [sort, setSort] = useState<AssetLibrarySort>(isPage ? "createdDesc" : "updatedDesc");
 	const [thumbnailSize, setThumbnailSize] = useState(190);
@@ -309,15 +311,20 @@ export const AssetLibraryWorkspace: React.FC<{
 			}),
 		[folderItems, kindFilter, projectMode, query, ratingFilter, resourceFilter, sourceFilter, sort],
 	);
-	const activeItem = useMemo(
-		() => filteredItems.find((item) => item.key === activeKey) ?? filteredItems[0] ?? null,
-		[activeKey, filteredItems],
-	);
 	const isLoading =
+		refreshing ||
 		isMediaLoading ||
 		folderControls?.loading ||
 		(projectMode && (isSelectedLoading || isDocumentsLoading));
-	const error = mediaError ?? selectedError ?? documentsError ?? folderControls?.error;
+	const error =
+		refreshError ?? mediaError ?? selectedError ?? documentsError ?? folderControls?.error;
+	const activeItem = useMemo(
+		() =>
+			isLoading || error
+				? null
+				: (filteredItems.find((item) => item.key === activeKey) ?? filteredItems[0] ?? null),
+		[activeKey, error, filteredItems, isLoading],
+	);
 
 	useEffect(() => {
 		if (!open) return;
@@ -330,6 +337,7 @@ export const AssetLibraryWorkspace: React.FC<{
 		setResourceFilter("all");
 		setRatingFilter("all");
 		setActiveKey("");
+		setRefreshError(null);
 	}, [open, selectedProjectId]);
 
 	useEffect(() => {
@@ -534,18 +542,30 @@ export const AssetLibraryWorkspace: React.FC<{
 		</Button>
 	);
 	const refresh = async () => {
+		if (refreshing) return;
+		setRefreshing(true);
 		try {
 			const result = await scanMediaAssets(mediaProjectId || undefined);
-			await Promise.all([
-				mutateMediaAssets(),
+			const [media, selected, documents] = await Promise.all([
+				getMediaAssets({ projectId: mediaProjectId || undefined }),
+				projectMode ? getSelectedGenerationAssets(selectedProjectId) : undefined,
+				projectMode ? getWorkspaceDocuments(selectedProjectId) : undefined,
 				...(folderControls ? [folderControls.onRefresh()] : []),
-				...(projectMode ? [mutateSelectedAssets(), mutateDocuments()] : []),
 			]);
+			await Promise.all([
+				mutateMediaAssets(media, { revalidate: false }),
+				...(selected ? [mutateSelectedAssets(selected, { revalidate: false })] : []),
+				...(documents ? [mutateDocuments(documents, { revalidate: false })] : []),
+			]);
+			setRefreshError(null);
 			toast.success("素材已刷新", {
 				description: `新增 ${result.added}，更新 ${result.updated}，共扫描 ${result.scanned}`,
 			});
 		} catch (err) {
+			setRefreshError(err);
 			toast.error("刷新失败", { description: errorMessage(err, "素材列表刷新失败。") });
+		} finally {
+			setRefreshing(false);
 		}
 	};
 	const hasActiveAssetFilter = Boolean(
@@ -960,8 +980,11 @@ export const AssetLibraryWorkspace: React.FC<{
 			</div>
 			{isPage ? (
 				<footer className="asset-library-status">
-					已加载 {childFolders.length} 个文件夹，{filteredItems.length} 个文件
-					{query ? `（共 ${folderItems.length} 个素材）` : ""}
+					{isLoading
+						? "正在加载素材"
+						: error
+							? "素材加载失败"
+							: `已加载 ${childFolders.length} 个文件夹，${filteredItems.length} 个文件${query ? `（共 ${folderItems.length} 个素材）` : ""}`}
 				</footer>
 			) : null}
 		</>

@@ -74,7 +74,7 @@ export function AssetLibrary() {
 		onRename: setEditingFolder,
 		onDelete: setDeletingFolder,
 		onReparent: setMovingFolder,
-		onRefresh: () => mutateFolders(),
+		onRefresh: async () => mutateFolders(await getLibraryFolders(projectId), { revalidate: false }),
 	};
 	const saveFolder = async (name: string) => {
 		if (!editingFolder) return;

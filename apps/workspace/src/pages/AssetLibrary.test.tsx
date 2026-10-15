@@ -112,6 +112,32 @@ const asset = (id: string, filename: string, createdAt: string): MediaAsset => (
 });
 
 describe("project material library page", () => {
+	it.each(["media", "documents", "folders"])(
+		"blocks cached asset actions after a %s refresh failure and recovers on retry",
+		async (failure) => {
+			const saved = { assets: [asset("asset-a", "kept.png", "2026-10-15T10:00:00Z")] };
+			vi.mocked(getMediaAssets).mockResolvedValue(saved);
+			mount();
+			fireEvent.click(await screen.findByRole("button", { name: "预览 kept.png" }));
+			expect(await screen.findByRole("button", { name: "编辑元数据" })).toBeEnabled();
+			const request =
+				failure === "media"
+					? getMediaAssets
+					: failure === "documents"
+						? getWorkspaceDocuments
+						: getLibraryFolders;
+			vi.mocked(request).mockRejectedValueOnce(new Error("aggregate read unavailable"));
+			fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+			expect(await screen.findByText(/素材库加载失败：aggregate read unavailable/)).toBeVisible();
+			expect(screen.queryByRole("button", { name: "编辑元数据" })).not.toBeInTheDocument();
+			expect(screen.queryByRole("button", { name: "删除" })).not.toBeInTheDocument();
+			expect(screen.queryByRole("button", { name: "预览 kept.png" })).not.toBeInTheDocument();
+			fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+			expect(await screen.findByRole("button", { name: "预览 kept.png" })).toBeVisible();
+			expect(screen.queryByText(/素材库加载失败/)).not.toBeInTheDocument();
+		},
+	);
+
 	it("shows the real root empty state and returns to the original document", async () => {
 		mount({
 			assetReturnTo: "/projects?projectId=project-a&documentId=doc-a",

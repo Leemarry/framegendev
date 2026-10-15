@@ -1,0 +1,27 @@
+# TASK-030/034 local aggregate result
+
+2026-10-16. Local import/folder/metadata/document-reference aggregate accepted in session1; integrated-main smoke pending. TASK-030 overall remains open for the official detail/filter gaps below and real generation adoption. TASK-034 local folder flow is verified through the existing individual tests and this aggregate.
+
+## Fix
+
+Real browser reproduction: block only the list GET using CDP URLPattern while allowing scan. Scan succeeded, the subsequent SWR read failed, but the old detail still offered rename/delete/metadata/move and a success toast. Fix the shared AssetLibraryWorkspace: await real reads for media, selected resources, documents and folders; populate existing SWR keys only after reads succeed; expose refresh errors and retry; remove stale preview/keyboard targets while loading/failed; footer no longer claims stale loaded counts. No API, backend, dependency or schema change. Three new cases cover media/document/folder failure and successful retry. Public hook guideline records the SWR boundary.
+
+## Actual workflow and persistence
+
+Own backend31450/frontend31451, cache workspace under task-070 as previously configured. Fresh project `project-c8351074a3cf6ff2`; PNG generated from the existing tracked chibi preview using System.Drawing (480x640,624646bytes), uploaded through the real file input. Asset `asset-e1b68b9d7536ee35`, SHA256 `1E0649EE2C57E526EDE7F21ED92DA55DEFF8FA61CCEBD3B79BE0F8FD0712376C` matches source and remains unchanged.
+
+Actual UI: create parent `library-folder-5e3a340548e7a317`, child `library-folder-9683d7dfb1a37a0d`; edit tags aggregate/scene, note AGGREGATE_PERSISTED_NOTE, rating5; select move target then Cancel (returns root without write); move PNG to child; rename PNG aggregate-renamed.png; rename child Aggregate renamed child; move nonempty child from parent to root. IDs/content URL/hash remain stable. Search scene hits, nonexistent query gives actual no-match empty state,5star filter hits. Global scope -> project scope resets folder route; global/other-project API excludes this project's upload. No global upload was performed in this aggregate (prior TASK033 has that separate acceptance).
+
+Reference document `doc-file-4b6c8e478f0afd52` was seeded via the real create-document API, not a claimed UI generation/adoption flow. Initial response v1 was followed by the existing background SyncLocalMarkdownFiles section reconciliation (local_file_sync.go -> sections.go), inserting section_98a6f6cfb40bc000 and reaching v2. Baseline was then explicitly captured at v2 with history2/head `91967b444883cabb3a2e74012c76f921f12d82d0`. Every later comparison, including backend23736 shutdown/restart and page reload, retained exact full body/v2/all history hashes, asset metadata and both root folders. UI reference count1 identifies the original document after rename/moves; images complete480x640. This does not resolve old GAP-004.
+
+Cancellation/failure: metadata cancel leaves persisted note; actual offline save retains OFFLINE_NOTE_NOT_SAVED in the form with an error, server note unchanged; reconnect then Cancel leaves original. Actual scan network failure gave refresh error. Actual successful scan/list failure after fix gives inline error, failure toast and no cached mutation buttons; unblock -> Retry restores list/detail. No referenced asset deletion or generated result was fabricated.
+
+## Evidence and checks
+
+Durable evidence in evidence/: official imported nonempty directory and detail/rating, fixed refresh error, desktop,390x680 dark,390x480 light project/global. Images inspected: no horizontal page excess (390), assets render and toolbar/detail scroll independently. Early captures with closing-popover animation were replaced by settled captures. An initial metadata script clicked outside the short viewport; API proved no change, then explicit scroll-before-click produced the verified edit. One move script stopped after target selection before Cancel rendered; retried actual Cancel before the final move. One wrong read-only /library-folders path returned404; corrected /asset-library-folders.
+
+Focused tests: 2files33, then 5files50, final 5files56 (including MarkdownHybridEditor) pass. Frontend lint0warnings/errors, full702-file format, TypeScript/Vite build pass; existing large-chunk advisory remains. Windows check first failed CRLF gofmt, then proxy.golang.org lint fetch timed out; temporary LF snapshot plus verified MinGW/goproxy.cn passed full check (tidy/fmt/vet/lint/build/Swagger/go test -race ./...). Separate Windows build passed. Temporary1216-file line-ending conversion restored; no bulk source formatting committed. Relevant tests and gates were rerun after the status-footer change. No backend product code changed.
+
+## Remaining parity
+
+Official isolated CDP9242: actual new folder/save/enter/import PNG/select/open detail/5star, plus filters, were clicked. Official filter adds browsing range, usage state and tag select; detail has color palette, source URL, favorite, uses/details tabs and dimensions. Current local preview still omits some of that structure and this fixture's dimensions metadata. Record as TASK-030 remaining development/acceptance, not full parity. Native import dialog itself is not accepted by CDP setFileInputFiles. Real generation/adoption needs a working provider; pending TASK010/080 boundary remains. Referenced deletion guard is not implemented or accepted.
