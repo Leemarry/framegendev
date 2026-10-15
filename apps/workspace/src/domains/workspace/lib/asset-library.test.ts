@@ -221,6 +221,50 @@ describe("asset-library", () => {
 			"/api/v1/media-assets/media-b/content",
 		);
 	});
+
+	it("sorts by rating descending with fallback for equal and unrated items", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [
+				mediaAsset({ id: "unrated", filename: "unrated.png" }),
+				mediaAsset({ id: "high", rating: 5 }),
+				mediaAsset({ id: "low", rating: 1 }),
+				mediaAsset({ id: "mid", rating: 3 }),
+			],
+		});
+
+		expect(filterAssetLibraryItems(items, { sort: "ratingDesc" }).map((item) => item.id)).toEqual([
+			"high",
+			"mid",
+			"low",
+			"unrated",
+		]);
+	});
+
+	it("filters items by rating thresholds and rated state", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [
+				mediaAsset({ id: "unrated" }),
+				mediaAsset({ id: "one", rating: 1 }),
+				mediaAsset({ id: "three", rating: 3 }),
+				mediaAsset({ id: "five", rating: 5 }),
+			],
+		});
+
+		expect(filterAssetLibraryItems(items, { rating: "all" })).toHaveLength(4);
+		expect(filterAssetLibraryItems(items, { rating: "rated" }).map((item) => item.id)).toEqual([
+			"five",
+			"one",
+			"three",
+		]);
+		expect(filterAssetLibraryItems(items, { rating: "3" }).map((item) => item.id)).toEqual([
+			"five",
+			"three",
+		]);
+		expect(filterAssetLibraryItems(items, { rating: "5" }).map((item) => item.id)).toEqual([
+			"five",
+		]);
+		expect(filterAssetLibraryItems(items, { rating: "5", kind: "text" })).toHaveLength(0);
+	});
 });
 
 const mediaAsset = (overrides: Partial<MediaAsset> = {}): MediaAsset => ({

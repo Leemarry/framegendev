@@ -692,3 +692,27 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 
 - 按TASK-034剩余真实依赖选独立单项（重挂父级/物理扫描 或 评分筛选排序/关联详情），先核实个人必要性与可复用能力
 - 像素截图待用户聚焦 in-app Browser 面板后可补；服务器英文错误消息本地化留待已登记 i18n 项
+
+
+## Session 21: 素材评分筛选与排序验收完成
+<!-- trellis-session: v=2 fp=f899fbab6e3d4130 -->
+
+**Date**: 2026-10-15
+**Task**: 素材评分筛选与排序验收完成
+**Branch**: `codex/task-004-document-reload`
+
+### Summary
+
+素材库评分最高排序与评分7档筛选（页面+弹层）实现并真实浏览器验收通过
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-030/034剩余：重挂父级/物理扫描、关联详情，启动前核实必要性与复用

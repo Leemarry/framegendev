@@ -57,6 +57,7 @@ import {
 	type AssetLibraryItem,
 	type AssetLibraryKind,
 	type AssetLibraryKindFilter,
+	type AssetLibraryRatingFilter,
 	type AssetLibraryResourceFilter,
 	type AssetLibraryResourceType,
 	type AssetLibrarySource,
@@ -109,6 +110,16 @@ const projectSourceOptions: Array<{ label: string; value: AssetLibrarySourceFilt
 	{ label: "全部", value: "all" },
 	{ label: "媒体素材", value: "media" },
 	{ label: "已选资源", value: "selected" },
+];
+
+const ratingOptions: Array<{ label: string; value: AssetLibraryRatingFilter }> = [
+	{ label: "全部", value: "all" },
+	{ label: "已评分", value: "rated" },
+	{ label: "1星及以上", value: "1" },
+	{ label: "2星及以上", value: "2" },
+	{ label: "3星及以上", value: "3" },
+	{ label: "4星及以上", value: "4" },
+	{ label: "5星", value: "5" },
 ];
 
 const resourceOptions: Array<{ label: string; value: AssetLibraryResourceFilter }> = [
@@ -200,6 +211,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [kindFilter, setKindFilter] = useState<AssetLibraryKindFilter>("all");
 	const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
 	const [query, setQuery] = useState("");
+	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
 	const [uploading, setUploading] = useState<"media" | null>(null);
@@ -286,11 +298,12 @@ export const AssetLibraryWorkspace: React.FC<{
 			filterAssetLibraryItems(folderItems, {
 				kind: kindFilter,
 				query,
+				rating: ratingFilter,
 				resourceType: projectMode ? resourceFilter : "all",
 				source: projectMode ? sourceFilter : "all",
 				sort,
 			}),
-		[folderItems, kindFilter, projectMode, query, resourceFilter, sourceFilter, sort],
+		[folderItems, kindFilter, projectMode, query, ratingFilter, resourceFilter, sourceFilter, sort],
 	);
 	const activeItem = useMemo(
 		() => filteredItems.find((item) => item.key === activeKey) ?? filteredItems[0] ?? null,
@@ -311,6 +324,7 @@ export const AssetLibraryWorkspace: React.FC<{
 		if (!open) return;
 		setSourceFilter("all");
 		setResourceFilter("all");
+		setRatingFilter("all");
 		setActiveKey("");
 	}, [open, selectedProjectId]);
 
@@ -638,6 +652,7 @@ export const AssetLibraryWorkspace: React.FC<{
 						options={[
 							{ label: "最近添加", value: "createdDesc" },
 							{ label: "最近修改", value: "updatedDesc" },
+							{ label: "评分最高", value: "ratingDesc" },
 							{ label: "名称", value: "nameAsc" },
 							{ label: "文件大小", value: "sizeDesc" },
 						]}
@@ -673,6 +688,12 @@ export const AssetLibraryWorkspace: React.FC<{
 								value={resourceFilter}
 								options={resourceOptions}
 								onValueChange={(value) => setResourceFilter(value as AssetLibraryResourceFilter)}
+							/>
+							<AssetLibrarySelect
+								label="评分"
+								value={ratingFilter}
+								options={ratingOptions}
+								onValueChange={(value) => setRatingFilter(value as AssetLibraryRatingFilter)}
 							/>
 						</PopoverContent>
 					</Popover>
@@ -743,6 +764,12 @@ export const AssetLibraryWorkspace: React.FC<{
 								value={resourceFilter}
 								options={resourceOptions}
 								onValueChange={(value) => setResourceFilter(value as AssetLibraryResourceFilter)}
+							/>
+							<AssetLibrarySelect
+								label="评分"
+								value={ratingFilter}
+								options={ratingOptions}
+								onValueChange={(value) => setRatingFilter(value as AssetLibraryRatingFilter)}
 							/>
 						</>
 					) : null}
@@ -822,7 +849,8 @@ export const AssetLibraryWorkspace: React.FC<{
 									{query ||
 									kindFilter !== "all" ||
 									sourceFilter !== "all" ||
-									resourceFilter !== "all"
+									resourceFilter !== "all" ||
+									ratingFilter !== "all"
 										? "暂无匹配素材"
 										: "这里还没有素材"}
 								</h2>

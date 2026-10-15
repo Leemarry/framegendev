@@ -9,7 +9,13 @@ export type AssetLibraryResourceType = AgentResourceType | "screenplay" | "refer
 export type AssetLibraryKindFilter = "all" | AssetLibraryKind;
 export type AssetLibrarySourceFilter = "all" | AssetLibrarySource;
 export type AssetLibraryResourceFilter = "all" | AssetLibraryResourceType;
-export type AssetLibrarySort = "updatedDesc" | "createdDesc" | "nameAsc" | "sizeDesc";
+export type AssetLibrarySort =
+	| "updatedDesc"
+	| "createdDesc"
+	| "ratingDesc"
+	| "nameAsc"
+	| "sizeDesc";
+export type AssetLibraryRatingFilter = "all" | "rated" | "1" | "2" | "3" | "4" | "5";
 
 export interface AssetLibraryItem {
 	createdAt: string;
@@ -37,6 +43,7 @@ export interface BuildAssetLibraryItemsInput {
 export interface FilterAssetLibraryItemsOptions {
 	kind?: AssetLibraryKindFilter;
 	query?: string;
+	rating?: AssetLibraryRatingFilter;
 	resourceType?: AssetLibraryResourceFilter;
 	sort?: AssetLibrarySort;
 	source?: AssetLibrarySourceFilter;
@@ -122,16 +129,21 @@ export const filterAssetLibraryItems = (
 	{
 		kind = "all",
 		query = "",
+		rating = "all",
 		resourceType = "all",
 		sort = "updatedDesc",
 		source = "all",
 	}: FilterAssetLibraryItemsOptions = {},
 ) => {
 	const normalizedQuery = query.trim().toLowerCase();
+	const minRating = rating === "all" || rating === "rated" ? 0 : Number(rating);
 	const filtered = items.filter((item) => {
 		if (kind !== "all" && item.kind !== kind) return false;
 		if (source !== "all" && !assetLibraryItemMatchesSource(item, source)) return false;
 		if (resourceType !== "all" && !item.selectedResourceTypes.includes(resourceType)) return false;
+		const itemRating = item.mediaAsset?.rating ?? 0;
+		if (rating === "rated" && itemRating <= 0) return false;
+		if (minRating > 0 && itemRating < minRating) return false;
 		if (!normalizedQuery) return true;
 		return [
 			item.title,
@@ -293,6 +305,11 @@ const compareAssetLibraryItems = (
 	if (sort === "nameAsc") return left.title.localeCompare(right.title, "zh-CN");
 	if (sort === "sizeDesc") return right.sizeBytes - left.sizeBytes || fallbackCompare(left, right);
 	if (sort === "createdDesc") return timestamp(right.createdAt) - timestamp(left.createdAt);
+	if (sort === "ratingDesc")
+		return (
+			(right.mediaAsset?.rating ?? 0) - (left.mediaAsset?.rating ?? 0) ||
+			fallbackCompare(left, right)
+		);
 	return timestamp(right.updatedAt) - timestamp(left.updatedAt) || fallbackCompare(left, right);
 };
 
