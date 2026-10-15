@@ -1,5 +1,20 @@
 # 任务 10-15 素材库逻辑目录重挂父级 — 完成结果
 
+## 2026-10-15 Session25：完整补验收
+
+原 `1b497b3` 的实现本轮补齐页面/API回归与真实流程，原文下方的「未覆盖」现已完成。未新增目录管理实现；源码复用原服务、API、弹窗和 scope-keyed SWR。
+
+- 页面测试补充：非空当前目录移动后 URL/返回状态、子目录与媒体保留；目标排除 self/后代；未改目标禁用；取消零请求；普通 ApiError 同名冲突保留选择并重试。API 测试补 global/project PATCH 编码及回根请求。
+- 前端相关两文件 18 测试、lint/format/build 通过。初始构建因新增测试多余的 `exact` 选项类型失败，移除后重跑通过；没有压制类型检查。
+- 后端无变更，沿用 Session24 完整 Windows check（含全量 race）；另跑 `go test ./internal/service/media ./internal/app -run 'TestReparentLibraryFolder|TestLibraryFoldersAPI' -count=1` 通过。
+- 首轮复用 task-164 实例，目录移动流程通过，但跨项目 hash 核验发现旧 `doc-ref-a` 在20:22:14出现一次 `workspace_save`，正文加前导空行、版本1→2，历史提交 `fc6398e`，调用源尚未确认。保留原文件与初始snapshot，不覆盖恢复；登记 GAP-004。该次共享环境「原文档全不变」检查失败，不能作为通过证据。
+- 最终使用全新数据 `.cache/parity/task-163-isolated/workspace`，后端31434、前端31435与独立测试窗口（端口/浏览器状态隔离），重新执行完整 `browser-flow.py` 一次退出0。项目 `project-61724086e87550bd`：非空角色目录含图片及子目录移动、空目录回根、同名冲突失败后换目标、取消零PATCH、URL与面包屑、刷新持久；global嵌套移动也通过。
+- 浅/深主题、390×844选择目录入口与弹窗截图可读、右边界374.4≤390；截图 `nonempty-moved-light.png`、`conflict-light.png`、`moved-dark.png`、`move-narrow-dark.png`、`global-moved-dark.png`。前几轮共享窗口缩放误点/最小化超时与裁切不作末轮证据，最终独立窗口截图经目视核实。
+- 重启前/后两次完整 API 核验退出0：global/project父级持久；媒体 ID/folderId/filename/path/URL/size/tags/note/rating不变；文档全部字段（含版本/updatedAt）、引用和3个md/png hash不变；self/后代400、跨scope来源/目标404。仅核验路径/config后重启独立服务，最终PID38376，web启动进程32580。证据 fixtures.json、accepted-browser.json、accepted-before-restart.json、accepted-persistence.json，均在 `.cache/parity/task-163-isolated/`。
+- 对照官方37素材库结构沿现有导航与图标操作，不虚构官方未捕获的移动弹窗。拖拽、跨scope移动、合并目录及物理迁移非本项需求，继续待开发；服务器错误中文化留既有国际化项。
+
+TASK-163现已完成验收，可归档并将测试与记录明确路径本地提交；不推送。TASK-030/034仍待聚合验收与剩余差距复核，GAP-004调用源仍待核实，TASK-010待评审；本轮未执行Agent prompt、真实生成/登录/支付/导出，未访问生产数据。以下为原实现阶段历史结果。
+
 ## 需求来源
 - 台账：TASK-030（素材库）、TASK-034（目录管理）
 - 需求 REQ-012

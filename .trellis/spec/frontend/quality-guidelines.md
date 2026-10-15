@@ -30,3 +30,11 @@ empty paragraphs and its version increments without edits (TASK-004). Persistenc
 acceptance must compare stored body/version before and after reload/reopen/restart,
 not only visible text. Record console errors separately from JS exceptions and
 distinguish expected canceled streams during restart from failed business requests.
+
+Browser fixtures should have a dedicated data directory and origin/port when
+other editor tabs are open. GAP-004 found a shared fixture's `workspace_save`
+while testing library controls: a history commit identifies the save operation
+but does not establish which caller initiated it. Keep original snapshots and
+changed files, record the mismatch and investigate provenance; never restore or
+silently replace a failed baseline. A fresh isolated acceptance run proves only
+its own unchanged documents/hashes and does not close the original anomaly.

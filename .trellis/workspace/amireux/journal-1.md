@@ -819,3 +819,36 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 ### Next Steps
 
 - TASK-163真实UI移动/冲突/刷新仍缺验收，按原设计补齐；TASK-030/034不标整体完成，TASK-010待评审
+
+
+## Session 25: TASK-163 目录重挂完整补验收
+<!-- trellis-session: v=2 fp=fa81870d6f1fc2e0 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-163 目录重挂完整补验收
+**Branch**: `codex/task-004-document-reload`
+
+### Summary
+
+补页面与API回归，独立数据/端口真实目录移动完整验收；旧共享环境workspace_save异常单列GAP-004待核实
+
+### Main Changes
+
+- 沿原实现补当前非空目录/URL/子目录与媒体保留、自身后代排除、取消、普通ApiError冲突重试及PATCH路由测试
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 前端18测试/lint/format/build通过；后端无改动，定向测试通过、全量门沿Session24
+- [OK] 全新31434/31435完整浏览器流程、深浅390px、刷新/重启、媒体身份/文档字段/引用/3个hash不变与循环/scope拒绝通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- GAP-004旧共享测试文稿workspace_save来源待核实，保留前后文件及失败baseline；TASK-030/034仍待聚合验收，TASK-010待评审

@@ -3,7 +3,7 @@
   "name": "asset-folder-reparent",
   "title": "asset-folder-reparent",
   "description": "素材库逻辑目录重挂父级：后端Reparent API+循环校验，前端目录item移动入口",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,16 +11,18 @@
   "creator": "amireux",
   "assignee": "amireux",
   "createdAt": "2026-10-15",
-  "completedAt": null,
+  "completedAt": "2026-10-15",
   "branch": "codex/task-004-document-reload",
-  "base_branch": "codex/task-004-document-reload",
+  "base_branch": "main",
   "worktree_path": null,
   "commit": null,
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": null,
+  "parent": "10-14-official-0-1-17-parity",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "ledger_id": "TASK-163"
+  }
 }

@@ -1,5 +1,15 @@
 # 新对话交接摘要
 
+## 最新：TASK-163 补齐完整验收（Session25）
+
+TASK-164已在`6bef0df`本地提交。自动续作TASK-163，补页面/API移动回归，取消/冲突保留重试/当前非空目录与URL/子目录和媒体保持通过；18测试、前端lint/format/build、后端定向回归通过（后端无改动，完整门沿Session24）。最终独立task-163-isolated数据与31434/31435，browser-harness整流程一次退出0，深浅/390px、global/project移动、刷新及重启通过；媒体身份/分类、文档全部字段/引用/3个md/png hash不变，循环400与跨scope404。归档材料`.trellis/tasks/archive/2026-10/10-15-asset-folder-reparent/`。
+
+- 最新目录验收入口`http://127.0.0.1:31435/assets?scope=all`，数据`.cache/parity/task-163-isolated/workspace`；后端PID38376使用task-164/mediago-server-next.exe+task-163-isolated/server.yaml，web启动进程32580。task-164原31432/PID32600与31433保留，引用入口仍可用。证据见task-163-isolated的accepted-browser、accepted-before-restart与accepted-persistence.json。
+- **待核实GAP-004**：首轮共享31432/31433验收期间，旧doc-ref-a在20:22:14经workspace_save出现正文前导空行、version1→2（隔离history提交fc6398e）。调用源未确认，旧全hash检查失败如实保留，未覆盖恢复。task-164 20:06原验收通过是历史事实，不能据此说20:22后旧数据仍不变。新独立环境完整通过也不等于关闭该异常。下一单项先采集调用来源并稳定复现，区分自动化误输入/后台编辑页与无操作保存回归；不得凭猜测改产品或重置文件。
+- TASK-163完成；TASK-030/034仍需聚合验收/剩余差距复核。TASK-010待评审，TASK-170新增设计不自动实施。其他会话result、prompt txt、后来出现的docs/guides与运行产物保留，不纳入本项提交；不推送，不访问生产workspace-v2。
+
+下节为Session24历史检查点，其下一步TASK-163现已完成。
+
 ## 最新：TASK-164 文档正文引用补齐（Session24）
 
 2026-10-15：引用详情不再只查选入资源。共享 URL 解析由 generation/document 复用，goldmark 图片节点排除代码/占位，同文档去重；media 枚举全部生命周期项目，合并并保留 source/documentId，读取失败不伪装为空。前端沿现有面板显示「文档」「选入资源」。未改变删除策略或增加表/索引。

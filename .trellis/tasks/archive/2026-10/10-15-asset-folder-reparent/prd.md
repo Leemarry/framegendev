@@ -1,5 +1,11 @@
 # 素材库逻辑目录重挂父级（Reparent Library Folder）— PRD
 
+## 2026-10-15 续作范围校正
+
+原实现已在 `1b497b3` 提交，但旧 result 缺真实 UI 提交、冲突、刷新证据，本轮只补齐此功能闭环。实际 global/project 均支持同 scope 嵌套目录；原文「global 只有根目录」为过时前提，不能用来限制验收。实际 API 是 PATCH 同一 folder 路由、body `{newParentId}`，folderId 身份不变，移动后 URL 保留原 ID，面包屑由最新树重算。循环目标在 UI 排除，直接 API 必须拒绝。Swagger 由 handler 注解生成，无手写 api/openapi.yaml。
+
+首轮复用 task-164 的 31432/31433 时发现旧测试文档独立保存（GAP-004），完整保留旧数据，不作「原文档不变」通过。最终独立 `.cache/parity/task-163-isolated/workspace`、31434/31435 重跑全流程通过。验收包含当前非空目录及子目录移动、空目录回根、取消零 PATCH、冲突保留选择/重试、self/后代排除、scope 隔离、深浅/390px、刷新/重启与文件身份/hash/文档版本不变。真实生成与生产数据不在范围。
+
 ## 来源
 
 - 台账 TASK-030/034（素材库开发中，重挂父级为剩余缺口）

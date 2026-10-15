@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +14,7 @@ import {
 	deleteLibraryFolder,
 	getLibraryFolders,
 	renameLibraryFolder,
+	reparentLibraryFolder,
 	type AssetLibraryFolder,
 } from "@/domains/workspace/api/library-folders";
 import { AssetLibrary } from "./AssetLibrary";
@@ -64,6 +65,7 @@ vi.mock("@/domains/workspace/api/library-folders", () => ({
 	createLibraryFolder: vi.fn(),
 	deleteLibraryFolder: vi.fn(),
 	renameLibraryFolder: vi.fn(),
+	reparentLibraryFolder: vi.fn(),
 }));
 afterEach(() => {
 	cleanup();
@@ -198,7 +200,7 @@ const folder = (id: string, name: string, parentId = ""): AssetLibraryFolder => 
 });
 
 describe("material folder workflows", () => {
-	it("moves a project asset out of its folder, preserves a rejected selection and excludes global writes", async () => {
+	beforeEach(() => {
 		for (const method of [
 			"hasPointerCapture",
 			"setPointerCapture",
@@ -211,6 +213,8 @@ describe("material folder workflows", () => {
 					value: () => false,
 				});
 		}
+	});
+	it("moves a project asset out of its folder, preserves a rejected selection and excludes global writes", async () => {
 		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [folder("parent", "角色")] });
 		const inside = { ...asset("inside", "inside.png", "2026-10-14T00:00:00Z"), folderId: "parent" };
 		vi.mocked(getMediaAssets).mockResolvedValue({ assets: [inside] });
@@ -349,6 +353,68 @@ describe("material folder workflows", () => {
 		mount(undefined, "?projectId=project-a&folderId=missing");
 		await screen.findByText(/文件夹不存在/);
 		expect(screen.getByLabelText("上传素材")).toBeDisabled();
+	});
+	it("moves the current nonempty folder, excludes descendants and preserves its URL and media", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({
+			folders: [
+				folder("parent", "角色"),
+				folder("child", "主角", "parent"),
+				folder("target", "成片"),
+			],
+		});
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [{ ...asset("inside", "inside.png", "2026-10-14T00:00:00Z"), folderId: "parent" }],
+		});
+		vi.mocked(reparentLibraryFolder).mockResolvedValue(folder("parent", "角色", "target"));
+		mount({ assetReturnTo: "/projects?documentId=doc-a" }, "?projectId=project-a&folderId=parent");
+		fireEvent.click(await screen.findByRole("button", { name: "移动文件夹 角色" }));
+		const dialog = screen.getByRole("alertdialog");
+		expect(within(dialog).getByRole("button", { name: "移动" })).toBeDisabled();
+		fireEvent.keyDown(within(dialog).getByRole("combobox", { name: "选择目标目录" }), {
+			key: "Enter",
+		});
+		expect(screen.queryByRole("option", { name: "角色" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("option", { name: "角色 / 主角" })).not.toBeInTheDocument();
+		fireEvent.keyDown(await screen.findByRole("option", { name: "成片" }), { key: "Enter" });
+		fireEvent.click(within(dialog).getByRole("button", { name: "移动" }));
+		await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+		expect(reparentLibraryFolder).toHaveBeenCalledWith("project-a", "parent", "target");
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent(
+			"/assets?projectId=project-a&folderId=parent",
+		);
+		expect(screen.getByLabelText("路由状态")).toHaveTextContent("doc-a");
+		expect(screen.getByRole("button", { name: "预览 inside.png" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "打开文件夹 主角" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "返回上级文件夹" })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "返回上级文件夹" }));
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=target");
+	});
+	it("cancels without writes and keeps a conflicting move draft for retry", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({
+			folders: [folder("parent", "角色"), folder("child", "主角", "parent")],
+		});
+		vi.mocked(reparentLibraryFolder)
+			.mockRejectedValueOnce({ code: 400, message: "folder name already exists" })
+			.mockResolvedValueOnce(folder("child", "主角"));
+		mount(undefined, "?projectId=project-a&folderId=child");
+		fireEvent.click(await screen.findByRole("button", { name: "移动文件夹 主角" }));
+		fireEvent.click(screen.getByRole("button", { name: "取消" }));
+		expect(reparentLibraryFolder).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: "移动文件夹 主角" }));
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "选择目标目录" }), { key: "Enter" });
+		fireEvent.keyDown(await screen.findByRole("option", { name: "素材库根目录" }), {
+			key: "Enter",
+		});
+		fireEvent.click(screen.getByRole("button", { name: "移动" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("folder name already exists");
+		expect(screen.getByRole("combobox", { name: "选择目标目录" })).toHaveTextContent(
+			"素材库根目录",
+		);
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=child");
+		fireEvent.click(screen.getByRole("button", { name: "移动" }));
+		await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+		expect(reparentLibraryFolder).toHaveBeenCalledTimes(2);
+		expect(reparentLibraryFolder).toHaveBeenLastCalledWith("project-a", "child", "");
 	});
 });
 

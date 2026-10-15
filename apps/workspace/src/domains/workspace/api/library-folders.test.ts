@@ -5,6 +5,7 @@ import {
 	deleteLibraryFolder,
 	getLibraryFolders,
 	renameLibraryFolder,
+	reparentLibraryFolder,
 } from "./library-folders";
 import {
 	getMediaAssetReferences,
@@ -17,7 +18,7 @@ import {
 } from "./media";
 
 vi.mock("@/shared/lib/http", () => ({
-	default: { delete: vi.fn(), get: vi.fn(), post: vi.fn(), put: vi.fn() },
+	default: { delete: vi.fn(), get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn() },
 }));
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -29,6 +30,7 @@ beforeEach(() => {
 	});
 	vi.mocked(httpClient.post).mockResolvedValue({ data: {}, success: true, code: 0, message: "" });
 	vi.mocked(httpClient.put).mockResolvedValue({ data: {}, success: true, code: 0, message: "" });
+	vi.mocked(httpClient.patch).mockResolvedValue({ data: {}, success: true, code: 0, message: "" });
 	vi.mocked(httpClient.delete).mockResolvedValue({
 		data: undefined,
 		success: true,
@@ -73,6 +75,18 @@ it("uploads with the destination in multipart and shares the scoped media patch 
 		tags: [],
 		note: "",
 		rating: 0,
+	});
+});
+
+it("reparents folders through scoped PATCH routes including a move to root", async () => {
+	await reparentLibraryFolder("project/a", "folder/a", "parent");
+	expect(httpClient.patch).toHaveBeenCalledWith(
+		"/projects/project%2Fa/asset-library-folders/folder%2Fa",
+		{ newParentId: "parent" },
+	);
+	await reparentLibraryFolder(null, "folder/a", "");
+	expect(httpClient.patch).toHaveBeenCalledWith("/asset-library-folders/folder%2Fa", {
+		newParentId: "",
 	});
 });
 
