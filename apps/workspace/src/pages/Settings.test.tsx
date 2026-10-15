@@ -98,7 +98,7 @@ describe("Settings API key page", () => {
 				</SWRConfig>
 			</MemoryRouter>,
 		);
-		expect(screen.getByText(/【待(开发|接入)】/)).toBeInTheDocument();
+		expect(screen.getAllByText(/【待(开发|接入)】/).length).toBeGreaterThan(0);
 		expect(screen.queryByRole("button", { name: "保存" })).toBeNull();
 	});
 
@@ -508,6 +508,22 @@ describe("Settings Codex skills page", () => {
 			expect(screen.getByRole("heading", { name: "Codex 全局技能" })).toBeInTheDocument();
 		},
 	);
+});
+
+describe("Settings local account page", () => {
+	afterEach(cleanup);
+
+	it("keeps commercial actions unavailable and opens actual local billing", async () => {
+		useSettingsNavigationStore.setState({ activeTab: "account" });
+		renderSettings();
+		expect(screen.getByText("本地用户 · 未登录")).toBeInTheDocument();
+		for (const name of ["登录", "刷新", "充值积分", "开通会员"]) {
+			expect(screen.getByRole("button", { name })).toBeDisabled();
+		}
+		fireEvent.click(screen.getByRole("button", { name: "查看用量" }));
+		expect(useSettingsNavigationStore.getState().activeTab).toBe("billing");
+		expect(await screen.findByRole("heading", { name: "用量与账单" })).toBeInTheDocument();
+	});
 });
 
 const renderSettings = () =>

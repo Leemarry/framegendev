@@ -64,6 +64,7 @@ import { isDesktopRuntime, openProjectDirectory } from "@/domains/projects/lib/p
 import { openExternalUrl, pickDesktopDirectory } from "@/shared/desktop/actions";
 import { UpdatesPanel } from "@/domains/settings/components/UpdatesPanel";
 import { BasicSettingsPanel } from "@/domains/settings/components/BasicSettingsPanel";
+import { AccountPanel } from "@/domains/settings/components/AccountPanel";
 import { PendingSettingsPanel } from "@/domains/settings/components/PendingSettingsPanel";
 import {
 	isPendingSettingsTab,
@@ -85,6 +86,7 @@ const providerRowClassName = settingsInsetRowClassName;
 
 type SettingsTabValue =
 	| "appearance"
+	| "account"
 	| "api-keys"
 	| "billing"
 	| "codex-access"
@@ -97,6 +99,7 @@ type SettingsTabValue =
 
 const isSettingsTabValue = (value: string): value is SettingsTabValue =>
 	value === "appearance" ||
+	value === "account" ||
 	value === "api-keys" ||
 	value === "billing" ||
 	value === "codex-access" ||
@@ -135,6 +138,7 @@ export const Settings: React.FC = () => {
 	return (
 		<div className="h-full min-h-0 overflow-hidden bg-ide-editor text-ide-editor-foreground">
 			{visibleTab === "appearance" ? <BasicSettingsPanel /> : null}
+			{visibleTab === "account" ? <AccountPanel /> : null}
 
 			{jianyingDraftSettingsEnabled && visibleTab === "jianying-draft" ? (
 				<JianyingDraftPanel />
