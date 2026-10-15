@@ -47,6 +47,15 @@ request so the panel error is visible. A successful restore creates a new versio
 keeps previous history, and restores empty tags as well as body/title/category.
 Legacy callers omitting the optional version remain compatible and unprotected.
 
+Historical full reading/source previews use the existing diff response's immutable
+snapshots, not the live document store. Reading uses the existing document schema
+with editable=false and no onUpdate/save/editor-registry integration; source shows
+the exact escaped Markdown, preserving whitespace. Key preview instances by
+project/document/hash and verify response identity. Hide cached content during
+revalidation/failure and disable restore/navigation until reads recover. Switching
+views never changes the selected restore target or frozen reviewed version.
+Full snapshot reading is distinct from official diff-highlighted reading.
+
 NLE manual edits live in local immutable history until explicit episode PUT succeeds.
 Failed writes retain the draft; discard requires confirmation. Saved episodes use
 optional `editVersion: 1`; backend resolved reads preserve the complete manual

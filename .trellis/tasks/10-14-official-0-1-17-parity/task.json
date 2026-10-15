@@ -50,7 +50,8 @@
     "10-16-history-import-validation",
     "10-16-selection-project-isolation",
     "10-16-selection-media-isolation",
-    "10-16-media-download-path"
+    "10-16-media-download-path",
+    "10-16-history-snapshot-views"
   ],
   "parent": null,
   "relatedFiles": [],

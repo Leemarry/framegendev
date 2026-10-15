@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/shared/lib/utils";
 import { DocumentHistoryDiff } from "./DocumentHistoryDiff";
+import { DocumentHistorySnapshot } from "./DocumentHistorySnapshot";
 
 interface DocumentHistoryPanelProps {
 	open: boolean;
@@ -43,6 +44,7 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 	const [reviewedVersion, setReviewedVersion] = useState<number | null>(null);
 	const [restoreError, setRestoreError] = useState("");
 	const [mode, setMode] = useState("parallel");
+	const [contentView, setContentView] = useState("diff");
 	const [changeIndex, setChangeIndex] = useState(-1);
 	const diffContainer = useRef<HTMLDivElement>(null);
 	const documentId = document?.id ?? null;
@@ -93,7 +95,17 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 			),
 		{ revalidateOnFocus: false },
 	);
-	const diff = response?.diff;
+	const diff =
+		response &&
+		response.projectId === projectId &&
+		response.documentId === documentId &&
+		response.diff.to.hash === currentHash &&
+		response.diff.from?.hash === selectedHash
+			? response.diff
+			: undefined;
+	const snapshot = selectedHash === currentHash ? diff?.to : diff?.from;
+	const reading = contentView !== "diff";
+	const unavailable = Boolean(historyError || diffError || refreshingHistory || refreshingDiff);
 	const changes = historyChangeStarts(diff?.lines ?? []);
 	useEffect(() => {
 		setChangeIndex(-1);
@@ -235,41 +247,56 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 					</div>
 					<div className="flex min-h-0 min-w-0 flex-col">
 						<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border p-2">
-							<Tabs value={mode} onValueChange={setMode}>
-								<TabsList aria-label="差异显示方式">
-									<TabsTrigger value="parallel">并排</TabsTrigger>
-									<TabsTrigger value="unified">合并</TabsTrigger>
+							<Tabs value={contentView} onValueChange={setContentView}>
+								<TabsList aria-label="历史内容视图">
+									<TabsTrigger value="diff">差异</TabsTrigger>
+									<TabsTrigger value="reading">阅读视图</TabsTrigger>
+									<TabsTrigger value="source">源文件</TabsTrigger>
 								</TabsList>
 							</Tabs>
-							<div className="flex items-center gap-1">
-								<Button
-									size="icon"
-									variant="ghost"
-									aria-label="上一处变更"
-									title="上一处变更"
-									disabled={!changes.length}
-									onClick={() => navigateChange(-1)}
-								>
-									<ChevronLeft />
-								</Button>
-								<span className="min-w-12 text-center text-xs tabular-nums" aria-live="polite">
-									{changeIndex + 1} / {changes.length}
-								</span>
-								<Button
-									size="icon"
-									variant="ghost"
-									aria-label="下一处变更"
-									title="下一处变更"
-									disabled={!changes.length}
-									onClick={() => navigateChange(1)}
-								>
-									<ChevronRight />
-								</Button>
-							</div>
+							{!reading ? (
+								<>
+									<Tabs value={mode} onValueChange={setMode}>
+										<TabsList aria-label="差异显示方式">
+											<TabsTrigger value="parallel">并排</TabsTrigger>
+											<TabsTrigger value="unified">合并</TabsTrigger>
+										</TabsList>
+									</Tabs>
+									<div className="flex items-center gap-1">
+										<Button
+											size="icon"
+											variant="ghost"
+											aria-label="上一处变更"
+											title="上一处变更"
+											disabled={!changes.length || unavailable}
+											onClick={() => navigateChange(-1)}
+										>
+											<ChevronLeft />
+										</Button>
+										<span className="min-w-12 text-center text-xs tabular-nums" aria-live="polite">
+											{changeIndex + 1} / {changes.length}
+										</span>
+										<Button
+											size="icon"
+											variant="ghost"
+											aria-label="下一处变更"
+											title="下一处变更"
+											disabled={!changes.length || unavailable}
+											onClick={() => navigateChange(1)}
+										>
+											<ChevronRight />
+										</Button>
+									</div>
+								</>
+							) : null}
 						</div>
 						<div className="grid shrink-0 grid-cols-2 gap-2 border-b border-border px-3 py-2 text-xs text-muted-foreground">
 							<span className="min-w-0 break-words">所选版本 {shortHash(selectedHash ?? "")}</span>
-							<span className="min-w-0 break-words">当前版本 {shortHash(currentHash ?? "")}</span>
+							{reading ? (
+								<span className="min-w-0 break-words">{snapshot?.title}</span>
+							) : (
+								<span className="min-w-0 break-words">当前版本 {shortHash(currentHash ?? "")}</span>
+							)}
 						</div>
 						{diff?.from &&
 						(diff.from.title !== diff.to.title ||
@@ -280,12 +307,18 @@ export const DocumentHistoryPanel: React.FC<DocumentHistoryPanelProps> = ({
 							</p>
 						) : null}
 						<div ref={diffContainer} className="min-h-0 flex-1 overflow-auto bg-ide-editor">
-							{loadingDiff ? (
+							{loadingDiff || refreshingDiff || refreshingHistory ? (
 								<Loading />
-							) : diffError ? (
+							) : diffError || historyError ? (
 								<p role="alert" className="p-4 text-sm text-destructive">
 									版本差异加载失败，请刷新重试。
 								</p>
+							) : reading && snapshot ? (
+								<DocumentHistorySnapshot
+									key={`${projectId}:${documentId}:${snapshot.hash}`}
+									version={snapshot}
+									source={contentView === "source"}
+								/>
 							) : diff ? (
 								<DocumentHistoryDiff lines={diff.lines} parallel={mode === "parallel"} />
 							) : (
