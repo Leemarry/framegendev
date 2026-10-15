@@ -1,5 +1,6 @@
 import {
 	BrowserWindow,
+	Menu,
 	app,
 	dialog,
 	ipcMain,
@@ -35,6 +36,7 @@ import {
 } from "./renderer-protocol.js";
 import { type SidecarConnection, startServerSidecar, stopServerSidecar } from "./sidecar.js";
 import { registerDesktopUpdater } from "./updater.js";
+import { applicationMenuTemplate } from "./application-menu.js";
 
 protocol.registerSchemesAsPrivileged([
 	{
@@ -501,6 +503,28 @@ const startApp = async () => {
 	const sidecar = startServerSidecar();
 	if (sidecar) authenticateSidecarRequests(sidecar);
 	await createWindow();
+	Menu.setApplicationMenu(
+		Menu.buildFromTemplate(
+			applicationMenuTemplate({
+				development: !app.isPackaged,
+				command: (command) => {
+					showMainWindow();
+					mainWindow?.webContents.send(desktopIpcChannel.menuCommand, command);
+				},
+				about: () => {
+					if (!mainWindow || mainWindow.isDestroyed()) return;
+					void dialog.showMessageBox(mainWindow, {
+						type: "info",
+						title: "关于 MediaGo Drama",
+						message: "MediaGo Drama",
+						detail: `版本 ${app.getVersion()}\nElectron ${process.versions.electron}\nChromium ${process.versions.chrome}\n${process.platform} ${process.arch}`,
+						buttons: ["确定"],
+						noLink: true,
+					});
+				},
+			}),
+		),
+	);
 };
 
 // Enforce a single running instance: activating the app again (Dock, `open`,

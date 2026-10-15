@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import {
+	type DesktopMenuCommand,
+	isDesktopMenuCommand,
 	type DesktopFileFilter,
 	type DesktopNotificationOptions,
 	type DesktopPromptPackSaveOptions,
@@ -17,6 +19,13 @@ import {
 const api = {
 	platform: process.platform,
 	isElectron: true,
+	onMenuCommand: (callback: (command: DesktopMenuCommand) => void) => {
+		const listener = (_event: IpcRendererEvent, value: unknown) => {
+			if (isDesktopMenuCommand(value)) callback(value);
+		};
+		ipcRenderer.on(desktopIpcChannel.menuCommand, listener);
+		return () => ipcRenderer.removeListener(desktopIpcChannel.menuCommand, listener);
+	},
 	openExternal: (url: string) => ipcRenderer.invoke(desktopIpcChannel.openExternal, url),
 	openPath: (path: string) => ipcRenderer.invoke(desktopIpcChannel.openPath, path),
 	revealPath: (path: string) => ipcRenderer.invoke(desktopIpcChannel.revealPath, path),
