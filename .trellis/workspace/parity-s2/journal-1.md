@@ -137,3 +137,33 @@ Corrected native folder opening; full Explorer breadcrumb and unchanged fixture 
 ### Next Steps
 
 - Synchronize committed accepted main integration into own branch, then plan TASK-062 project new windows.
+
+
+## Session 6: Native project windows awaiting restart recovery
+<!-- trellis-session: v=2 fp=7102be2ced3ea5e3 -->
+
+**Date**: 2026-10-16
+**Task**: Native project windows awaiting restart recovery
+**Branch**: `codex/parity-s2`
+
+### Summary
+
+Independent native windows implemented and checked; full restart reveals orphaned TASK-181 draft discovery gap owned by session1. Task not accepted or archived.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8ccef8b` | feat(projects): add native windows pending recovery acceptance |
+
+### Testing
+
+- [OK] 67 focused tests, lint, full cache format, build/Electron compile and Windows full check/race passed; real native menu, picker cancel, renderer failure/retry and restart tested.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Session1 must resolve old-window draft recovery before accepting 8ccef8b; continue independent TASK-120 page review.
