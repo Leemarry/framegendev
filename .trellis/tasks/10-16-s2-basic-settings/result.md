@@ -16,7 +16,12 @@ and this task's390px acceptance remain open; do not archive this task yet.
   inferred from a click.
 - Language, anonymous statistics and diagnostics remain disabled with explicit
   reasons. They have no matching runtime implementation. Existing advanced
-  settings remain accessible. No telemetry service or fake language setting.
+  settings remain accessible. No new telemetry service or fake language setting.
+  Follow-up inspection found shared/analytics/talking-data.ts already supports
+  optional browser analytics by build env and disables script injection in
+  Electron. Its preference/consent hook is absent; the pending row now says the
+  preference is not connected, rather than claiming analytics does not exist.
+  No shared analytics behavior was changed (session1 owns that module).
 
 ## Actual Verification
 
