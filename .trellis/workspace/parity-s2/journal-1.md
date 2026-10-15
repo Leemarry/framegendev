@@ -46,3 +46,29 @@ Six native menus, validated navigation IPC, actual about dialog and isolated Win
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: Settings responsive acceptance and local account
+<!-- trellis-session: v=2 fp=496630d2f678851e -->
+
+**Date**: 2026-10-16
+**Task**: Settings responsive acceptance and local account
+**Branch**: `codex/parity-s2`
+
+### Summary
+
+Accepted bounded navigation/basic theme-directory/local account slices,20entries at390px and native directory/restart. Whole090/140 and transfer/storage remain pending; detailed evidence and failures in archived results. Session1 contract31e4fa1 authorized App.tsx narrow wiring.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `26190ee` | feat(settings): align basic preferences with real theme and workspace actions |
+| `c05ab94` | fix(settings): clarify pending analytics preference integration |
+| `d30bde4` | feat(settings): add honest account structure and local usage entry |
+| `dbf28fa` | docs(parity): request shared project transfer and storage contracts |
+| `e1b55bc` | fix(settings): reuse navigation drawer for narrow global settings |
+
+### Status
+
+[OK] **Completed**
