@@ -1062,3 +1062,27 @@ Accepted history diff/restore slice; main c2261df plus session2 verified setting
 ### Next Steps
 
 - TASK-050 comment context and failure protection; whole070 views/resources remain open.
+
+
+## Session 34: TASK-050 local comment safety and main integration
+<!-- trellis-session: v=2 fp=b442e41902ae9818 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-050 local comment safety and main integration
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+Accepted local comment lifecycle/offline recovery/restart/context safety; integrated both sessions, main270 tests and actual390px save/reload passed. Real Agent success remains pending.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f6eb85d` | fix(documents): retain failed comment edits and pin agent context |
+| `6ad83ca` | fix(documents): retain failed comment edits and pin agent context |
+| `580838e` | fix(projects): open the project folder directly from settings |
+
+### Status
+
+[OK] **Completed**

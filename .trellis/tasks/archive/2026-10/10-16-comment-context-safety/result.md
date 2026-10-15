@@ -73,3 +73,15 @@ Project project-9d7c9e501f0f7284; document doc-1792082854660-cfu5xc55cl.
 Durable evidence in evidence/: actual offline/reload recovery, reopened short
 pane, light/dark resolved panes and official nonempty comment. Additional local
 captures and before-restart JSON remain under .cache/parity/task-050/.
+
+## Integration
+
+Feature f6eb85d -> main6ad83ca. Session2 project-folder action9b46896/484631f
+reviewed and integrated as580838e/d2ec9db. Main44 files270 tests, lint/full701-file
+format/build/Electron compile and embedded Go build pass. No backend source
+changed since the prior complete Windows check/race acceptance.
+Fresh main binary mediago-server-comments.exe serves own31456 workspace.
+Actual main selection -> create MAIN_INTEGRATED_COMMENT -> reload ->390px pane
+passed; document doc-1792081464198-5s1uoghjqj5 is v3, exact previous body retained
+(Integrated main document persistence check. plus two newlines), open comment
+comment-1792085502942-n0d9puc36w saved. Screenshot retained in main cache.

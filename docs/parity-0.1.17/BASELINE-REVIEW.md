@@ -4,6 +4,8 @@
 
 ## 截图事实
 
+2026-10-16补证：TASK-050在会话1独立官方desktop/CDP9242实际选区添加非空批注，锚点、编辑/删除及未解决数量已补采，见 `.trellis/tasks/archive/2026-10/10-16-comment-context-safety/evidence/official-nonempty-comment.png`。未点击发送Agent，成功/失败运行态仍未覆盖；下表保留原始截图的证据限制。
+
 新图实际 **106** 张，无完全相同 hash。编号 01~96、100~107，85/91 各有两张，97~99 不存在。105 张 1920×1080（含系统任务栏），18 为 529×480 用户菜单裁图。早期 exe-flow 的 43 张 1600×1136 全窗口图仍可补证，其中 `00-workspace-comments.png` 与 `01-workspace.png` 的 SHA256 相同，不算两个不同状态。不能用同一 viewport 直接比较这三类尺寸。
 
 每张文件、尺寸、SHA256 在 [机器索引](evidence/2026-10-15/screenshots.json)，默认不要全文读取。全部已查看缩略图；涉及具体控件仍打开原图和运行态。生成方式：
