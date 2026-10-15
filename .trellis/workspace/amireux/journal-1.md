@@ -1134,3 +1134,26 @@ TASK034 local folders and TASK030 local aggregate accepted with refresh error/ca
 ### Status
 
 [OK] **Completed**
+
+
+## Session 37: S1 recovery blocker and audio cache integration
+<!-- trellis-session: v=2 fp=7163467a55a9fc46 -->
+
+**Date**: 2026-10-16
+**Task**: S1 recovery blocker and audio cache integration
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Integrated audio history hydration guard; main95files641tests and frontend/Electron/Windows build pass; executable31456 updated with exact old document records preserved. Prior-window UI b7c3d79 remains source-only pending restart denied by automatic approval. No archive for incomplete181/080; native Jianying unavailable.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a747a54` | fix(generation): retain audio messages when rehydrating history |
+| `9d7468b` | docs(parity): retain prior-window recovery acceptance blocker |
+
+### Status
+
+[OK] **Completed**

@@ -26,6 +26,8 @@
 
 GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_save 变更，调用来源尚未确认。原 baseline 失败不能用新隔离数据通过替代，不重置原文件。
 
+6. TASK-080音频缓存遗漏已修复9c949f0→主a747a54：原version1持久化恢复过滤掉audio，现复用校验支持四类；先重现失败，再3文件26测试通过，主95文件641组合测试、lint/702文件format/build/Electron/Windows build通过。主31456已更新mediago-server-history.exe，实际HTTP200返回新构建，旧文档完整记录不变；浏览器重开/真实生成仍未跑，本项保持in_progress，详见 `.trellis/tasks/10-16-audio-history-recovery/result.md`。完整backend check/race沿此前素材聚合已通过记录，本次仅新跑build（后端源码未变）。040/041仍无可用剪映客户端可做原生重开，150整体不完成。下一无外部依赖项为080本地导入历史的失败一致性与查询；不发送生成请求。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |
