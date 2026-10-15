@@ -19,7 +19,7 @@ Official basic-settings sections with working existing theme persistence and wor
 - [x] All three modes survive reload; native dark mode survives process restart.
 - [x] Actual isolated directory is shown; native open and failure retry work.
 - [x] Loading/error/browser-only states are accurate; no silent success.
-- [ ] Full390px layout acceptance awaits TASK-020 shell ownership/integration.
+- [x] Full390px layout accepted after TASK-020 narrow-shell fix.
 - [x] Related tests and frontend lint/format/build checked; actual UI evidence recorded.
 
 ## Notes

@@ -1,7 +1,10 @@
 # TASK-090 Basic Settings Checkpoint
 
-2026-10-16. Working theme and workspace-directory slice implemented. Whole090
-and this task's390px acceptance remain open; do not archive this task yet.
+2026-10-16. Working theme and workspace-directory slice accepted after TASK-020
+shell fix. Whole090 remains open. Follow-up390px light/dark real captures show
+main389px, all section/fieldset clientWidth==scrollWidth339px. No panel overflow.
+Historical failed narrow evidence below remains preserved. This bounded task
+covers appearance/directory behavior and truthful unavailable preference states.
 
 ## Changes And Contracts
 

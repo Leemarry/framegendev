@@ -5,4 +5,4 @@
 - [x] Extract panel, implement theme choices and directory failure recovery.
 - [x] Focused behavior tests, lint/format/build.
 - [x] Browser and native isolated acceptance; record limitations and commit.
-- [ ] TASK-020 global narrow shell integration before full390px acceptance.
+- [x] TASK-020 global narrow shell integration and full390px acceptance.
