@@ -28,3 +28,9 @@
 - `pnpm -C apps/workspace exec vitest run src/domains/workspace/components/NewDocumentDialog.test.tsx src/domains/generation/components/GenerationModelRoutePicker.test.tsx`：2 files / 17 tests passed。
 - `git diff --check`：通过（仅现有工作树换行提示）。
 - 未运行全量前端 lint/format/build、Go check/test/build或当前开发 UI 全量验收；这些不属于本资料复查的已执行门，后续产品任务必须重新运行。本轮开发UI只在自有标签只读核实既有隔离31435的项目/菜单/设置入口。
+
+## 用户追问补记（2026-10-15）
+
+- 复核既有录制23帧、19次点击事件、页面PNG/可访问树与启动器复验会话文件，确认实际隔离桌面体验和补采；没有事后重演。本项9226/9227无监听、对应官方profile进程已退出。
+- 在原复查索引补充可复用的启动→连接→核对存储→点击/截图→关闭步骤，README直接链接；说明Win32独立桌面与虚拟机的区别、CDP原生控件边界、旧PID脚本不可复用。未新增平行说明文档或修改产品功能。
+- 本次3份文档格式、相对链接和diff检查通过；3段PowerShell示例仅解析语法，未再次运行体验。录制帧数与点击事件已读取核实。

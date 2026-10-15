@@ -976,3 +976,37 @@ Completed NLE subtitle/audio editing, real PCM waveforms, synchronized preview a
 ### Next Steps
 
 - Native Jianying client reopening/audio/text typography acceptance required; parent and TASK-040/041 remain pending acceptance. No push, TASK-042/178 excluded.
+
+
+## Session 31: TASK-166 补记虚拟桌面体验方法
+<!-- trellis-session: v=2 fp=34b021f6812aa30e -->
+
+**Date**: 2026-10-15
+**Task**: TASK-166 补记虚拟桌面体验方法
+**Branch**: `codex/nle-export`
+
+### Summary
+
+用户追问后复核上一轮真实桌面体验与截图，扩充原复查索引中的启动、连接、截图及关闭步骤；关联原基线提交，本次补记随独立文档提交交付。
+
+### Main Changes
+
+- 保留唯一复查索引；README直接链接操作步骤，说明独立Windows desktop与CDP控制边界。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2224675` | docs(parity): refresh screenshot evidence and progressive AI entry |
+
+### Testing
+
+- [OK] 既有录制23帧、19次点击和补采图可追溯；9226/9227及本项profile进程已退出。3文档链接/格式/diff及3段PowerShell语法通过，未重演应用操作。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 产品任务仍先TASK-181；本文档补记不代表新增功能或完整官方体验验收。

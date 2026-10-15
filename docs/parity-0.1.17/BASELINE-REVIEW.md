@@ -61,9 +61,35 @@ pwsh -NoProfile -File scripts/parity/inspect-screenshots.ps1 -SourceDirectory E:
 
 补采长期证据集中在 [evidence/2026-10-15](evidence/2026-10-15/)：`official-new-document.png`、`official-history.png`、`official-storage.png`、`official-extensions-full-window.png`。其余快照/可访问树/日志放 `.cache/parity/task-166/official/`，录制在 `C:/Users/Amireux/.config/browser-harness/agent-workspace/recordings/official-parity-166`，不作为默认AI上下文。
 
-重做体验用 `scripts/parity/start-official-desktop.ps1 -AuditDirectory .cache/parity/<新任务> -DesktopName <独立名字> -DebugPort <空闲端口>`；读取生成的 `official-session.json`，在 browser-harness 设独立 `BU_NAME`、`BU_CDP_URL`。启动后先从官方存储页核对工作区路径，再创建fixture。Electron CDP不支持Target.createTarget，应直接操作其已存在目标；不要把另一个会话的Chrome连接切过来。完成用CDP Browser.close关闭自己实例，保留隔离数据与失败证据。菜单/原生选择器用Windows UIA/全窗口截图补证，浏览器内容截图需明确范围。
+2026-10-15 用户追问后复核：上述补采是实际操作记录，录制目录有23帧及 `events.jsonl`（21:40~22:00），包括 `click_at_xy` 事件；不是仅查看已有截图或重演。当前9226/9227无监听，本项官方进程已退出。启动器复验的会话参数保存在 `.cache/parity/task-166-launch-check/official-session.json`；旧PID不能用于新一轮操作。
 
 限制：新建开发实例启动被工具自动审核拦截（blocked by policy）；在官方Electron中创建开发网页tab亦返回Not supported。后续用独立browser-harness连接到Edge CDP9237，新建自己的标签只读核对既有隔离31435的项目页/菜单/设置入口，截图在cache的20~22；未访问该浏览器已有标签。当前开发UI未在本轮全量实测，以上其余结论以源码核实；旧验收只覆盖其原范围，新增缺口均待验收。不接管NLE的CDP9225。官方两个隔离实例均已关闭（首次CDP Browser.close关闭时返回WebSocket connection closed，经进程核实退出；脚本复验实例按已核实PID关闭），隔离数据保留。
+
+## 复用虚拟桌面
+
+这是 Win32 `CreateDesktop` 创建的独立 Windows desktop，不是虚拟机或 Win+Tab 工作区。启动器把官方EXE放到该桌面，AI通过 browser-harness/CDP 操作真实应用的网页内容，不抢占当前桌面。原生菜单和文件选择器需要额外的原生桌面控制，CDP点击不能替代。
+
+1. 在仓库根目录读 `browser-harness` 技能，检查当前进程/端口。下面名字只是示例，每次换全新的缓存目录、desktop名称和空闲端口；启动器拒绝复用已有profile。只启动 [官方隔离脚本](../../scripts/parity/start-official-desktop.ps1)，不双击用户正在使用的实例。
+
+   ```powershell
+   Set-Location E:/AI/framegendev
+   $audit = '.cache/parity/official-review-20261015-a'
+   pwsh -NoProfile -File scripts/parity/start-official-desktop.ps1 -AuditDirectory $audit -DesktopName MediaGoReview20261015A -DebugPort 9238
+   ```
+
+2. 脚本输出并保存PID、desktop、workspace、profile与CDP地址。读取本次参数，用独立harness名称连接已有Electron页面；它不支持 `Target.createTarget`，不要调用 `new_tab`。首次连接若服务尚未就绪，检查本次启动状态再重试；不要改连其他实例。
+
+   ```powershell
+   $session = Get-Content (Join-Path $audit 'official-session.json') -Raw | ConvertFrom-Json
+   $env:BU_NAME = 'official-review-20261015-a'
+   $env:BU_CDP_URL = $session.cdp
+   'print(page_info())' | browser-harness
+   ```
+
+3. 先点用户菜单→设置→存储，确认工作区是本次 `$session.workspace`。再创建隔离测试项目；通过可访问树定位、`click_at_xy`点击，逐步验证状态。不访问真实 `workspace-v2`，不做登录、付费、真实生成/Agent或清理。
+4. 每个缺少状态先实际点开，再截图。网页内容可运行 `'capture_screenshot("E:/AI/framegendev/.cache/parity/official-review-20261015-a/page.png")' | browser-harness`；该目录已由启动器创建。完整原生窗口需根据本次desktop/PID用 `EnumDesktopWindows` + `PrintWindow` 截图，本轮得到1600×1136；检查图像非空且内容正确。缓存中的旧 `capture-window.ps1` 写死了旧PID，仅供追溯，不能直接复用。对照时区分内容截图、完整窗口和含系统任务栏的桌面图。
+5. 需要记录点击过程时先 `start_recording`，结束 `stop_recording`，保留返回的准确目录。本轮已有23帧不是视频文件；不把事后重演当原始记录。长期补采只选有用证据进入本目录 `evidence/<日期>/`，其余图/树/日志放本项缓存。
+6. 完成后用同一 `BU_NAME`/`BU_CDP_URL` 执行 `'cdp("Browser.close")' | browser-harness`。关闭时可能报WebSocket已断开，核实本次profile命令行对应进程和CDP端口已退出；若仍存活，只处理已核实归本项的进程，不按名称批量结束。保留数据，更新本项结果与待补状态。
 
 ## 后续验收顺序
 

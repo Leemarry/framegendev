@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 30
+- **Total Sessions**: 31
 - **Last Active**: 2026-10-15
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~978 | Active |
+| `journal-1.md` | ~1012 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 31 | 2026-10-15 | TASK-166 补记虚拟桌面体验方法 | `2224675` | `codex/nle-export` |
 | 30 | 2026-10-15 | TASK-041 editable captions actual audio waveforms and native export | - | `codex/nle-export` |
 | 29  | 2026-10-15 | TASK-166 新截图基线复查与渐进资料整理                             | -         | `codex/nle-export`               |
 | 28  | 2026-10-15 | TASK-040 M3 playback and matching draft export                    | -         | `codex/nle-export`               |
