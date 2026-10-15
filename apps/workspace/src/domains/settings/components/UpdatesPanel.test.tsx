@@ -12,6 +12,13 @@ import {
 	subscribeDesktopUpdateStatus,
 } from "@/shared/desktop/actions";
 
+const toasts = vi.hoisted(() => ({
+	error: vi.fn(),
+	info: vi.fn(),
+	success: vi.fn(),
+	warning: vi.fn(),
+}));
+
 vi.mock("@/shared/desktop/actions", () => ({
 	checkDesktopUpdate: vi.fn(),
 	downloadDesktopUpdate: vi.fn(),
@@ -27,12 +34,7 @@ vi.mock("@/shared/desktop/runtime", () => ({
 }));
 
 vi.mock("@/hooks/useToast", () => ({
-	useToast: () => ({
-		error: vi.fn(),
-		info: vi.fn(),
-		success: vi.fn(),
-		warning: vi.fn(),
-	}),
+	useToast: () => toasts,
 }));
 
 const supportedCapability = {
@@ -65,6 +67,69 @@ describe("UpdatesPanel", () => {
 
 	afterEach(() => {
 		cleanup();
+	});
+
+	it("shows loading and retries rejected metadata without claiming unsupported updates", async () => {
+		let rejectMetadata: ((error: Error) => void) | undefined;
+		vi.mocked(getDesktopUpdateCapability).mockImplementationOnce(
+			() =>
+				new Promise((_, reject) => {
+					rejectMetadata = reject;
+				}),
+		);
+		const unsubscribe = vi.fn();
+		vi.mocked(subscribeDesktopUpdateStatus).mockReturnValue(unsubscribe);
+		render(<UpdatesPanel />);
+		expect(screen.getByRole("status")).toHaveTextContent("正在读取更新信息");
+		expect(screen.queryByRole("button", { name: "前往下载页" })).not.toBeInTheDocument();
+		await act(async () => rejectMetadata?.(new Error("版本桥接暂不可用")));
+		expect(await screen.findByRole("alert")).toHaveTextContent("版本桥接暂不可用");
+		expect(screen.queryByText(/当前运行环境不支持/)).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "重试" }));
+		expect(await screen.findByRole("button", { name: "检查更新" })).toBeEnabled();
+		expect(getDesktopUpdateCapability).toHaveBeenCalledTimes(2);
+		expect(unsubscribe).toHaveBeenCalledOnce();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		expect(downloadDesktopUpdate).not.toHaveBeenCalled();
+		expect(installDesktopUpdate).not.toHaveBeenCalled();
+	});
+
+	it("unsubscribes and ignores metadata failure after leaving the page", async () => {
+		let rejectMetadata: ((error: Error) => void) | undefined;
+		vi.mocked(getDesktopUpdateCapability).mockImplementationOnce(
+			() =>
+				new Promise((_, reject) => {
+					rejectMetadata = reject;
+				}),
+		);
+		const unsubscribe = vi.fn();
+		vi.mocked(subscribeDesktopUpdateStatus).mockReturnValue(unsubscribe);
+		const { unmount } = render(<UpdatesPanel />);
+		unmount();
+		await act(async () => rejectMetadata?.(new Error("late bridge failure")));
+		expect(unsubscribe).toHaveBeenCalledOnce();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("reports download bridge rejection, restores the action and permits retry", async () => {
+		vi.mocked(downloadDesktopUpdate).mockRejectedValue(new Error("下载桥接连接断开"));
+		render(<UpdatesPanel />);
+		await screen.findByRole("button", { name: "检查更新" });
+		await pushStatus({ currentVersion: "1.0.0", phase: "available", info: { version: "1.1.0" } });
+		fireEvent.click(screen.getByRole("button", { name: "下载更新" }));
+		await waitFor(() =>
+			expect(toasts.error).toHaveBeenCalledWith("下载更新失败", {
+				description: "下载桥接连接断开",
+			}),
+		);
+		expect(screen.getByRole("button", { name: "下载更新" })).toBeEnabled();
+		vi.mocked(downloadDesktopUpdate).mockResolvedValue({ ok: false, message: "更新文件不可用" });
+		fireEvent.click(screen.getByRole("button", { name: "下载更新" }));
+		await waitFor(() =>
+			expect(toasts.error).toHaveBeenCalledWith("下载更新失败", { description: "更新文件不可用" }),
+		);
+		expect(toasts.success).not.toHaveBeenCalled();
+		expect(installDesktopUpdate).not.toHaveBeenCalled();
 	});
 
 	it("enables download after push stream reports an available update", async () => {
