@@ -137,3 +137,63 @@ Corrected native folder opening; full Explorer breadcrumb and unchanged fixture 
 ### Next Steps
 
 - Synchronize committed accepted main integration into own branch, then plan TASK-062 project new windows.
+
+
+## Session 6: Native project windows awaiting restart recovery
+<!-- trellis-session: v=2 fp=7102be2ced3ea5e3 -->
+
+**Date**: 2026-10-16
+**Task**: Native project windows awaiting restart recovery
+**Branch**: `codex/parity-s2`
+
+### Summary
+
+Independent native windows implemented and checked; full restart reveals orphaned TASK-181 draft discovery gap owned by session1. Task not accepted or archived.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8ccef8b` | feat(projects): add native windows pending recovery acceptance |
+
+### Testing
+
+- [OK] 67 focused tests, lint, full cache format, build/Electron compile and Windows full check/race passed; real native menu, picker cancel, renderer failure/retry and restart tested.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Session1 must resolve old-window draft recovery before accepting 8ccef8b; continue independent TASK-120 page review.
+
+
+## Session 7: Update panel failure recovery accepted
+<!-- trellis-session: v=2 fp=f300a68f8b65e028 -->
+
+**Date**: 2026-10-16
+**Task**: Update panel failure recovery accepted
+**Branch**: `codex/parity-s2`
+
+### Summary
+
+Accepted TASK-090 failure-recovery slice only; metadata loading/error/retry and caught download failures. Official installation/update pages captured read-only, own official instance closed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `44e3fce` | fix(settings): recover update metadata and download failures |
+
+### Testing
+
+- [OK] 50 related tests, lint, full703-file LF cache format and build passed; actual native read-only metadata and simulated browser failure to real fallback retry at390px light/dark.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Native windows8ccef8b remains blocked on session1 old-window recovery discovery; transfer/storage contracts dbf28fa and external runtime/commercial protocols remain pending.
