@@ -1,0 +1,7 @@
+# 设计
+
+保留每窗口sessionStorage ID及现有localStorage键。document-recovery.ts增加只读同项目扫描，复用现有草稿解析校验；排除本窗口键和备份键，多个窗口/同文档分别返回，来源数据永不删除。扫描只在项目进入和storage事件发生时更新，主动打开面板再刷新。所有草稿均明确标为其他窗口副本，不推断来源窗口已经退出。
+
+DocumentConflictNotice复用一个固定警示条，增加查看草稿动作和独立Sheet，避免重叠提示。可切换来源草稿，查看正文并下载JSON。显式载入时重读当前store，要求project仍匹配、工作区已加载且同ID无dirty/conflict；复制选定稿到本窗口store，isDirty=true并附当前服务器副本或null的saveConflict，复用既有冲突刷新/合并/CAS。不发保存请求；若远端文档已删除，继续提供下载并显示未找到状态，不擅自重建。
+
+文件限documents/stores/document-recovery.ts及新增测试、components/DocumentConflictNotice.tsx及新增行为测试，必要时document-save-queue既有边界测试。无公共模型/API/依赖变更，不修改会话2工作树。原生新窗口8ccef8b等待会话2在此契约提交后复验，不提前接受。

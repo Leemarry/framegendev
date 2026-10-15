@@ -45,6 +45,7 @@
     "10-16-comment-context-safety",
     "10-16-document-timeline-roundtrip",
     "10-16-asset-aggregate-acceptance",
+    "10-16-prior-window-recovery",
     "10-16-audio-history-recovery",
     "10-16-history-import-validation"
   ],
