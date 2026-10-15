@@ -72,3 +72,38 @@ Accepted bounded navigation/basic theme-directory/local account slices,20entries
 ### Status
 
 [OK] **Completed**
+
+
+## Session 4: Native cache statistics and extension entry acceptance
+<!-- trellis-session: v=2 fp=3c0e9a6a20075bc5 -->
+
+**Date**: 2026-10-16
+**Task**: Native cache statistics and extension entry acceptance
+**Branch**: `codex/parity-s2`
+
+### Summary
+
+TASK-100 bounded read-only Electron cache statistics accepted; TASK-110 existing skills/packs/instructions entry accepted. Full storage and external extension capabilities remain pending.
+
+### Main Changes
+
+- Trusted cache IPC and real storage panel with refresh/error recovery; no deletion.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0b6e50c` | feat(settings): show real native cache statistics with refresh |
+| `c6b0ff0` | feat(settings): expose existing skill management from extensions |
+
+### Testing
+
+- [OK] 62 tests, Electron compile, lint, build and LF-normalized 694-file format snapshot pass; real native reload/restart, 390px light/dark and unsupported browser verified.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Correct project-settings folder-open semantics independently; project transfer and workspace cleanup still await shared services.
