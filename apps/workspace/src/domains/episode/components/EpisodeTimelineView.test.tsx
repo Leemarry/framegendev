@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -296,7 +296,21 @@ describe("EpisodeTimelineView canvas generation", () => {
 		fixtures.previewPlayerPause.mockReset();
 		fixtures.previewProvider.play.mockReset();
 		vi.mocked(useSWR).mockReset();
-		vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: vi.fn() } as never);
+		const episode = makeStoryboardEpisode();
+		vi.mocked(useSWR).mockImplementation(
+			(key: unknown) =>
+				({
+					data:
+						Array.isArray(key) && key[0] === "workspace-resolved-episode"
+							? {
+									documentId: "story-doc",
+									projectId: "project-a",
+									episode,
+								}
+							: undefined,
+					mutate: vi.fn(),
+				}) as never,
+		);
 		vi.mocked(getMediaAssets).mockReset();
 		vi.mocked(getMediaAssets).mockResolvedValue({ assets: [] });
 		vi.mocked(workspaceEpisodePreviewStreamURL).mockReset();
@@ -354,6 +368,66 @@ describe("EpisodeTimelineView canvas generation", () => {
 			workspaceDir: "/workspace/project-a",
 		});
 		useEpisodeStore.getState().setEpisode(sampleEpisode);
+	});
+
+	it("shows loading/failure/retry instead of previous episode controls and never writes document on entry", () => {
+		const retry = vi.fn();
+		vi.mocked(useSWR).mockReturnValue({ data: undefined, mutate: retry } as never);
+		const view = render(
+			<MemoryRouter>
+				<EpisodeTimelineView documentId="story-doc" />
+			</MemoryRouter>,
+		);
+		expect(screen.getByRole("status")).toHaveTextContent("正在读取时间轴");
+		expect(screen.queryByRole("button", { name: "剪辑工作台" })).toBeNull();
+		expect(updateWorkspaceDocumentRecord).not.toHaveBeenCalled();
+		vi.mocked(useSWR).mockReturnValue({
+			data: undefined,
+			error: new Error("offline"),
+			mutate: retry,
+		} as never);
+		view.rerender(
+			<MemoryRouter>
+				<EpisodeTimelineView documentId="story-doc" />
+			</MemoryRouter>,
+		);
+		expect(screen.getByRole("alert")).toHaveTextContent("时间轴读取失败");
+		retry.mockClear();
+		fireEvent.click(screen.getByRole("button", { name: "重试" }));
+		expect(retry).toHaveBeenCalledOnce();
+		expect(screen.queryByTestId("timeline-editor")).toBeNull();
+	});
+
+	it("hides cached controls while the timeline revalidates and does not fall back from a missing explicit document", () => {
+		const episode = makeStoryboardEpisode();
+		vi.mocked(useSWR).mockReturnValue({
+			data: { documentId: "story-doc", projectId: "project-a", episode },
+			isValidating: true,
+			mutate: vi.fn(),
+		} as never);
+		const view = render(
+			<MemoryRouter>
+				<EpisodeTimelineView documentId="story-doc" />
+			</MemoryRouter>,
+		);
+		expect(screen.getByRole("status")).toHaveTextContent("正在读取时间轴");
+		expect(screen.queryByRole("button", { name: "剪辑工作台" })).toBeNull();
+		view.unmount();
+		const keySpy = vi
+			.mocked(useSWR)
+			.mockImplementation(() => ({ data: undefined, mutate: vi.fn() }) as never);
+		keySpy.mockClear();
+		render(
+			<MemoryRouter>
+				<EpisodeTimelineView documentId="missing" />
+			</MemoryRouter>,
+		);
+		expect(
+			keySpy.mock.calls.some(
+				([key]) => Array.isArray(key) && key[0] === "workspace-resolved-episode",
+			),
+		).toBe(false);
+		expect(screen.queryByTestId("timeline-editor")).toBeNull();
 	});
 
 	it("starts preview playback from the timeline button using the native video element", async () => {

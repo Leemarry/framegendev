@@ -48,6 +48,14 @@ Use 30fps frame-aligned seconds; clip edit volume/opacity zero are valid values.
 
 ## NLE Audio And Caption Contract
 
+Storyboard document view uses URL `documentMode=document|timeline`, preserving
+project/document/query and route state. Keep the writing editor mounted while
+hidden; disable timeline for dirty/conflicted drafts. Merely opening a timeline
+must not PATCH a workbenchDraft marker: resolved episode reads derive from the
+document. Match response project/document before displaying controls; loading,
+revalidation and failure hide stale/sample controls and expose retry. Revalidate
+after document updatedAt changes and pause playback on timeline unmount.
+
 ### Scope
 
 TASK-041 extends the existing manual episode PUT/resolved-read contract; no new

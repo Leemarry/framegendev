@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { useDocumentsStore } from "@/domains/documents/stores";
 import { DocumentHeaderActions } from "./DocumentHeaderActions";
 
@@ -49,7 +50,11 @@ describe("DocumentHeaderActions", () => {
 		});
 		useDocumentsStore.getState().selectDocument("d");
 		useDocumentsStore.getState().setShowComments(false);
-		render(<DocumentHeaderActions projectId="p" />);
+		render(
+			<MemoryRouter>
+				<DocumentHeaderActions projectId="p" />
+			</MemoryRouter>,
+		);
 		fireEvent.click(screen.getByRole("button", { name: "展开批注" }));
 		expect(useDocumentsStore.getState().showComments).toBe(true);
 		fireEvent.click(screen.getByRole("button", { name: "查看变更记录" }));
@@ -61,7 +66,11 @@ describe("DocumentHeaderActions", () => {
 		});
 	});
 	it("does not expose history or comments for a different project", () => {
-		render(<DocumentHeaderActions projectId="other" />);
+		render(
+			<MemoryRouter>
+				<DocumentHeaderActions projectId="other" />
+			</MemoryRouter>,
+		);
 		expect(screen.queryByRole("button")).toBeNull();
 	});
 });
