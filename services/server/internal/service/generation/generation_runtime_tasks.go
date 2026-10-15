@@ -2,6 +2,7 @@ package generation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -395,6 +396,9 @@ func (workflow *GenerationService) UpdateSelectedGenerationAsset(projectID strin
 	}
 	if !selected {
 		deleted, err := workflow.generationTasks.DeleteSelectedAssetByRequest(projectID, request)
+		if errors.Is(err, errSelectedAssetTaskProject) {
+			return UpdateSelectedGenerationAssetResponse{}, http.StatusNotFound, err
+		}
 		if err != nil {
 			return UpdateSelectedGenerationAssetResponse{}, http.StatusInternalServerError, err
 		}
@@ -408,6 +412,9 @@ func (workflow *GenerationService) UpdateSelectedGenerationAsset(projectID strin
 		return UpdateSelectedGenerationAssetResponse{}, http.StatusInternalServerError, err
 	}
 	asset, ok, err := workflow.generationTasks.UpsertSelectedAsset(projectID, request)
+	if errors.Is(err, errSelectedAssetTaskProject) {
+		return UpdateSelectedGenerationAssetResponse{}, http.StatusNotFound, err
+	}
 	if err != nil {
 		return UpdateSelectedGenerationAssetResponse{}, http.StatusInternalServerError, err
 	}

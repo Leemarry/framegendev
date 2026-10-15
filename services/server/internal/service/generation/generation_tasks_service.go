@@ -22,6 +22,8 @@ import (
 const generationTaskAttemptListLimit = 8
 const submittingGenerationRetryDelay = 2 * time.Minute
 
+var errSelectedAssetTaskProject = errors.New("selected asset task source was not found in project")
+
 // maxBackgroundImageGenerationAge caps how long an image task handed off to background
 // polling may stay pending before it is treated as timed out. It covers the whole wait
 // since submission (inline poll budget included), so the provider gets ample time to
@@ -498,6 +500,9 @@ func (service *GenerationTaskService) hydrateProjectSelectedAssetModelFromTaskLo
 	if err != nil {
 		return err
 	}
+	if !mediaAssetMatchesGenerationProject(task.ProjectID, model.ProjectID) {
+		return errSelectedAssetTaskProject
+	}
 	if assetIndex >= len(task.Assets) || generationDeletedAssetSlotSet(task.DeletedAssetSlots)[assetIndex] {
 		return nil
 	}
@@ -593,6 +598,9 @@ func (service *GenerationTaskService) upsertSelectedAssetRecord(projectID string
 			task, err := generationTaskRecordFromModel(taskModel)
 			if err != nil {
 				return projectSelectedAssetModel{}, false, err
+			}
+			if !mediaAssetMatchesGenerationProject(task.ProjectID, model.ProjectID) {
+				return projectSelectedAssetModel{}, false, errSelectedAssetTaskProject
 			}
 			assetSliceIndex, ok := generationAssetSliceIndexForSlot(task, assetIndex)
 			if !ok || generationDeletedAssetSlotSet(task.DeletedAssetSlots)[assetIndex] {

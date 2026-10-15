@@ -1,8 +1,10 @@
 package generation
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -755,6 +757,87 @@ func TestGenerationServiceSelectedGenerationAssetReplacesSameResourceKind(t *tes
 	}
 	if !secondTask.Assets[0].Selected {
 		t.Fatalf("second task = %+v, want replacement video selected", secondTask)
+	}
+}
+
+func TestGenerationServiceRejectsForeignTaskSelectionWithoutWrites(t *testing.T) {
+	for _, selected := range []bool{true, false} {
+		for _, sourceAlias := range []bool{true, false} {
+			t.Run(fmt.Sprintf("selected=%t/sourceAlias=%t", selected, sourceAlias), func(t *testing.T) {
+				dbPath := filepath.Join(t.TempDir(), "settings.db")
+				const owner, destination, taskID = "selection-owner", "selection-other", "owned-task"
+				seedGenerationTaskProject(t, dbPath, owner)
+				seedGenerationTaskProject(t, dbPath, destination)
+				seedGenerationTaskAsset(t, dbPath, "owned-image", "image", owner)
+				service := newTestGenerationTaskService(t, dbPath, nil)
+				workflow := &GenerationService{generationTasks: service}
+				if err := service.Upsert(GenerationTaskRecord{
+					ID: taskID, ProjectID: owner, Kind: "image", Status: "completed",
+					Assets: []GenerationAsset{{Kind: "image", URL: "/api/v1/media-assets/owned-image/content"}},
+				}); err != nil {
+					t.Fatal(err)
+				}
+				index := 0
+				request := UpdateSelectedGenerationAssetRequest{
+					TaskID: taskID, AssetIndex: &index, ResourceType: "character", Title: "Owner title",
+				}
+				if _, status, err := workflow.UpdateSelectedGenerationAsset(owner, request); err != nil || status != 200 {
+					t.Fatalf("seed selection status=%d error=%v", status, err)
+				}
+				before, ok, err := service.Get(taskID)
+				if err != nil || !ok {
+					t.Fatalf("source before ok=%v error=%v", ok, err)
+				}
+				selections, err := service.ListProjectSelectedAssets(owner)
+				if err != nil {
+					t.Fatal(err)
+				}
+				request.Selected = &selected
+				request.Title = "Foreign mutation"
+				if sourceAlias {
+					request.SourceTaskID, request.TaskID = taskID, ""
+				}
+				if _, status, err := workflow.UpdateSelectedGenerationAsset(destination, request); status != 404 || err == nil {
+					t.Errorf("foreign request status=%d error=%v, want404", status, err)
+				}
+				after, ok, err := service.Get(taskID)
+				if err != nil || !ok || !reflect.DeepEqual(before, after) {
+					t.Errorf("source task changed: before=%+v after=%+v error=%v", before, after, err)
+				}
+				ownerAfter, err := service.ListProjectSelectedAssets(owner)
+				if err != nil || !reflect.DeepEqual(selections, ownerAfter) {
+					t.Errorf("owner selections changed: %+v error=%v", ownerAfter, err)
+				}
+				foreignAfter, err := service.ListProjectSelectedAssets(destination)
+				if err != nil || len(foreignAfter) != 0 {
+					t.Errorf("foreign selections=%+v error=%v", foreignAfter, err)
+				}
+			})
+		}
+	}
+}
+
+func TestGenerationServiceAllowsProjectlessTaskSelection(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "settings.db")
+	const projectID, taskID = "global-task-destination", "projectless-source"
+	seedGenerationTaskProject(t, dbPath, projectID)
+	seedGenerationTaskAsset(t, dbPath, "global-image", "image", "")
+	service := newTestGenerationTaskService(t, dbPath, nil)
+	workflow := &GenerationService{generationTasks: service}
+	if err := service.Upsert(GenerationTaskRecord{
+		ID: taskID, Kind: "image", Status: "completed",
+		Assets: []GenerationAsset{{Kind: "image", URL: "/api/v1/media-assets/global-image/content"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	index := 0
+	for _, selected := range []bool{true, false} {
+		response, status, err := workflow.UpdateSelectedGenerationAsset(projectID, UpdateSelectedGenerationAssetRequest{
+			TaskID: taskID, AssetIndex: &index, ResourceType: "scene", Selected: &selected,
+		})
+		if err != nil || status != 200 || (selected && response.Asset == nil) || (!selected && !response.Deleted) {
+			t.Fatalf("global selection selected=%v status=%d response=%+v error=%v", selected, status, response, err)
+		}
 	}
 }
 

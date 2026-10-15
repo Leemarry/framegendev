@@ -38,3 +38,15 @@ scope/project/type queries and restart records must also be checked. Database
 write failures remain500; this contract does not promise a batch transaction or
 cross-request idempotence. Wrong: validate and Upsert each item in the same loop.
 Correct: validate the full selection, then use existing conversation/task writes.
+
+## History Task Adoption (TASK-030)
+
+Project selected-asset writes must validate a resolved task's project before
+changing source task assets, selected rows or resource replacements. Both select
+and deselect accept same-project/projectless global tasks, reject another project's
+task with404, and retain the existing missing-task direct-media fallback. Resolve
+taskId/sourceTaskId aliases consistently. Check ownership under the existing task
+service mutex before writes; a workflow status check after mutation is too late.
+Regression compares the complete source task and both projects' selections.
+This task-source check does not establish direct-media ownership or DB-failure
+transaction guarantees; those remain separate boundaries.
