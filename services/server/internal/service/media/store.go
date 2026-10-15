@@ -47,6 +47,7 @@ type MediaAssets struct {
 	mu                       sync.RWMutex
 	repo                     *repository.MediaAssetRepository
 	workspaceRepo            *repository.WorkspaceRepository
+	documentReferences       DocumentAssetReferenceSource
 	dir                      string
 	workspaceRoot            string
 	ffmpegPath               string
@@ -180,6 +181,16 @@ func (store *MediaAssets) SetMediaToolPaths(ffmpegPath string, ffmpegBinDir stri
 	}
 	store.ffmpegPath = strings.TrimSpace(ffmpegPath)
 	store.ffmpegBinDir = strings.TrimSpace(ffmpegBinDir)
+}
+
+// SetDocumentAssetReferenceSource wires the document reader used to report
+// document-body references. When unset, only stored project selections are
+// reported.
+func (store *MediaAssets) SetDocumentAssetReferenceSource(source DocumentAssetReferenceSource) {
+	if store == nil {
+		return
+	}
+	store.documentReferences = source
 }
 
 // WorkspaceRoot returns the global workspace root used for project-scoped media.

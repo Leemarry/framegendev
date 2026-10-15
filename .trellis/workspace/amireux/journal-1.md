@@ -786,3 +786,36 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 ### Next Steps
 
 - TASK-030/034 剩余：文档正文级引用检索，需独立核实与设计
+
+
+## Session 24: TASK-164 文档正文引用完整验收
+<!-- trellis-session: v=2 fp=acfd6d43a6ddcaa1 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-164 文档正文引用完整验收
+**Branch**: `codex/task-004-document-reload`
+
+### Summary
+
+补齐素材文档正文引用，真实混合来源/空态/刷新重启/深浅窄屏通过；本项改动与记录明确路径本地提交，不推送
+
+### Main Changes
+
+- 共享URL解析、goldmark图片节点、全部生命周期项目扫描与来源标注；consumer接口复用document，不新增表或索引
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 完整Windows check含全量race、显式build、前端lint/format/build及21测试通过
+- [OK] 隔离31432/31433真实3/1/0引用、深浅390px滚动、刷新重启；原两文档字段和7个hash不变；独立文档移除图片后0条
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-163真实UI移动/冲突/刷新仍缺验收，按原设计补齐；TASK-030/034不标整体完成，TASK-010待评审

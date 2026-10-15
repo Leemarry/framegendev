@@ -1,5 +1,17 @@
 # 新对话交接摘要
 
+## 最新：TASK-164 文档正文引用补齐（Session24）
+
+2026-10-15：引用详情不再只查选入资源。共享 URL 解析由 generation/document 复用，goldmark 图片节点排除代码/占位，同文档去重；media 枚举全部生命周期项目，合并并保留 source/documentId，读取失败不伪装为空。前端沿现有面板显示「文档」「选入资源」。未改变删除策略或增加表/索引。
+
+- 完整后端 Windows check（含全量 race）、显式 `go build ./...`、前端 lint/format/build、两文件21测试通过。末轮证据 `.cache/parity/task-164/backend-check-final.log`；初始 lint/浏览器定位失败保留，修复后末轮完整通过。
+- browser-harness 实际点击核验混合3条、项目自有1条、代码示例空态、刷新、桌面深浅与390×844滚动；最终截图 references-desktop-light/dark、references-empty、references-narrow-dark、references-project-narrow。对照官方37素材库结构，不宣称未知引用详情像素一致。
+- 隔离 `.cache/parity/task-164/workspace`，31432最新二进制 `mediago-server-next.exe`、PID32600（旧34440已按路径/config核验后停止），31433原Vite保留。重启原两文档/版本/updatedAt和7个md/png hash不变，新增独立测试文档移除图片后引用归零。证据 accepted-api/browser/restart.json，数据和原二进制全部保留。
+- 本项材料 `.trellis/tasks/archive/2026-10/10-15-asset-reference-document-body/`。按DEC-029审阅明确路径本地提交，不推送；其他会话设计result、两份prompt txt及server运行产物不纳入。
+- 下一项自动补齐TASK-163真实页面目录移动：旧result明确缺少UI提交、同名冲突提示、刷新，不能把已有API与控件当完整验收。台账已改待验收，原任务未归档；先沿原设计形成单项补验收计划再执行。TASK-030/034整体仍开发中，TASK-010待评审，TASK-170新方案实施未定。未访问生产workspace-v2，未执行Agent/登录/付费/真实生成/导出或其他浏览器标签页操作。
+
+以下均为历史检查点，运行PID/任务状态及旧Git限制以上述最新记录与DEC-029为准。
+
 ## 最新：TASK-162 空逻辑素材文件夹删除（2026-10-15）
 
 - 已实现 global/project DELETE 逻辑目录 API：按 owner scope 校验，含素材或子目录返回 `409`，跨 scope/缺失返回 `404`；空目录只删除逻辑行，不触碰物理媒体、ID、URL、路径、hash、元数据或引用。

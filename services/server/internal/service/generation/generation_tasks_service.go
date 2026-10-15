@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -1868,32 +1867,7 @@ func projectSelectedAssetID(row domain.ProjectSelectedAssetModel) string {
 }
 
 func libraryAssetIDFromGenerationAssetURL(value string) string {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return ""
-	}
-	parsed, err := url.Parse(value)
-	if err != nil {
-		return ""
-	}
-	segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
-	for index, segment := range segments {
-		if segment == "media-assets" && index+2 < len(segments) && segments[index+2] == "content" {
-			id, err := url.PathUnescape(segments[index+1])
-			if err != nil {
-				return strings.TrimSpace(segments[index+1])
-			}
-			return strings.TrimSpace(id)
-		}
-		if segment == "media" && index+3 < len(segments) && segments[index+1] == "assets" && segments[index+3] == "content" {
-			id, err := url.PathUnescape(segments[index+2])
-			if err != nil {
-				return strings.TrimSpace(segments[index+2])
-			}
-			return strings.TrimSpace(id)
-		}
-	}
-	return ""
+	return serviceshared.MediaAssetIDFromURL(value)
 }
 
 func normalizeGenerationDeletedAssetSlots(slots []int) []int {

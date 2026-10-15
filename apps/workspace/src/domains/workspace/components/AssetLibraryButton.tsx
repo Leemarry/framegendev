@@ -1352,12 +1352,17 @@ const AssetLibraryReferences: React.FC<{ assetId: string; projectId?: string }> 
 				<ul className="grid gap-1">
 					{references.map((reference, index) => (
 						<li
-							key={`${reference.projectId}:${reference.resourceType ?? ""}:${index}`}
+							key={`${reference.projectId}:${reference.source ?? ""}:${reference.resourceType ?? ""}:${index}`}
 							className="flex min-w-0 items-center gap-1.5 text-xs"
 						>
 							<span className="min-w-0 flex-1 truncate text-foreground" title={reference.projectId}>
 								{reference.projectName || reference.projectId}
 							</span>
+							{reference.source === "document" || reference.source === "selection" ? (
+								<span className="shrink-0 rounded border border-border px-1 text-[10px] text-muted-foreground">
+									{reference.source === "document" ? "文档" : "选入资源"}
+								</span>
+							) : null}
 							{reference.resourceType || reference.resourceTitle ? (
 								<span
 									className="shrink-0 max-w-28 truncate text-muted-foreground"

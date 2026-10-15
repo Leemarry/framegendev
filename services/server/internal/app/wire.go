@@ -251,6 +251,7 @@ func newAPIHandler(config Config) *apiHandler {
 	generationService.SetMediagoBaseURL(config.MediagoBaseURL)
 	generationService.SetGenerationNotifications(generationNotifications)
 	generationService.SetDocumentResolver(workspaceState.StateService().Documents)
+	mediaAssets.SetDocumentAssetReferenceSource(workspaceState.StateService().Documents)
 	workspaceState.StateService().Documents.SetGeneratedAssetCounter(generationTasks)
 	promptTemplates := serviceprompttemplates.NewServiceFromRepository(settingsRepos.Instructions, settingsReposErr)
 	serviceprompt.SetPromptTemplateStore(promptTemplates)

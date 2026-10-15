@@ -47,8 +47,10 @@ export const mediaAssetsKey = mediaAssetsPath();
 export interface MediaAssetReference {
 	projectId: string;
 	projectName: string;
+	documentId?: string;
 	resourceTitle?: string;
 	resourceType?: string;
+	source?: "selection" | "document" | string;
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;

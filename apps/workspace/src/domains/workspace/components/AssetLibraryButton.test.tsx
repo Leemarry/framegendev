@@ -624,6 +624,41 @@ describe("AssetLibraryButton", () => {
 		expect(getMediaAssetReferences).toHaveBeenCalledWith("media-a", "project-a");
 	});
 
+	it("labels a document-body reference with the document source marker", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [mediaAsset({ filename: "hero.png", id: "media-a", projectId: "project-a" })],
+		});
+
+		vi.mocked(getMediaAssetReferences).mockResolvedValue({
+			references: [
+				reference({
+					projectId: "project-a",
+					projectName: "项目甲",
+					resourceTitle: "主角",
+					resourceType: "character",
+					source: "selection",
+				}),
+				reference({
+					projectId: "project-b",
+					projectName: "项目乙",
+					resourceTitle: "角色设定",
+					resourceType: "character",
+					source: "document",
+				}),
+			],
+		});
+
+		renderAssetLibraryButton("/");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "全局素材库" });
+		fireEvent.click(await screen.findByRole("button", { name: "预览 hero.png" }));
+
+		expect(await screen.findByText("引用（2）")).toBeTruthy();
+		expect(screen.getByText("文档")).toBeTruthy();
+		expect(screen.getByText("角色设定")).toBeTruthy();
+		expect(getMediaAssetReferences).toHaveBeenCalledWith("media-a", "project-a");
+	});
+
 	it("reports the empty reference state for an unselected media asset", async () => {
 		vi.mocked(getMediaAssets).mockResolvedValue({
 			assets: [mediaAsset({ filename: "lonely.png", id: "media-a" })],

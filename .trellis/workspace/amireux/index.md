@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 23
+- **Total Sessions**: 24
 - **Last Active**: 2026-10-15
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~788 | Active |
+| `journal-1.md` | ~821 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 24 | 2026-10-15 | TASK-164 文档正文引用完整验收 | - | `codex/task-004-document-reload` |
 | 23 | 2026-10-15 | TASK-165 素材目录物理扫描（刷新） | - | `codex/task-004-document-reload` |
 | 22 | 2026-10-15 | TASK-164 素材引用关联详情 | - | `codex/task-004-document-reload` |
 | 21 | 2026-10-15 | 素材评分筛选与排序验收完成 | - | `codex/task-004-document-reload` |

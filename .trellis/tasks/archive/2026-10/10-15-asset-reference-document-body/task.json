@@ -1,0 +1,28 @@
+{
+  "id": "asset-reference-document-body",
+  "name": "asset-reference-document-body",
+  "title": "素材引用详情补充文档正文内嵌引用",
+  "description": "引用面板在「选入资源」之外，补充检索文档正文内嵌（Markdown 图片 URL）的素材引用；含共享 URL 解析、document 服务检索、media 服务合并与前端来源标注",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-15",
+  "completedAt": "2026-10-15",
+  "branch": "codex/task-004-document-reload",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "ledger_id": "TASK-164"
+  }
+}
