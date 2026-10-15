@@ -1,6 +1,6 @@
 # TASK-181 prior-window recovery checkpoint
 
-2026-10-16. Implementation remains pending acceptance, not completed or archived.
+2026-10-16. Source browser acceptance passed after explicit permission restored the test browser. Main integration remains pending; do not accept session2 native windows from this result alone.
 
 ## Implemented And Checked
 
@@ -16,4 +16,18 @@ Browser.close completed for own9240 instance. Backend restarted using the same i
 
 Recovery condition: permitted reopening of this same test profile, then verify new window identity, three retained drafts from two sources, cancel/selection/download/stage/failure, exact server body/version/history and source values; delete only the disposable missing-candidate document through its isolated API/UI for that branch of acceptance. Keep original snapshot and failed attempts. Session2 native-window8ccef8b is still pending and must independently reverify after this contract is accepted.
 
-Main integration remains atd6799f8; pending recovery source must not be represented as an integrated verified capability. Continue independentTASK-080 local-history work while this environment blocker persists.
+At that checkpoint main was d6799f8 and this source was unaccepted. Independent TASK-080 work subsequently integrated through main6f9ff98. The earlier launch failures remain part of the record; the following permission and actual acceptance supersede the environment blocker.
+
+## Permission And Actual Acceptance
+
+User explicitly answered“允许”to restoring the original profile/CDP9240. Start-Process reopened that exact profile (not a replacement profile). Initial new window ID e0aa8023-233d-4afb-8577-45c155af8af5 differed from both sources; both captured localStorage values matched byte-for-byte and all three source drafts were discoverable. Preview/select A/B/missing, cancel and switch were real CDP mouse/keyboard interactions. Early hidden-window focus/timing required bring-to-front and native Enter; settled clicks then worked without a product code change.
+
+Actual JSON download initially failed because CDP's Windows downloadPath used forward slashes; Edge downloads page showed interrupted. Native backslash path produced a completed434-byte file in the task cache, whose exact missing-draft body andv1 were checked. No download-success claim was made from the initial event alone. Backups add distinct keys; both original source values remain identical.
+
+Deleted only fixture doc-file-331bd5963b27be58 through the isolated API. This intentional deletion adjusted surviving document sortOrder/updatedAt; original pre-delete snapshot is retained. Post-delete baseline was separately captured before further actions. The UI still previews/downloads the missing draft and stages it as dirty with server:null. It never recreated the server document. For normal document, blocked only the workspace document GET, actual stage displayed“恢复稿载入失败，请重试”and added no normal local draft. Unblock/retry staged exact A body as localv2/serverv3 with autosave paused. Trying B next was rejected because the current A was dirty; A remained intact. Complete server document/history matched the post-delete baseline throughout preview/cancel/download/failure/staging/rejection.
+
+Evidence/: reopened three-draft desktop preview, missing-document paused conflict, normal A versus serverv3, failed read, dirty rejection390x680 dark and390x480 light conflict top/actions. All screenshots inspected; no horizontal excess (document scrollWidth390), long source/timestamp wraps, and short sheet scroll exposes all actions. Theme switched through the real user menu. Page reload retained both staged dirty conflicts. Explicit UI merge then saved exact `Stable server recovery baseline v3.\n\nRecovered A: A_RESTART_UNSAVED A_PAUSED_RECOVERY\n` asv4. Restarted only the verified own31450 backend with the same config; complete v4 document and complete history equal their saved snapshots. Original source keys still match their initial bytes.
+
+Project switching checked on actually loaded aggregate-project content, with no prior-project recovery/conflict notice, then returned to181. The temporary704-file line-ending check triggered Vite restarts and a transient blank development page (`send was called before connect`); full reload after exact restoration recovered. Project isolation was repeated after the page loaded, rather than accepting an empty DOM as proof. Current staged missing draft remains locally recoverable; the deleted fixture is intentionally absent remotely.
+
+Final source checks: four files53tests, lint0warnings/errors, full704-fileformat, TypeScript/Vite build all pass again. Existing large-chunk advisory remains. No product change since b7c3d79; this checkpoint adds acceptance evidence and the recovery contract. Main must still integrate and verify its production bundle; session2 native8ccef8b still requires that session's own Electron restart acceptance.

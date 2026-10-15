@@ -9,6 +9,14 @@ merge uses the version displayed to the user and may receive another409.
 Per-window/project recovery restores dirty drafts as paused conflicts, including
 documents deleted remotely. Reload-server first archives local JSON. Local
 recovery depends on the retained browser profile/storage; expose storage errors.
+Fresh window IDs discover other-window dirty drafts read-only within the project.
+Keep each source key/document separate, exclude backups and malformed records,
+and never delete or overwrite the source when previewing, downloading or staging.
+Explicit staging re-reads the server and checks project/dirty state again after
+the await, then persists a current-window dirty paused conflict (server may be
+null for a deleted document). Staging itself must not send a save. A retained
+profile restart, actual JSON download, cancellation, failure/retry and complete
+body/version/history comparisons are required beyond component tests.
 Never count unchanged visible text as persistence proof: compare complete body,
 version and retained history after reload and backend restart. Legacy complete
 workspace mutations supply expectedVersions for all loaded document IDs; service
