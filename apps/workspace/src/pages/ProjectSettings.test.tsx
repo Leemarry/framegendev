@@ -1,9 +1,14 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectSettings } from "./ProjectSettings";
+import { openNativePath } from "@/shared/desktop/actions";
+import { isDesktopRuntime } from "@/domains/projects/lib/project-directory";
 
-const state = vi.hoisted(() => ({ packsError: false, hasProject: true }));
+const state = vi.hoisted(() => ({ packsError: false, hasProject: true, toastError: vi.fn() }));
+vi.mock("@/shared/desktop/actions", () => ({ openNativePath: vi.fn() }));
+vi.mock("@/domains/projects/lib/project-directory", () => ({ isDesktopRuntime: vi.fn() }));
+vi.mock("@/hooks/useToast", () => ({ useToast: () => ({ error: state.toastError }) }));
 vi.mock("swr", () => ({
 	default: (key: string | null) =>
 		key === "/packs"
@@ -42,6 +47,9 @@ const show = (tab = "project-skills") =>
 
 describe("ProjectSettings navigation surfaces", () => {
 	beforeEach(() => {
+		vi.resetAllMocks();
+		vi.mocked(isDesktopRuntime).mockReturnValue(false);
+		vi.mocked(openNativePath).mockResolvedValue(undefined);
 		state.packsError = false;
 		state.hasProject = true;
 	});
@@ -66,6 +74,26 @@ describe("ProjectSettings navigation surfaces", () => {
 		expect(screen.getByText("/isolated/projects/p")).toBeTruthy();
 		expect(screen.getByRole("button", { name: "打开项目文件夹" })).toBeDisabled();
 	});
+	it.each(["project-files", "project-general"])(
+		"opens the project folder directly and recovers after failure in %s",
+		async (tab) => {
+			vi.mocked(isDesktopRuntime).mockReturnValue(true);
+			vi.mocked(openNativePath).mockRejectedValueOnce(new Error("目录暂不可用"));
+			show(tab);
+			const open = screen.getByRole("button", { name: "打开项目文件夹" });
+			fireEvent.click(open);
+			await waitFor(() =>
+				expect(state.toastError).toHaveBeenCalledWith("打开项目文件夹失败", {
+					description: "目录暂不可用",
+				}),
+			);
+			await waitFor(() => expect(open).toBeEnabled());
+			fireEvent.click(open);
+			await waitFor(() => expect(openNativePath).toHaveBeenCalledTimes(2));
+			expect(openNativePath).toHaveBeenLastCalledWith("/isolated/projects/p");
+			await waitFor(() => expect(open).toBeEnabled());
+		},
+	);
 	it("keeps Feishu pending without a connect action", () => {
 		show("project-feishu");
 		expect(screen.getByText("待接入")).toBeTruthy();

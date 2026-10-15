@@ -1,10 +1,36 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	getDesktopCacheStatistics,
+	openNativePath,
 	getDesktopUpdateCapability,
 	showDesktopNotification,
 	subscribeDesktopMenuCommands,
 } from "@/shared/desktop/actions";
+
+describe("native directory opening", () => {
+	afterEach(() => {
+		delete window.mediagoDesktop;
+	});
+	it("rejects browsers and missing native methods", async () => {
+		await expect(openNativePath("E:/isolated/project")).rejects.toThrow("不支持打开本地文件夹");
+		Object.defineProperty(window, "mediagoDesktop", {
+			configurable: true,
+			value: { isElectron: true },
+		});
+		await expect(openNativePath("E:/isolated/project")).rejects.toThrow(
+			"未检测到桌面端打开文件夹接口",
+		);
+	});
+	it("uses openPath and propagates its failure", async () => {
+		const openPath = vi.fn().mockRejectedValue(new Error("folder unavailable"));
+		Object.defineProperty(window, "mediagoDesktop", {
+			configurable: true,
+			value: { isElectron: true, openPath },
+		});
+		await expect(openNativePath("E:/isolated/project")).rejects.toThrow("folder unavailable");
+		expect(openPath).toHaveBeenCalledWith("E:/isolated/project");
+	});
+});
 
 describe("desktop cache capability", () => {
 	afterEach(() => {
