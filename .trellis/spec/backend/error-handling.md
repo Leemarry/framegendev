@@ -41,6 +41,15 @@ Correct: validate the full selection, then use existing conversation/task writes
 
 ## History Task Adoption (TASK-030)
 
+Media sources are also checked inside GenerationTaskService before select/deselect
+writes. Resolve mediaAssetId or the local content URL, and check task-derived media
+before updating its history. Missing/foreign media returns404 without replacing a
+resource or changing task/selection records; same-project and projectless global
+media remain usable. Metadata hydration is not authorization. Repository failures
+remain500. This does not promise isolation against concurrent media deletion.
+Enrich the direct-media title consistently for both select and deselect; otherwise
+an omitted title hashes to different selection IDs and silently fails to cancel.
+
 Project selected-asset writes must validate a resolved task's project before
 changing source task assets, selected rows or resource replacements. Both select
 and deselect accept same-project/projectless global tasks, reject another project's

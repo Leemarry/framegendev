@@ -488,6 +488,11 @@ func (repo *GenerationTaskRepository) HasProjectSelectedAssetForResource(project
 	return count > 0, nil
 }
 
+// GetSelectedAssetSource returns the media record used to validate an adoption source.
+func (repo *GenerationTaskRepository) GetSelectedAssetSource(id string) (domain.AssetModel, error) {
+	return NewMediaAssetRepositoryFromDB(repo.db).GetMediaAsset(id)
+}
+
 // GetProjectSelectedAsset returns one selected project asset by ID.
 func (repo *GenerationTaskRepository) GetProjectSelectedAsset(id string) (domain.ProjectSelectedAssetModel, error) {
 	var model domain.ProjectSelectedAssetModel

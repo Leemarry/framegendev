@@ -48,7 +48,8 @@
     "10-16-prior-window-recovery",
     "10-16-audio-history-recovery",
     "10-16-history-import-validation",
-    "10-16-selection-project-isolation"
+    "10-16-selection-project-isolation",
+    "10-16-selection-media-isolation"
   ],
   "parent": null,
   "relatedFiles": [],

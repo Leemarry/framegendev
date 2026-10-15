@@ -817,6 +817,105 @@ func TestGenerationServiceRejectsForeignTaskSelectionWithoutWrites(t *testing.T)
 	}
 }
 
+func TestGenerationServiceRejectsForeignMediaSelectionWithoutWrites(t *testing.T) {
+	for _, selected := range []bool{true, false} {
+		for _, source := range []string{"id", "url", "missing", "task"} {
+			t.Run(fmt.Sprintf("selected=%t/source=%s", selected, source), func(t *testing.T) {
+				dbPath := filepath.Join(t.TempDir(), "settings.db")
+				const owner, destination, taskID = "media-owner", "media-other", "foreign-media-task"
+				seedGenerationTaskAsset(t, dbPath, "foreign-media", "image", owner)
+				seedGenerationTaskAsset(t, dbPath, "existing-media", "image", destination)
+				service := newTestGenerationTaskService(t, dbPath, nil)
+				workflow := &GenerationService{generationTasks: service}
+				if err := service.Upsert(GenerationTaskRecord{
+					ID: taskID, ProjectID: destination, Kind: "image", Status: "completed",
+					Assets: []GenerationAsset{{Kind: "image", URL: "/api/v1/media-assets/foreign-media/content"}},
+				}); err != nil {
+					t.Fatal(err)
+				}
+				for _, project := range []string{owner, destination} {
+					assetID := "foreign-media"
+					if project == destination {
+						assetID = "existing-media"
+					}
+					if _, status, err := workflow.UpdateSelectedGenerationAsset(project, UpdateSelectedGenerationAssetRequest{
+						MediaAssetID: assetID, Kind: "image", ResourceType: "character", ResourceID: "same-resource",
+					}); err != nil || status != 200 {
+						t.Fatalf("seed status=%d error=%v", status, err)
+					}
+				}
+				before, ok, err := service.Get(taskID)
+				if err != nil || !ok {
+					t.Fatalf("task before ok=%v error=%v", ok, err)
+				}
+				rows := map[string][]SelectedGenerationAssetRecord{}
+				for _, project := range []string{owner, destination} {
+					rows[project], err = service.ListProjectSelectedAssets(project)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				request := UpdateSelectedGenerationAssetRequest{
+					Selected: &selected, MediaAssetID: "foreign-media", Kind: "image",
+					ResourceType: "character", ResourceID: "same-resource",
+				}
+				switch source {
+				case "url":
+					request.MediaAssetID, request.URL = "", "/api/v1/media-assets/foreign-media/content"
+				case "missing":
+					request.MediaAssetID = "nonexistent-media"
+				case "task":
+					index := 0
+					request.MediaAssetID, request.TaskID, request.AssetIndex = "", taskID, &index
+				}
+				if _, status, err := workflow.UpdateSelectedGenerationAsset(destination, request); status != 404 || err == nil {
+					t.Fatalf("rejected media status=%d error=%v, want404", status, err)
+				}
+				after, ok, err := service.Get(taskID)
+				if err != nil || !ok || !reflect.DeepEqual(before, after) {
+					t.Errorf("source task changed: before=%+v after=%+v error=%v", before, after, err)
+				}
+				for _, project := range []string{owner, destination} {
+					after, err := service.ListProjectSelectedAssets(project)
+					if err != nil || !reflect.DeepEqual(rows[project], after) {
+						t.Errorf("%s selections changed: before=%+v after=%+v error=%v", project, rows[project], after, err)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestGenerationServiceAllowsSameProjectAndGlobalMediaSelection(t *testing.T) {
+	for _, global := range []bool{false, true} {
+		for _, useURL := range []bool{false, true} {
+			t.Run(fmt.Sprintf("global=%t/url=%t", global, useURL), func(t *testing.T) {
+				dbPath := filepath.Join(t.TempDir(), "settings.db")
+				const projectID, assetID = "media-destination", "reusable-media"
+				seedGenerationTaskProject(t, dbPath, projectID)
+				owner := projectID
+				if global {
+					owner = ""
+				}
+				seedGenerationTaskAsset(t, dbPath, assetID, "image", owner)
+				service := newTestGenerationTaskService(t, dbPath, nil)
+				workflow := &GenerationService{generationTasks: service, mediaAssets: newTestMediaAssets(t, dbPath, t.TempDir())}
+				request := UpdateSelectedGenerationAssetRequest{MediaAssetID: assetID, ResourceType: "scene", Kind: "image"}
+				if useURL {
+					request.MediaAssetID, request.URL = "", "/api/v1/media-assets/"+assetID+"/content"
+				}
+				for _, selected := range []bool{true, false} {
+					request.Selected = &selected
+					response, status, err := workflow.UpdateSelectedGenerationAsset(projectID, request)
+					if err != nil || status != 200 || (selected && (response.Asset == nil || response.Asset.MediaAssetID != assetID)) || (!selected && !response.Deleted) {
+						t.Fatalf("selection selected=%v status=%d response=%+v error=%v", selected, status, response, err)
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestGenerationServiceAllowsProjectlessTaskSelection(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "settings.db")
 	const projectID, taskID = "global-task-destination", "projectless-source"

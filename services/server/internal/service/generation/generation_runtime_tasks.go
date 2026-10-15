@@ -394,9 +394,10 @@ func (workflow *GenerationService) UpdateSelectedGenerationAsset(projectID strin
 	if request.Selected != nil {
 		selected = *request.Selected
 	}
+	workflow.hydrateSelectedAssetRequestFromMedia(&request, projectID)
 	if !selected {
 		deleted, err := workflow.generationTasks.DeleteSelectedAssetByRequest(projectID, request)
-		if errors.Is(err, errSelectedAssetTaskProject) {
+		if errors.Is(err, errSelectedAssetTaskProject) || errors.Is(err, errSelectedAssetMediaProject) {
 			return UpdateSelectedGenerationAssetResponse{}, http.StatusNotFound, err
 		}
 		if err != nil {
@@ -407,12 +408,11 @@ func (workflow *GenerationService) UpdateSelectedGenerationAsset(projectID strin
 	if selectedGenerationResourceType(request.ResourceType) == "" {
 		return UpdateSelectedGenerationAssetResponse{}, http.StatusBadRequest, fmt.Errorf("resourceType is required")
 	}
-	workflow.hydrateSelectedAssetRequestFromMedia(&request, projectID)
 	if err := workflow.hydrateSelectedAssetRequestFromVoicePreview(&request, projectID); err != nil {
 		return UpdateSelectedGenerationAssetResponse{}, http.StatusInternalServerError, err
 	}
 	asset, ok, err := workflow.generationTasks.UpsertSelectedAsset(projectID, request)
-	if errors.Is(err, errSelectedAssetTaskProject) {
+	if errors.Is(err, errSelectedAssetTaskProject) || errors.Is(err, errSelectedAssetMediaProject) {
 		return UpdateSelectedGenerationAssetResponse{}, http.StatusNotFound, err
 	}
 	if err != nil {

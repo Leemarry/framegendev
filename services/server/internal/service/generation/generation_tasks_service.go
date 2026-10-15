@@ -23,6 +23,7 @@ const generationTaskAttemptListLimit = 8
 const submittingGenerationRetryDelay = 2 * time.Minute
 
 var errSelectedAssetTaskProject = errors.New("selected asset task source was not found in project")
+var errSelectedAssetMediaProject = errors.New("selected media source was not found in project")
 
 // maxBackgroundImageGenerationAge caps how long an image task handed off to background
 // polling may stay pending before it is treated as timed out. It covers the whole wait
@@ -467,6 +468,9 @@ func (service *GenerationTaskService) DeleteSelectedAssetByRequest(projectID str
 	}
 	model.ID = projectSelectedAssetID(model)
 
+	if err := service.validateSelectedAssetMediaLocked(model.AssetID, model.ProjectID); err != nil {
+		return false, err
+	}
 	deleted, err := service.repo.DeleteProjectSelectedAsset(model.ID)
 	if err != nil || !deleted {
 		if err != nil {
@@ -567,6 +571,23 @@ func (service *GenerationTaskService) deleteAssetRecord(id string, assetIndex in
 	return task, true, nil
 }
 
+func (service *GenerationTaskService) validateSelectedAssetMediaLocked(assetID, projectID string) error {
+	if strings.TrimSpace(assetID) == "" {
+		return nil
+	}
+	asset, err := service.repo.GetSelectedAssetSource(assetID)
+	if repository.IsRecordNotFound(err) {
+		return errSelectedAssetMediaProject
+	}
+	if err != nil {
+		return err
+	}
+	if !mediaAssetMatchesGenerationProject(domain.StringValue(asset.ProjectID), projectID) {
+		return errSelectedAssetMediaProject
+	}
+	return nil
+}
+
 func (service *GenerationTaskService) upsertSelectedAssetRecord(projectID string, request UpdateSelectedGenerationAssetRequest) (projectSelectedAssetModel, bool, error) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
@@ -578,6 +599,9 @@ func (service *GenerationTaskService) upsertSelectedAssetRecord(projectID string
 	}
 	model.ProjectID = domain.CleanProjectID(model.ProjectID)
 	model.ResourceType = resourceType
+	if err := service.validateSelectedAssetMediaLocked(model.AssetID, model.ProjectID); err != nil {
+		return projectSelectedAssetModel{}, false, err
+	}
 	assetKind := strings.TrimSpace(request.Kind)
 	taskID := strings.TrimSpace(request.SourceTaskID)
 	if taskID == "" {
@@ -607,6 +631,9 @@ func (service *GenerationTaskService) upsertSelectedAssetRecord(projectID string
 				return projectSelectedAssetModel{}, false, nil
 			}
 			asset := task.Assets[assetSliceIndex]
+			if err := service.validateSelectedAssetMediaLocked(firstNonEmpty(asset.AssetID, libraryAssetIDFromGenerationAssetURL(asset.URL)), model.ProjectID); err != nil {
+				return projectSelectedAssetModel{}, false, err
+			}
 			assetKind = strings.TrimSpace(asset.Kind)
 			title := domain.StringValue(model.ResourceTitle)
 			if title == "" {
