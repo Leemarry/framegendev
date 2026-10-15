@@ -38,7 +38,8 @@
     "10-15-asset-rating-filter-sort",
     "10-15-asset-library-scan",
     "10-15-asset-reference-document-body",
-    "10-15-asset-folder-reparent"
+    "10-15-asset-folder-reparent",
+    "10-15-nle-workbench"
   ],
   "parent": null,
   "relatedFiles": [],

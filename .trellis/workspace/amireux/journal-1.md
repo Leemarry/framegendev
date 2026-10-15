@@ -852,3 +852,23 @@ REQ-044/DEC-029落地；历史累积改动检查点已提交，现行入口统�
 ### Next Steps
 
 - GAP-004旧共享测试文稿workspace_save来源待核实，保留前后文件及失败baseline；TASK-030/034仍待聚合验收，TASK-010待评审
+
+
+## Session 26: TASK-040 M1 NLE shell
+<!-- trellis-session: v=2 fp=bdc597ab0eafe541 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-040 M1 NLE shell
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Verified full-screen bins, selection, focus and isolated browser flow; M2 editing next
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**

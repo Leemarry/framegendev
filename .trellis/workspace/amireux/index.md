@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 25
+- **Total Sessions**: 26
 - **Last Active**: 2026-10-15
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~854 | Active |
+| `journal-1.md` | ~874 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 26 | 2026-10-15 | TASK-040 M1 NLE shell | - | `codex/nle-export` |
 | 25 | 2026-10-15 | TASK-163 目录重挂完整补验收 | - | `codex/task-004-document-reload` |
 | 24 | 2026-10-15 | TASK-164 文档正文引用完整验收 | - | `codex/task-004-document-reload` |
 | 23 | 2026-10-15 | TASK-165 素材目录物理扫描（刷新） | - | `codex/task-004-document-reload` |

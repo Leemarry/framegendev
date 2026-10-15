@@ -17,6 +17,7 @@ import {
 import { getMediaAssets } from "@/domains/workspace/api/media";
 import { EpisodeCanvasView } from "@/domains/episode/components/EpisodeCanvasView";
 import { EpisodeTimelineEditor } from "@/domains/episode/components/EpisodeTimelineEditor";
+import { EpisodeNLEWorkbench } from "@/domains/episode/components/EpisodeNLEWorkbench";
 import { EpisodePreviewPlayer } from "@/domains/episode/components/EpisodePreviewPlayer";
 import {
 	buildEpisodeVideoContext,
@@ -93,6 +94,8 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 	const play = useEpisodeStore((state) => state.play);
 	const openGenerationDialog = useMediaGenerationStore((state) => state.open);
 	const [videoGenerationOpen, setVideoGenerationOpen] = useState(false);
+	const [nleOpen, setNleOpen] = useState(false);
+	const nleEntryRef = useRef<HTMLButtonElement>(null);
 	const [downloadingVideoClipIds, setDownloadingVideoClipIds] = useState<string[]>([]);
 	const [isExportingAllStoryboards, setIsExportingAllStoryboards] = useState(false);
 	const [isExportingJianyingDraft, setIsExportingJianyingDraft] = useState(false);
@@ -110,9 +113,12 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 		episodeDocumentId ? workspaceResolvedEpisodeKey(episodeDocumentId, projectId) : null,
 		() => getWorkspaceResolvedEpisode(episodeDocumentId, projectId),
 	);
-	const { data: mediaAssetsData, mutate: mutateMediaAssets } = useSWR(
-		["episode-media-assets", mediaAssetProjectId],
-		() => getMediaAssets({ projectId: mediaAssetProjectId || undefined }),
+	const {
+		data: mediaAssetsData,
+		error: mediaAssetsError,
+		mutate: mutateMediaAssets,
+	} = useSWR(["episode-media-assets", mediaAssetProjectId], () =>
+		getMediaAssets({ projectId: mediaAssetProjectId || undefined }),
 	);
 	const { data: selectedGenerationAssetsData } = useSelectedGenerationAssets(mediaAssetProjectId);
 	const { data: jianyingDraftSettings } = useSWR(
@@ -670,6 +676,32 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 
 	return (
 		<div className="flex h-full min-h-0 flex-col bg-ide-editor text-ide-editor-foreground">
+			<div className="flex justify-end border-b border-border px-3 py-1">
+				<Button
+					ref={nleEntryRef}
+					size="sm"
+					variant="ghost"
+					disabled={!resolvedEpisode}
+					onClick={() => {
+						pause();
+						setNleOpen(true);
+					}}
+				>
+					<Clapperboard size={16} />
+					剪辑工作台
+				</Button>
+			</div>
+			{nleOpen && (
+				<EpisodeNLEWorkbench
+					episode={episode}
+					assets={mediaAssetsData?.assets}
+					assetsError={Boolean(mediaAssetsError)}
+					selectedClipId={selectedClipId}
+					onSelectClip={handleTimelineClipSelect}
+					onClose={() => setNleOpen(false)}
+					onRestoreFocus={() => nleEntryRef.current?.focus()}
+				/>
+			)}
 			<main className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				{isCanvasWorkbench ? (
 					<EpisodeCanvasView
