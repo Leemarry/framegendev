@@ -1212,3 +1212,38 @@ TASK-181 retained-profile restart and integrated recovery accepted; fixed layout
 ### Next Steps
 
 - Continue TASK-080 audio persisted-history reopening without external generation; TASK150/native040/041 remain pending.
+
+
+## Session 40: Accept browser recovery of persisted audio failures
+<!-- trellis-session: v=2 fp=43c1f8c092ab7ac8 -->
+
+**Date**: 2026-10-16
+**Task**: Accept browser recovery of persisted audio failures
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK080 narrow audio cache recovery accepted using explicitly labeled canceled/error fixtures; no generation requests; overall080 and150 pending.
+
+### Main Changes
+
+- Retained source/main timeouts from exhausted HTTP1.1 SSE connections; closing only own old tabs restored loading; limitation remains.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a747a54` | fix(generation): retain audio messages when rehydrating history |
+| `b776423` | test(generation): verify persisted audio failures in browser |
+
+### Testing
+
+- [OK] Actual source cold-tab390px/error expansion and main production reload; loaded other projects exclude fixtures; full old documents/imported tasks unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Investigate TASK030 adoption source project boundary with local imported history before implementation.
