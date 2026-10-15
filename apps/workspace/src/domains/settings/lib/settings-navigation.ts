@@ -123,3 +123,9 @@ export const existingModelSettingsLinks = [
 	{ value: "api-keys", label: "API 密钥", icon: KeyRound },
 	{ value: "codex-access", label: "Codex 接入", icon: Network },
 ];
+
+export const existingExtensionSettingsLinks = [
+	{ value: "codex-skills", label: "Codex 技能", icon: Blocks },
+	{ value: "prompt-packs", label: "技能包管理", icon: PackageOpen },
+	{ value: "instructions", label: "智能体指令", icon: SlidersHorizontal },
+];
