@@ -24,3 +24,25 @@ Official settings groups and 20 actual navigation clicks verified; narrow shell 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 2: TASK-090 native menus accepted
+<!-- trellis-session: v=2 fp=0cee56cd9c31cfa6 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-090 native menus accepted
+**Branch**: `codex/parity-s2`
+
+### Summary
+
+Six native menus, validated navigation IPC, actual about dialog and isolated Windows restart accepted. Full TASK-090 remains open; TASK-020 narrow shell awaits App.tsx ownership. Evidence and limitations are in the archived task result.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f1515cb` | feat(desktop): connect native menus to real settings navigation |
+
+### Status
+
+[OK] **Completed**
