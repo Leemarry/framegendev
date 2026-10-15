@@ -107,3 +107,33 @@ TASK-100 bounded read-only Electron cache statistics accepted; TASK-110 existing
 ### Next Steps
 
 - Correct project-settings folder-open semantics independently; project transfer and workspace cleanup still await shared services.
+
+
+## Session 5: Project settings open exact native folder
+<!-- trellis-session: v=2 fp=64e94a5c8c729bfa -->
+
+**Date**: 2026-10-16
+**Task**: Project settings open exact native folder
+**Branch**: `codex/parity-s2`
+
+### Summary
+
+Corrected native folder opening; full Explorer breadcrumb and unchanged fixture hashes verified. New main handoff33eaff9 now explicitly allows session2 to plan project windows on accepted181.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9b46896` | fix(projects): open the project folder directly from settings |
+
+### Testing
+
+- [OK] 19 tests, lint, build, format snapshot pass; actual folder/reload/restart/390px light-dark verified.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Synchronize committed accepted main integration into own branch, then plan TASK-062 project new windows.

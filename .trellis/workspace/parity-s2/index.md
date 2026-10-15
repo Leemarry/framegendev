@@ -4,7 +4,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -13,7 +13,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~109 | Active |
+| `journal-1.md` | ~139 | Active |
 <!-- @@@/auto:active-documents -->
 
 ## Session History
@@ -21,6 +21,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-10-16 | Project settings open exact native folder | `9b46896` | `codex/parity-s2` |
 | 4 | 2026-10-16 | Native cache statistics and extension entry acceptance | `0b6e50c`, `c6b0ff0` | `codex/parity-s2` |
 | 3 | 2026-10-16 | Settings responsive acceptance and local account | `26190ee`, `c05ab94`, `d30bde4`, `dbf28fa`, `e1b55bc` | `codex/parity-s2` |
 | 2 | 2026-10-16 | TASK-090 native menus accepted | `f1515cb` | `codex/parity-s2` |
