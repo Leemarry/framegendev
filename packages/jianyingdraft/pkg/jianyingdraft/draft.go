@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,6 +52,9 @@ func (draft *Draft) AddShotsContext(ctx context.Context, shots []Shot) error {
 
 	normalized := make([]normalizedShot, 0, len(shots))
 	for index, shot := range shots {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		cleanPath := strings.TrimSpace(shot.Path)
 		shotNumber := index + 1
 		if cleanPath == "" {
@@ -98,14 +102,45 @@ func (draft *Draft) AddShotsContext(ctx context.Context, shots []Shot) error {
 			)
 		}
 
+		speed := shot.Speed
+		if speed == 0 {
+			speed = 1
+		}
+		volume := 1.0
+		if shot.Volume != nil {
+			volume = *shot.Volume
+		}
+		transform := Transform{Scale: 1, Opacity: 1}
+		if shot.Transform != nil {
+			transform = *shot.Transform
+		}
+		for _, value := range []float64{transform.X, transform.Y, transform.Scale, transform.Rotation, transform.Opacity} {
+			if math.IsNaN(value) || math.IsInf(value, 0) {
+				return fmt.Errorf("shot %d has non-finite transform", shotNumber)
+			}
+		}
+		targetDuration := shot.TargetDuration
+		if targetDuration == 0 {
+			targetDuration = int64(math.Round(float64(duration) / speed))
+		}
+		if math.IsNaN(speed) || math.IsInf(speed, 0) || speed < .25 || speed > 4 || volume < 0 || volume > 2 || math.IsNaN(volume) || math.IsInf(volume, 0) || targetDuration <= 0 || transform.Scale < .1 || transform.Scale > 3 || math.Abs(transform.X) > 1 || math.Abs(transform.Y) > 1 || math.Abs(transform.Rotation) > 180 || transform.Opacity < 0 || transform.Opacity > 1 || shot.TargetStart != nil && *shot.TargetStart < 0 {
+			return fmt.Errorf("shot %d has invalid edit parameters", shotNumber)
+		}
+		if math.Abs(float64(targetDuration)*speed-float64(duration)) > 1 {
+			return fmt.Errorf("shot %d source and target durations disagree", shotNumber)
+		}
 		normalized = append(normalized, normalizedShot{
-			duration: duration,
-			in:       shot.In,
-			path:     absolutePath,
-			metadata: metadata,
+			duration:    duration,
+			in:          shot.In,
+			path:        absolutePath,
+			metadata:    metadata,
+			targetStart: shot.TargetStart, targetDuration: targetDuration, speed: speed, volume: volume, transform: transform,
 		})
 	}
 
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	draft.shots = append(draft.shots, normalized...)
 	return nil
 }
@@ -123,6 +158,9 @@ func (draft *Draft) ExportContext(ctx context.Context, draftsRoot string, option
 	}
 	if draft == nil {
 		return ExportResult{}, errors.New("draft is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return ExportResult{}, err
 	}
 	if err := draft.validateOptions(); err != nil {
 		return ExportResult{}, err
@@ -185,9 +223,15 @@ func (draft *Draft) ExportContext(ctx context.Context, draftsRoot string, option
 		return ExportResult{}, fmt.Errorf("writing draft_meta_info.json: %w", err)
 	}
 	if options.ReplaceExisting {
+		if err := ctx.Err(); err != nil {
+			return ExportResult{}, err
+		}
 		if err := os.RemoveAll(draftPath); err != nil {
 			return ExportResult{}, fmt.Errorf("removing existing draft: %w", err)
 		}
+	}
+	if err := ctx.Err(); err != nil {
+		return ExportResult{}, err
 	}
 	if err := os.Rename(tempPath, draftPath); err != nil {
 		return ExportResult{}, fmt.Errorf("finalizing draft directory: %w", err)

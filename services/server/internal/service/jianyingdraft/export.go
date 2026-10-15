@@ -121,6 +121,9 @@ func (service *Service) ExportEpisode(ctx context.Context, projectID string, doc
 		return ExportResponse{}, fmt.Errorf("episode must be valid JSON: %w", err)
 	}
 	clips, skipped := exportableVideoClips(episode)
+	if episode.EditVersion == 1 && skipped > 0 {
+		return ExportResponse{}, fmt.Errorf("%w: edited timeline has missing video clips", ErrMediaAssetInvalid)
+	}
 	if len(clips) == 0 {
 		return ExportResponse{}, ErrNoExportableShots
 	}
@@ -136,14 +139,17 @@ func (service *Service) ExportEpisode(ctx context.Context, projectID string, doc
 		draftName = sanitizeDraftName(draftName)
 	}
 
-	shots, metadataByPath, err := service.shotsForClips(ctx, projectID, clips)
+	shots, metadataByPath, err := service.shotsForClips(ctx, projectID, clips, episode.EditVersion == 1)
 	if err != nil {
 		return ExportResponse{}, err
 	}
 	width, height := canvasSizeForAspectRatio(episode.AspectRatio)
-	metadataReader := assetMetadataReader{
+	var metadataReader draftlib.MetadataReader = assetMetadataReader{
 		fallback:       service.metadataReader,
 		metadataByPath: metadataByPath,
+	}
+	if episode.EditVersion == 1 {
+		metadataReader = service.metadataReader
 	}
 	draft := draftlib.NewDraft(draftlib.DraftOptions{
 		Name:           draftName,
@@ -206,10 +212,10 @@ func (service *Service) defaultDraftName(title string) string {
 	return fmt.Sprintf("%s-%s", base, now().Format("20060102-150405"))
 }
 
-func (service *Service) shotsForClips(ctx context.Context, projectID string, clips []model.TimelineClipRecord) ([]draftlib.Shot, map[string]draftlib.VideoMetadata, error) {
+func (service *Service) shotsForClips(ctx context.Context, projectID string, clips []model.TimelineClipRecord, edited bool) ([]draftlib.Shot, map[string]draftlib.VideoMetadata, error) {
 	shots := make([]draftlib.Shot, 0, len(clips))
 	metadataByPath := map[string]draftlib.VideoMetadata{}
-	for index, clip := range clips {
+	for _, clip := range clips {
 		if err := ctx.Err(); err != nil {
 			return nil, nil, err
 		}
@@ -234,11 +240,26 @@ func (service *Service) shotsForClips(ctx context.Context, projectID string, cli
 		if err != nil {
 			return nil, nil, fmt.Errorf("%w: %s", ErrMediaAssetNotFound, assetID)
 		}
-		shots = append(shots, draftlib.Shot{Path: filePath})
+		shot := draftlib.Shot{Path: filePath}
+		if edited || clip.Edit != nil {
+			edit := model.TimelineClipEditRecord{Speed: 1, Volume: 1, Scale: 1, Opacity: 1}
+			if clip.Edit != nil {
+				edit = *clip.Edit
+			}
+			start := int64(math.Round(clip.Start*30)) * 1_000_000 / 30
+			targetDuration := int64(math.Round((clip.End-clip.Start)*30)) * 1_000_000 / 30
+			shot.In = int64(math.Round(edit.SourceIn * 1_000_000))
+			shot.Duration = int64(math.Round(float64(targetDuration) * edit.Speed))
+			shot.TargetStart = &start
+			shot.TargetDuration = targetDuration
+			shot.Speed = edit.Speed
+			shot.Volume = &edit.Volume
+			shot.Transform = &draftlib.Transform{X: edit.X, Y: edit.Y, Scale: edit.Scale, Rotation: edit.Rotation, Opacity: edit.Opacity}
+		}
+		shots = append(shots, shot)
 		if metadata, ok := metadataFromAsset(asset); ok {
 			metadataByPath[filePath] = metadata
 		}
-		_ = index
 	}
 	return shots, metadataByPath, nil
 }

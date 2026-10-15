@@ -12,8 +12,52 @@ import (
 	draftlib "github.com/mediago-dev/mediago-drama/packages/jianyingdraft/pkg/jianyingdraft"
 	servicedocument "github.com/mediago-dev/mediago-drama/services/server/internal/service/document"
 	servicemedia "github.com/mediago-dev/mediago-drama/services/server/internal/service/media"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/service/model"
 	servicesettings "github.com/mediago-dev/mediago-drama/services/server/internal/service/settings"
 )
+
+func TestEditedEpisodeExportUsesTimelineAndRealSourceBounds(t *testing.T) {
+	dir := t.TempDir()
+	video := writeServiceTestFile(t, dir, "source.mp4")
+	episode := model.EpisodeRecord{EditVersion: 1, Title: "manual", AspectRatio: "16:9", Tracks: []model.TimelineTrackRecord{
+		{Type: "video", Clips: []model.TimelineClipRecord{
+			{ID: "a", Start: 0, End: 1.7, Status: "ready", VideoURL: "/api/v1/media-assets/a/content", Edit: &model.TimelineClipEditRecord{SourceIn: .5, Speed: 1.5, Volume: 0, Scale: 1.2, Opacity: 0}},
+			{ID: "b", Start: 1.7, End: 4.2, Status: "ready", VideoURL: "/api/v1/media-assets/a/content"},
+		}},
+	}}
+	raw, err := json.Marshal(episode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(fakeTimelineStore{ok: true, state: servicedocument.EpisodeTimelineStateResponse{Episode: raw}},
+		fakeMediaStore{assets: map[string]servicemedia.MediaAsset{"a": {ID: "a", Kind: servicemedia.MediaKindVideo, ProjectID: "project-a", FilePath: video, DurationSeconds: 99, Width: 640, Height: 360}}},
+		fakeSettingsStore{}, staticMetadataReader{metadata: draftlib.VideoMetadata{Duration: 4_000_000, Width: 640, Height: 360}})
+	shots, _, err := service.shotsForClips(context.Background(), "project-a", episode.Tracks[0].Clips, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if shots[0].In != 500_000 || shots[0].Duration != 2_550_000 || shots[0].TargetDuration != 1_700_000 || *shots[0].Volume != 0 || shots[0].Transform.Opacity != 0 || *shots[1].TargetStart != 1_700_000 || shots[1].TargetDuration != 2_500_000 || shots[1].Speed != 1 {
+		t.Fatalf("shots: %+v", shots)
+	}
+	result, err := service.ExportEpisode(context.Background(), "project-a", "doc", ExportRequest{DraftsRoot: dir, DraftName: "edited", CopyMedia: true})
+	if err != nil || result.DurationMicros != 4_200_000 {
+		t.Fatalf("export: %+v %v", result, err)
+	}
+	service.metadataReader = staticMetadataReader{metadata: draftlib.VideoMetadata{Duration: 2_000_000, Width: 640, Height: 360}}
+	if _, err := service.ExportEpisode(context.Background(), "project-a", "doc", ExportRequest{DraftsRoot: dir, DraftName: "invalid"}); err == nil {
+		t.Fatal("out of bounds accepted with stale asset metadata")
+	}
+	service.metadataReader = failingMetadataReader{}
+	if _, err := service.ExportEpisode(context.Background(), "project-a", "doc", ExportRequest{DraftsRoot: dir, DraftName: "unprobed"}); err == nil {
+		t.Fatal("edited export used fallback metadata")
+	}
+	episode.Tracks[0].Clips[1].VideoURL = ""
+	raw, _ = json.Marshal(episode)
+	service.timelines = fakeTimelineStore{ok: true, state: servicedocument.EpisodeTimelineStateResponse{Episode: raw}}
+	if _, err := service.ExportEpisode(context.Background(), "project-a", "doc", ExportRequest{DraftsRoot: dir}); !errors.Is(err, ErrMediaAssetInvalid) {
+		t.Fatalf("missing edited clip: %v", err)
+	}
+}
 
 type fakeTimelineStore struct {
 	state servicedocument.EpisodeTimelineStateResponse

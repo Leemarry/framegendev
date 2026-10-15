@@ -20,7 +20,8 @@
   "subtasks": [],
   "children": [
     "10-15-nle-shell",
-    "10-15-nle-editing"
+    "10-15-nle-editing",
+    "10-15-nle-preview-export"
   ],
   "parent": "10-14-official-0-1-17-parity",
   "relatedFiles": [],

@@ -234,7 +234,8 @@ func (handler EpisodePreview) previewFiles(projectID string, videoURLs []string)
 }
 
 type episodePreviewEpisode struct {
-	Tracks []episodePreviewTrack `json:"tracks"`
+	EditVersion int                   `json:"editVersion"`
+	Tracks      []episodePreviewTrack `json:"tracks"`
 }
 
 type episodePreviewTrack struct {
@@ -253,6 +254,9 @@ func playableEpisodeVideoURLs(raw json.RawMessage) ([]string, error) {
 	var episode episodePreviewEpisode
 	if err := json.Unmarshal(raw, &episode); err != nil {
 		return nil, fmt.Errorf("episode must be valid JSON: %w", err)
+	}
+	if episode.EditVersion == 1 {
+		return nil, errors.New("手工剪辑请使用剪辑工作台实时预览")
 	}
 	for _, track := range episode.Tracks {
 		if strings.TrimSpace(track.Type) != "video" {

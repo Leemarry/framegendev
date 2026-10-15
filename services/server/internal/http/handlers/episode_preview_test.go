@@ -5,6 +5,13 @@ import (
 	"testing"
 )
 
+func TestPlayableEpisodeVideoURLsRejectsManualEdits(t *testing.T) {
+	_, err := playableEpisodeVideoURLs(json.RawMessage(`{"editVersion":1,"tracks":[]}`))
+	if err == nil {
+		t.Fatal("manual edits must not use legacy concatenation")
+	}
+}
+
 func TestPlayableEpisodeVideoURLsUsesAllReadyVideos(t *testing.T) {
 	raw := json.RawMessage(`{
 		"tracks": [

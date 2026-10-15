@@ -18,6 +18,7 @@ import { getMediaAssets } from "@/domains/workspace/api/media";
 import { EpisodeCanvasView } from "@/domains/episode/components/EpisodeCanvasView";
 import { EpisodeTimelineEditor } from "@/domains/episode/components/EpisodeTimelineEditor";
 import { EpisodeNLEWorkbench } from "@/domains/episode/components/EpisodeNLEWorkbench";
+import { EpisodeNLEPlayer } from "@/domains/episode/components/EpisodeNLEPlayer";
 import { EpisodePreviewPlayer } from "@/domains/episode/components/EpisodePreviewPlayer";
 import {
 	buildEpisodeVideoContext,
@@ -710,6 +711,10 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 							{ revalidate: false },
 						);
 					}}
+					draftsRoot={jianyingDraftSettings?.draftsRoot}
+					onExport={(request) =>
+						exportWorkspaceEpisodeJianyingDraft(episodeDocumentId, request, projectId)
+					}
 				/>
 			)}
 			<main className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -785,18 +790,22 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 										</span>
 									</Button>
 								</div>
-								<EpisodePreviewPlayer
-									videoUrl={playbackVideoUrl}
-									posterUrl={playbackPosterUrl}
-									title={playbackTitle}
-									currentTime={playbackTime}
-									isPlaying={active && isPlaying && Boolean(playbackVideoUrl)}
-									onEnded={handlePreviewEnded}
-									onPlayingChange={handlePreviewPlayingChange}
-									onPlaybackError={handlePreviewPlaybackError}
-									onTimeUpdate={handlePreviewTimeUpdate}
-									playerRef={previewPlayerRef}
-								/>
+								{episode.editVersion === 1 ? (
+									<EpisodeNLEPlayer episode={episode} seekTime={selectedClip?.start ?? 0} />
+								) : (
+									<EpisodePreviewPlayer
+										videoUrl={playbackVideoUrl}
+										posterUrl={playbackPosterUrl}
+										title={playbackTitle}
+										currentTime={playbackTime}
+										isPlaying={active && isPlaying && Boolean(playbackVideoUrl)}
+										onEnded={handlePreviewEnded}
+										onPlayingChange={handlePreviewPlayingChange}
+										onPlaybackError={handlePreviewPlaybackError}
+										onTimeUpdate={handlePreviewTimeUpdate}
+										playerRef={previewPlayerRef}
+									/>
+								)}
 							</div>
 						</div>
 					</section>

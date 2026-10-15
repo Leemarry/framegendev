@@ -892,3 +892,23 @@ Verified full-screen bins, selection, focus and isolated browser flow; M2 editin
 ### Status
 
 [OK] **Completed**
+
+
+## Session 28: TASK-040 M3 playback and matching draft export
+<!-- trellis-session: v=2 fp=07db40defca6d1c8 -->
+
+**Date**: 2026-10-15
+**Task**: TASK-040 M3 playback and matching draft export
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Browser playback/export accepted; frontend95 tests and full gates pass; native Jianying reopen remains pending. Dedicated Edge9237/backend31438 data isolated. Next TASK-041.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**

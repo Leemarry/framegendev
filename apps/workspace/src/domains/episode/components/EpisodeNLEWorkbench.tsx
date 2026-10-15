@@ -1,11 +1,28 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { Clapperboard, Film, Music2, Search, X, Undo2, Redo2, Save, Plus } from "lucide-react";
+import {
+	Clapperboard,
+	Film,
+	Music2,
+	Search,
+	X,
+	Undo2,
+	Redo2,
+	Save,
+	Plus,
+	Download,
+} from "lucide-react";
 import { useState } from "react";
 import type { Episode, TimelineClip } from "@/domains/episode/lib/sample";
 import { formatTimelineTime } from "@/domains/episode/lib/sample";
 import type { MediaAsset } from "@/domains/workspace/api/media";
 import { EpisodeNLEInspector } from "./EpisodeNLEInspector";
+import { EpisodeNLEPlayer } from "./EpisodeNLEPlayer";
+import { EpisodeNLEExportDialog } from "./EpisodeNLEExportDialog";
+import type {
+	ExportWorkspaceEpisodeJianyingDraftRequest,
+	ExportWorkspaceEpisodeJianyingDraftResponse,
+} from "@/domains/workspace/api/workspace";
 import { defaultClipEdit, frameTime, replaceNLEClip, formatFrameTime } from "../lib/nle-editing";
 import "./episode-nle.css";
 
@@ -18,6 +35,10 @@ interface EpisodeNLEWorkbenchProps {
 	onClose: () => void;
 	onRestoreFocus?: () => void;
 	onSave?: (episode: Episode) => Promise<void>;
+	onExport?: (
+		request: ExportWorkspaceEpisodeJianyingDraftRequest,
+	) => Promise<ExportWorkspaceEpisodeJianyingDraftResponse>;
+	draftsRoot?: string;
 }
 
 const bins = ["分镜", "素材", "音频", "字幕"] as const;
@@ -32,6 +53,8 @@ export function EpisodeNLEWorkbench({
 	onClose,
 	onRestoreFocus,
 	onSave,
+	onExport,
+	draftsRoot = "",
 }: EpisodeNLEWorkbenchProps) {
 	const [history, setHistory] = useState<{ past: Episode[]; present: Episode; future: Episode[] }>({
 		past: [],
@@ -44,6 +67,7 @@ export function EpisodeNLEWorkbench({
 	const [saving, setSaving] = useState(false);
 	const [saveError, setSaveError] = useState("");
 	const [discardOpen, setDiscardOpen] = useState(false);
+	const [exportOpen, setExportOpen] = useState(false);
 	const dirty = JSON.stringify(episode) !== savedSnapshot;
 	const change = (next: Episode) => {
 		setHistory((current) => ({
@@ -190,6 +214,16 @@ export function EpisodeNLEWorkbench({
 							{dirty ? "未保存" : "已保存"}
 						</span>
 						<button
+							className="nle-command"
+							type="button"
+							disabled={dirty || saving || !onExport}
+							title={dirty ? "请先保存草稿" : "导出剪映草稿"}
+							onClick={() => setExportOpen(true)}
+						>
+							<Download size={15} />
+							导出
+						</button>
+						<button
 							className="nle-icon"
 							type="button"
 							disabled={saving}
@@ -295,33 +329,39 @@ export function EpisodeNLEWorkbench({
 							</div>
 						</aside>
 						<section className="nle-preview" aria-label="剪辑预览">
-							<div
-								className="nle-preview-stage"
-								style={{ aspectRatio: episode.aspectRatio.replace(":", "/") }}
-							>
-								{source && previewKind === "video" ? (
-									<video
-										key={source}
-										src={source}
-										poster={poster}
-										controls
-										preload="metadata"
-										aria-label={previewTitle}
-									/>
-								) : source && previewKind === "image" ? (
-									<img src={source} alt={previewTitle} />
-								) : source && previewKind === "audio" ? (
-									<audio key={source} src={source} controls aria-label={previewTitle} />
-								) : poster ? (
-									<img src={poster} alt={previewTitle} />
-								) : (
-									<p className="text-sm text-muted-foreground">
-										{selectedTrack?.type === "caption"
-											? selected?.content
-											: "当前片段暂无可预览媒体"}
-									</p>
-								)}
-							</div>
+							{!inspectedAsset ? (
+								<EpisodeNLEPlayer episode={episode} seekTime={selected?.start ?? 0} />
+							) : (
+								<>
+									<div
+										className="nle-preview-stage"
+										style={{ aspectRatio: episode.aspectRatio.replace(":", "/") }}
+									>
+										{source && previewKind === "video" ? (
+											<video
+												key={source}
+												src={source}
+												poster={poster}
+												controls
+												preload="metadata"
+												aria-label={previewTitle}
+											/>
+										) : source && previewKind === "image" ? (
+											<img src={source} alt={previewTitle} />
+										) : source && previewKind === "audio" ? (
+											<audio key={source} src={source} controls aria-label={previewTitle} />
+										) : poster ? (
+											<img src={poster} alt={previewTitle} />
+										) : (
+											<p className="text-sm text-muted-foreground">
+												{selectedTrack?.type === "caption"
+													? selected?.content
+													: "当前片段暂无可预览媒体"}
+											</p>
+										)}
+									</div>
+								</>
+							)}
 							<p className="px-3 py-2 text-xs text-muted-foreground">
 								{previewTitle ?? "未选择片段"}
 							</p>
@@ -415,6 +455,14 @@ export function EpisodeNLEWorkbench({
 							</div>
 						))}
 					</section>
+					{exportOpen && onExport && (
+						<EpisodeNLEExportDialog
+							initialRoot={draftsRoot}
+							title={episode.title}
+							onExport={onExport}
+							onClose={() => setExportOpen(false)}
+						/>
+					)}
 					{inspectedAsset?.kind === "video" && selected && selectedTrack?.type === "video" && (
 						<button
 							type="button"

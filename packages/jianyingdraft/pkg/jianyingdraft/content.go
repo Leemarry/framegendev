@@ -3,13 +3,24 @@ package jianyingdraft
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 var (
 	jsonFloatZero = json.Number("0.0")
 	jsonFloatOne  = json.Number("1.0")
 )
+
+func jsonFloat(value float64) json.Number {
+	text := strconv.FormatFloat(value, 'f', -1, 64)
+	if !strings.Contains(text, ".") {
+		text += ".0"
+	}
+	return json.Number(text)
+}
 
 func (draft *Draft) buildContentJSON(mediaPaths map[string]string) ([]byte, int64, error) {
 	draftID, err := randomID()
@@ -25,6 +36,10 @@ func (draft *Draft) buildContentJSON(mediaPaths map[string]string) ([]byte, int6
 
 	var targetStart int64
 	for _, shot := range draft.shots {
+		start := targetStart
+		if shot.targetStart != nil {
+			start = *shot.targetStart
+		}
 		mediaPath := shot.path
 		if copiedPath := mediaPaths[shot.path]; copiedPath != "" {
 			mediaPath = copiedPath
@@ -48,9 +63,11 @@ func (draft *Draft) buildContentJSON(mediaPaths map[string]string) ([]byte, int6
 		if err != nil {
 			return nil, 0, err
 		}
-		speeds = append(speeds, speedObject(speedID))
-		segments = append(segments, segmentObject(segmentID, materialID, speedID, shot, targetStart))
-		targetStart += shot.duration
+		speed := speedObject(speedID)
+		speed["speed"] = jsonFloat(shot.speed)
+		speeds = append(speeds, speed)
+		segments = append(segments, segmentObject(segmentID, materialID, speedID, shot, start))
+		targetStart = int64(math.Max(float64(targetStart), float64(start+shot.targetDuration)))
 	}
 
 	trackID, err := randomHexID()
@@ -263,7 +280,7 @@ func segmentObject(id string, materialID string, speedID string, shot normalized
 		"material_id":                 materialID,
 		"target_timerange": map[string]any{
 			"start":    targetStart,
-			"duration": shot.duration,
+			"duration": shot.targetDuration,
 		},
 		"common_keyframes": []any{},
 		"keyframe_refs":    []any{},
@@ -271,24 +288,24 @@ func segmentObject(id string, materialID string, speedID string, shot normalized
 			"start":    shot.in,
 			"duration": shot.duration,
 		},
-		"speed":               jsonFloatOne,
-		"volume":              jsonFloatOne,
+		"speed":               jsonFloat(shot.speed),
+		"volume":              jsonFloat(shot.volume),
 		"extra_material_refs": []string{speedID},
 		"is_tone_modify":      false,
 		"clip": map[string]any{
-			"alpha": jsonFloatOne,
+			"alpha": jsonFloat(shot.transform.Opacity),
 			"flip": map[string]any{
 				"horizontal": false,
 				"vertical":   false,
 			},
-			"rotation": jsonFloatZero,
+			"rotation": jsonFloat(shot.transform.Rotation),
 			"scale": map[string]any{
-				"x": jsonFloatOne,
-				"y": jsonFloatOne,
+				"x": jsonFloat(shot.transform.Scale),
+				"y": jsonFloat(shot.transform.Scale),
 			},
 			"transform": map[string]any{
-				"x": jsonFloatZero,
-				"y": jsonFloatZero,
+				"x": jsonFloat(shot.transform.X),
+				"y": jsonFloat(shot.transform.Y),
 			},
 		},
 		"uniform_scale": map[string]any{

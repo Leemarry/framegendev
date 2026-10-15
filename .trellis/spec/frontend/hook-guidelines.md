@@ -15,6 +15,11 @@ Its `get<T>()` returns an `ApiResponse<T>` envelope; domain fetchers return
 after successful writes. `CodexAccessPanel.tsx` uses `useSWRConfig` for shared invalidation.
 
 Clean up polling, streams, listeners and timers; handle stale responses.
+Native NLE media graphs must survive React StrictMode effect reconnection: a media
+element can have only one MediaElementSourceNode, even after its context closes.
+Reuse the graph for the same element and defer final cleanup across reconnection.
+Browser codec support is runtime-specific; decode errors remain visible and test
+H.264 playback in a codec-capable runtime rather than relying on a poster.
 Login cancellation must stop polling and preserve truthful status.
 Do not call hooks conditionally, issue requests in render, or duplicate Axios
 authentication/error handling.

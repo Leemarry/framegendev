@@ -221,6 +221,35 @@
 	min-height: 0;
 	padding: 24px 16px 0;
 }
+.nle-player {
+	width: 100%;
+	min-width: 0;
+}
+.nle-player-stage {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	overflow: hidden;
+	max-height: 460px;
+	background: var(--background);
+}
+.nle-player-visual {
+	position: absolute;
+	inset: 0;
+}
+.nle-player-visual video {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.nle-player-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 42px;
+}
 .nle-preview-stage {
 	display: flex;
 	align-items: center;
