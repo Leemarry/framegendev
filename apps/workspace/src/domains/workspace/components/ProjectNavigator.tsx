@@ -67,6 +67,7 @@ import { SettingsSidebarPanel, StudioSessionsScreen } from "./ProjectNavigatorPa
 import { ProjectSidebarPanel, ProjectsSidebarPanel } from "./ProjectNavigatorProjectPanels";
 import type { StudioTab } from "./ProjectNavigatorTypes";
 import { ProjectDocumentSearchDialog } from "./ProjectDocumentSearchDialog";
+import { subscribeDesktopMenuCommands } from "@/shared/desktop/actions";
 import { SidebarScreenStack } from "./SidebarScreenStack";
 
 interface ProjectNavigatorProps {
@@ -407,6 +408,27 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 		setActiveSettingsTab("appearance");
 		navigate("/settings", { state: settingsReturnState });
 	}, [navigate, setActiveSettingsTab, location.pathname, location.search, location.state]);
+	useEffect(
+		() =>
+			subscribeDesktopMenuCommands((command) => {
+				setActiveSettingsTab(command === "settings" ? "appearance" : command);
+				if (location.pathname !== "/settings" || isProjectSettingsMode) {
+					navigate("/settings", {
+						state: {
+							settingsReturn: { path: location.pathname + location.search, state: location.state },
+						},
+					});
+				}
+			}),
+		[
+			navigate,
+			setActiveSettingsTab,
+			location.pathname,
+			location.search,
+			location.state,
+			isProjectSettingsMode,
+		],
+	);
 	const openGlobalSkills = useCallback(() => {
 		setActiveSettingsTab("prompt-packs");
 		navigate("/settings", { state: settingsReturnState });

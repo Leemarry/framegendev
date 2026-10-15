@@ -1,4 +1,5 @@
 export type {
+	DesktopMenuCommand,
 	DesktopFileFilter,
 	DesktopNotificationOptions,
 	DesktopPromptPackSaveOptions,
@@ -17,6 +18,7 @@ export type {
 } from "../../../electron/src/ipc-contract";
 
 import type {
+	DesktopMenuCommand,
 	DesktopDownloadResult,
 	DesktopFileFilter,
 	DesktopNotificationOptions,
@@ -32,6 +34,7 @@ import type {
 } from "../../../electron/src/ipc-contract";
 
 export interface MediagoDesktopAPI {
+	onMenuCommand(callback: (command: DesktopMenuCommand) => void): () => void;
 	platform: NodeJS.Platform;
 	isElectron: true;
 	openExternal(url: string): Promise<void>;

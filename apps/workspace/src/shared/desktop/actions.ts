@@ -1,4 +1,5 @@
 import type {
+	DesktopMenuCommand,
 	DesktopFileFilter,
 	DesktopUpdateAck,
 	DesktopUpdateCapability,
@@ -6,6 +7,9 @@ import type {
 	PromptPackEditorOpenOptions,
 } from "@/shared/desktop/types";
 import { desktopRuntime } from "@/shared/desktop/runtime";
+
+export const subscribeDesktopMenuCommands = (callback: (command: DesktopMenuCommand) => void) =>
+	window.mediagoDesktop?.onMenuCommand?.(callback) ?? (() => {});
 
 const browserFallbackAck: DesktopUpdateAck = {
 	ok: false,

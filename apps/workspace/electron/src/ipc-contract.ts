@@ -1,4 +1,5 @@
 export const desktopIpcChannel = {
+	menuCommand: "desktop:menu-command",
 	openExternal: "desktop:open-external",
 	openPath: "desktop:open-path",
 	revealPath: "desktop:reveal-path",
@@ -20,6 +21,11 @@ export const desktopIpcChannel = {
 	installUpdate: "desktop:install-update",
 	updateStatus: "desktop:update-status",
 } as const;
+
+export type DesktopMenuCommand = "settings" | "shortcuts" | "updates";
+
+export const isDesktopMenuCommand = (value: unknown): value is DesktopMenuCommand =>
+	value === "settings" || value === "shortcuts" || value === "updates";
 
 export type NativeThemeSource = "light" | "dark" | "system";
 

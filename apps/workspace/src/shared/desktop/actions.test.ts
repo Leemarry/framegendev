@@ -1,5 +1,26 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getDesktopUpdateCapability, showDesktopNotification } from "@/shared/desktop/actions";
+import {
+	getDesktopUpdateCapability,
+	showDesktopNotification,
+	subscribeDesktopMenuCommands,
+} from "@/shared/desktop/actions";
+
+describe("desktop menu subscription", () => {
+	afterEach(() => {
+		delete window.mediagoDesktop;
+	});
+	it("cleans up the native bridge listener and tolerates browser or older hosts", () => {
+		expect(() => subscribeDesktopMenuCommands(vi.fn())()).not.toThrow();
+		const unsubscribe = vi.fn(),
+			callback = vi.fn(),
+			onMenuCommand = vi.fn(() => unsubscribe);
+		window.mediagoDesktop = { onMenuCommand } as unknown as typeof window.mediagoDesktop;
+		const cleanup = subscribeDesktopMenuCommands(callback);
+		expect(onMenuCommand).toHaveBeenCalledWith(callback);
+		cleanup();
+		expect(unsubscribe).toHaveBeenCalledOnce();
+	});
+});
 
 describe("showDesktopNotification click bridge", () => {
 	afterEach(() => {
