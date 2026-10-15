@@ -1,0 +1,28 @@
+{
+  "id": "media-download-path",
+  "name": "media-download-path",
+  "title": "TASK-030 configured media download path projection",
+  "description": "Use the configured workspace root when projecting global adopted/history media download paths; never access the default production root.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-16",
+  "completedAt": null,
+  "branch": "codex/parity-s1",
+  "base_branch": "codex/nle-export",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "ledger_id": "TASK-030"
+  }
+}

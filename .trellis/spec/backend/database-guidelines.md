@@ -13,6 +13,14 @@ SQLite; follow their helpers rather than require an unrelated Docker DB.
 New persistence needs save/reopen coverage and legacy migration checks where
 applicable. Never inspect, migrate or clean production `workspace-v2`.
 
+Generation media download paths are read projections, not stored relocation data.
+App wiring supplies GenerationTaskPaths with its WorkspaceRoot and MediaDir to
+GenerationTaskService. All task and selected-asset projections must forward these
+roots; global library paths honor the custom MediaDir, legacy .mediago-drama paths
+use WorkspaceRoot, and project paths retain their explicit project directory.
+Do not silently substitute the OS default root when app configuration is known.
+Keep file bytes, media IDs and task/selection timestamps unchanged during reads.
+
 ## Library display metadata (TASK-031)
 
 ### Scope / Trigger

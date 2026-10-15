@@ -2094,7 +2094,11 @@ func uploadImageAssetForTest(t *testing.T, handler http.Handler, projectID strin
 		t.Fatalf("closing multipart writer: %v", err)
 	}
 
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/projects/"+url.PathEscape(projectID)+"/media-assets", body)
+	path := "/api/v1/projects/" + url.PathEscape(projectID) + "/media-assets"
+	if projectID == "" {
+		path = "/api/v1/media-assets"
+	}
+	request := httptest.NewRequest(http.MethodPost, path, body)
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)

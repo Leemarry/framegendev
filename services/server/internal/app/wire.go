@@ -225,7 +225,10 @@ func newAPIHandler(config Config) *apiHandler {
 	}
 	generationPreferences := servicegeneration.NewGenerationPreferenceServiceFromRepository(settingsRepos.GenerationPreferences, settingsReposErr)
 	generationNotifications := servicegeneration.NewGenerationNotificationServiceFromRepository(workspaceRepos.GenerationNotifications, workspaceReposErr, randomID)
-	generationTasks := servicegeneration.NewGenerationTaskServiceFromRepository(workspaceRepos.GenerationTasks, workspaceReposErr, randomID)
+	generationTasks := servicegeneration.NewGenerationTaskServiceFromRepository(workspaceRepos.GenerationTasks, workspaceReposErr, randomID, servicegeneration.GenerationTaskPaths{
+		WorkspaceRoot: workspaceState.Dir(),
+		MediaDir:      mediaDir,
+	})
 	mediaAssets := servicemedia.NewMediaAssetsFromRepository(workspaceRepos.MediaAssets, mediaDir, workspaceState.Dir(), workspaceRepos.Workspace, workspaceReposErr)
 	mediaAssets.SetMediaToolPaths(config.FFmpegPath, config.FFmpegBinDir)
 	previewStreamer := servicemedia.NewFFmpegPreviewStreamer(config.FFmpegPath, config.FFmpegBinDir)
