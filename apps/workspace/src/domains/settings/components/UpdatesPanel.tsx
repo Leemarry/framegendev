@@ -19,6 +19,8 @@ type LocalUiState = {
 	appVersion: string | null;
 	capability: DesktopUpdateCapability | null;
 	status: DesktopUpdateStatus | null;
+	loading: boolean;
+	loadError: string;
 	checking: boolean;
 	downloading: boolean;
 	installing: boolean;
@@ -28,6 +30,8 @@ const initialState: LocalUiState = {
 	appVersion: null,
 	capability: null,
 	status: null,
+	loading: true,
+	loadError: "",
 	checking: false,
 	downloading: false,
 	installing: false,
@@ -36,21 +40,32 @@ const initialState: LocalUiState = {
 export const UpdatesPanel: React.FC = () => {
 	const toast = useToast();
 	const [state, setState] = useState<LocalUiState>(initialState);
+	const [metadataAttempt, setMetadataAttempt] = useState(0);
 
 	useEffect(() => {
 		let cancelled = false;
 
 		void (async () => {
-			const [appVersion, capability] = await Promise.all([
-				getDesktopAppVersion(),
-				getDesktopUpdateCapability(),
-			]);
-			if (cancelled) return;
-			setState((current) => ({
-				...current,
-				appVersion: appVersion ?? null,
-				capability,
-			}));
+			try {
+				const [appVersion, capability] = await Promise.all([
+					getDesktopAppVersion(),
+					getDesktopUpdateCapability(),
+				]);
+				if (cancelled) return;
+				setState((current) => ({
+					...current,
+					appVersion: appVersion ?? null,
+					capability,
+					loading: false,
+				}));
+			} catch (error) {
+				if (cancelled) return;
+				setState((current) => ({
+					...current,
+					loading: false,
+					loadError: error instanceof Error ? error.message : "无法读取桌面更新信息。",
+				}));
+			}
 		})();
 
 		const unsubscribe = subscribeDesktopUpdateStatus((status) => {
@@ -61,7 +76,12 @@ export const UpdatesPanel: React.FC = () => {
 			cancelled = true;
 			unsubscribe();
 		};
-	}, []);
+	}, [metadataAttempt]);
+
+	const retryMetadata = () => {
+		setState((current) => ({ ...current, loading: true, loadError: "" }));
+		setMetadataAttempt((current) => current + 1);
+	};
 
 	const supportsAutoUpdate = state.capability?.supportsAutoUpdate === true;
 	const status = state.status;
@@ -94,6 +114,10 @@ export const UpdatesPanel: React.FC = () => {
 			} else {
 				toast.success("下载完成", { description: "点击“安装更新并重启”以完成升级。" });
 			}
+		} catch (error) {
+			toast.error("下载更新失败", {
+				description: error instanceof Error ? error.message : "无法连接更新服务，请稍后再试。",
+			});
 		} finally {
 			setState((current) => ({ ...current, downloading: false }));
 		}
@@ -145,6 +169,22 @@ export const UpdatesPanel: React.FC = () => {
 			}
 		>
 			<section className="space-y-4">
+				{state.loading ? (
+					<p role="status" className="text-sm text-muted-foreground">
+						正在读取更新信息…
+					</p>
+				) : null}
+				{state.loadError ? (
+					<div className="space-y-3">
+						<p role="alert" className="break-words text-sm text-error-foreground">
+							读取更新信息失败。{state.loadError}
+						</p>
+						<Button type="button" variant="outline" onClick={retryMetadata}>
+							<RefreshCw />
+							重试
+						</Button>
+					</div>
+				) : null}
 				<div className="rounded-md border border-border bg-muted/60 px-3 py-2 text-sm">
 					<div className="flex items-center justify-between gap-2">
 						<p className="text-muted-foreground">当前版本</p>
@@ -219,7 +259,7 @@ export const UpdatesPanel: React.FC = () => {
 							<span>{state.installing ? "安装中" : "安装更新并重启"}</span>
 						</Button>
 					</div>
-				) : (
+				) : state.capability ? (
 					<div className="flex flex-wrap items-center gap-2">
 						<Button type="button" variant="default" onClick={() => void openReleasePage()}>
 							<ExternalLink className="size-3.5" />
@@ -229,7 +269,7 @@ export const UpdatesPanel: React.FC = () => {
 							{state.capability?.reason ?? "当前运行环境不支持应用内更新，请前往下载页升级。"}
 						</p>
 					</div>
-				)}
+				) : null}
 			</section>
 		</SettingsPanelLayout>
 	);
