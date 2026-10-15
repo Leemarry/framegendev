@@ -47,3 +47,15 @@ export const deleteLibraryFolder = async (projectId: string | null, id: string) 
 	);
 	return response.data;
 };
+
+export const reparentLibraryFolder = async (
+	projectId: string | null,
+	id: string,
+	newParentId: string,
+) => {
+	const response = await httpClient.patch<AssetLibraryFolder>(
+		`${libraryFoldersKey(projectId)}/${encodeURIComponent(id)}`,
+		{ newParentId },
+	);
+	return response.data;
+};

@@ -117,6 +117,37 @@ func (handler MediaAssets) HandleDeleteLibraryFolder(c *gin.Context) {
 	httpresponse.OK(c, struct{}{})
 }
 
+// LibraryFolderReparentRequest moves a folder to a new parent. Empty means root.
+type LibraryFolderReparentRequest struct {
+	NewParentID string `json:"newParentId"`
+}
+
+// HandleReparentLibraryFolder godoc
+// @Summary Reparent a logical media folder to a new parent within the same scope
+// @Tags Media Assets
+// @Accept json
+// @Produce json
+// @Param folderId path string true "Folder ID"
+// @Param payload body LibraryFolderReparentRequest true "New parentId (empty = root)"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/asset-library-folders/{folderId} [patch]
+func (handler MediaAssets) HandleReparentLibraryFolder(c *gin.Context) {
+	var payload LibraryFolderReparentRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		httpresponse.ErrorFromStatus(c, http.StatusBadRequest, err)
+		return
+	}
+	folder, err := handler.service.ReparentLibraryFolder(c.Request.Context(), optionalProjectID(c), c.Param("folderId"), payload.NewParentID)
+	if err != nil {
+		libraryFolderFailure(c, err)
+		return
+	}
+	httpresponse.OK(c, folder)
+}
+
 // HandleProjectLibraryFolders godoc
 // @Summary List logical project media folders
 // @Tags Media Assets
@@ -176,4 +207,21 @@ func (handler MediaAssets) HandleRenameProjectLibraryFolder(c *gin.Context) {
 // @Router /api/v1/projects/{projectId}/asset-library-folders/{folderId} [delete]
 func (handler MediaAssets) HandleDeleteProjectLibraryFolder(c *gin.Context) {
 	handler.HandleDeleteLibraryFolder(c)
+}
+
+// HandleReparentProjectLibraryFolder godoc
+// @Summary Reparent a logical project media folder
+// @Tags Media Assets
+// @Accept json
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param folderId path string true "Folder ID"
+// @Param payload body LibraryFolderReparentRequest true "New parentId (empty = root)"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/asset-library-folders/{folderId} [patch]
+func (handler MediaAssets) HandleReparentProjectLibraryFolder(c *gin.Context) {
+	handler.HandleReparentLibraryFolder(c)
 }

@@ -1,4 +1,4 @@
-import { Check, Folder, FolderPlus, Loader2, PencilLine, Trash2, X } from "lucide-react";
+import { Check, Folder, FolderPlus, Loader2, MoveRight, PencilLine, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { AssetLibraryFolder } from "@/domains/workspace/api/library-folders";
 import type { MediaAsset } from "@/domains/workspace/api/media";
@@ -32,6 +32,7 @@ export interface AssetLibraryFolderControls {
 	onCreate: () => void;
 	onRename: (folder: AssetLibraryFolder) => void;
 	onDelete: (folder: AssetLibraryFolder) => void;
+	onReparent?: (folder: AssetLibraryFolder) => void;
 	onRefresh: () => Promise<unknown>;
 }
 
@@ -81,6 +82,20 @@ export function AssetLibraryFolders({ controls }: { controls: AssetLibraryFolder
 					>
 						<PencilLine className="size-3.5" />
 					</Button>
+					{controls.onReparent ? (
+						<Button
+							size="icon"
+							variant="ghost"
+							aria-label={`移动文件夹 ${folder.name}`}
+							title="移动文件夹"
+							onClick={() => {
+								setMenuOpen(false);
+								controls.onReparent?.(folder);
+							}}
+						>
+							<MoveRight className="size-3.5" />
+						</Button>
+					) : null}
 					<Button
 						size="icon"
 						variant="ghost"
@@ -310,6 +325,129 @@ export function AssetLibraryFolderDeleteDialog({
 								<Trash2 className="size-4" />
 							)}
 							删除文件夹
+						</Button>
+					</div>
+				</div>
+			</AlertDialogContent>
+		</AlertDialog>
+	);
+}
+
+/** Returns all folder IDs whose parent chain eventually reaches ancestor (includes ancestor itself). */
+function descendantIds(folders: AssetLibraryFolder[], ancestorId: string): Set<string> {
+	const index = new Map<string, string>();
+	for (const folder of folders) index.set(folder.id, folder.parentId);
+	const result = new Set<string>([ancestorId]);
+	for (const folder of folders) {
+		let cur = folder.id;
+		const seen = new Set<string>();
+		while (cur !== "" && cur !== undefined && seen.add(cur)) {
+			if (cur === ancestorId) {
+				result.add(folder.id);
+				break;
+			}
+			cur = index.get(cur) ?? "";
+		}
+	}
+	return result;
+}
+
+export function AssetLibraryFolderMoveDialog({
+	folder,
+	folders,
+	onMove,
+	onClose,
+}: {
+	folder: AssetLibraryFolder;
+	folders: AssetLibraryFolder[];
+	onMove: (newParentId: string) => Promise<void>;
+	onClose: () => void;
+}) {
+	const forbidden = descendantIds(folders, folder.id);
+	const [destination, setDestination] = useState(folder.parentId || "");
+	const [pending, setPending] = useState(false);
+	const [error, setError] = useState("");
+	const changed = destination !== (folder.parentId || "");
+
+	const submit = async () => {
+		if (!changed || pending) return;
+		setPending(true);
+		setError("");
+		try {
+			await onMove(destination);
+			onClose();
+		} catch (err) {
+			const message =
+				err instanceof Error
+					? err.message
+					: typeof err === "object" &&
+						  err !== null &&
+						  "message" in err &&
+						  typeof err.message === "string"
+						? err.message
+						: "";
+			setError(message.trim() || "移动文件夹失败，请重试。");
+		} finally {
+			setPending(false);
+		}
+	};
+
+	return (
+		<AlertDialog open onOpenChange={(open) => !open && !pending && onClose()}>
+			<AlertDialogContent
+				className="max-w-sm"
+				onEscapeKeyDown={(event) => {
+					if (pending) event.preventDefault();
+				}}
+			>
+				<div className="grid gap-4">
+					<AlertDialogTitle>移动文件夹</AlertDialogTitle>
+					<AlertDialogDescription className="break-all">
+						将“{folder.name}”移动到同级或其他目录下。不能移动到它自己或它的子目录里。
+					</AlertDialogDescription>
+					<Select
+						value={destination || "__root__"}
+						onValueChange={(id) => setDestination(id === "__root__" ? "" : id)}
+						disabled={pending}
+					>
+						<SelectTrigger aria-label="选择目标目录" className="w-full min-w-0">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent className="max-w-[calc(100vw-2rem)]">
+							<SelectItem value="__root__">素材库根目录</SelectItem>
+							{libraryFolderOptions(folders)
+								.filter(({ folder: target }) => !forbidden.has(target.id))
+								.map(({ folder: target, path }) => (
+									<SelectItem
+										key={target.id}
+										value={target.id}
+										className="min-w-0"
+										title={path.map((entry) => entry.name).join(" / ")}
+									>
+										<span className="block max-w-[min(20rem,calc(100vw-4rem))] truncate">
+											{path.map((entry) => entry.name).join(" / ")}
+										</span>
+									</SelectItem>
+								))}
+						</SelectContent>
+					</Select>
+					{error ? (
+						<p role="alert" className="text-xs text-error-foreground">
+							{error}
+						</p>
+					) : null}
+					<div className="flex justify-end gap-2">
+						<Button variant="outline" type="button" disabled={pending} onClick={onClose}>
+							<X className="size-4" />
+							取消
+						</Button>
+						<Button type="button" disabled={!changed || pending} onClick={() => void submit()}>
+							{pending ? (
+								<Loader2 className="size-4 animate-spin" />
+							) : (
+								<MoveRight className="size-4" />
+							)}
+							移动
 						</Button>
 					</div>
 				</div>

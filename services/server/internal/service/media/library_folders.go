@@ -25,6 +25,10 @@ type LibraryFolderRequest struct {
 	ParentID string `json:"parentId"`
 }
 
+// ErrLibraryFolderCycle identifies a reparent move that would create a cycle
+// (target parent is the folder itself or any descendant).
+var ErrLibraryFolderCycle = errors.New("library folder reparent would create a cycle")
+
 func libraryFolderError(err error) error {
 	if repository.IsRecordNotFound(err) {
 		return ErrLibraryFolderNotFound
@@ -34,6 +38,9 @@ func libraryFolderError(err error) error {
 	}
 	if errors.Is(err, repository.ErrLibraryFolderNotEmpty) {
 		return ErrLibraryFolderNotEmpty
+	}
+	if errors.Is(err, ErrLibraryFolderCycle) {
+		return fmt.Errorf("%w: %w", ErrInvalidMediaAssetUpdate, ErrLibraryFolderCycle)
 	}
 	return err
 }
@@ -99,6 +106,46 @@ func (store *MediaAssets) RenameLibraryFolder(ctx context.Context, projectID, id
 		return folder, err
 	}
 	if err = store.repo.RenameLibraryFolder(ctx, folder, name); err != nil {
+		return folder, libraryFolderError(err)
+	}
+	return store.repo.GetLibraryFolder(ctx, folder.ID, projectID)
+}
+
+// ReparentLibraryFolder moves a folder to a new parent (or to root) within its scope.
+// It rejects cycles (target parent is self or any descendant) and sibling name collisions.
+func (store *MediaAssets) ReparentLibraryFolder(ctx context.Context, projectID, id, newParentID string) (domain.AssetLibraryFolderModel, error) {
+	if store.initErr != nil {
+		return domain.AssetLibraryFolderModel{}, store.initErr
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	projectID = domain.CleanProjectID(projectID)
+	id = strings.TrimSpace(id)
+	newParentID = strings.TrimSpace(newParentID)
+	folder, err := store.repo.GetLibraryFolder(ctx, id, projectID)
+	if err != nil {
+		return folder, libraryFolderError(err)
+	}
+	// Short-circuit: no-op when same parent.
+	if folder.ParentID == newParentID {
+		return folder, nil
+	}
+	// Cycle check: target parent must not be the folder itself or any descendant.
+	if newParentID != "" {
+		if newParentID == folder.ID {
+			return folder, libraryFolderError(ErrLibraryFolderCycle)
+		}
+		descendants, err := store.repo.ListDescendantFolderIDs(ctx, projectID, folder.ID)
+		if err != nil {
+			return folder, libraryFolderError(err)
+		}
+		for _, d := range descendants {
+			if d == newParentID {
+				return folder, libraryFolderError(ErrLibraryFolderCycle)
+			}
+		}
+	}
+	if err = store.repo.ReparentLibraryFolder(ctx, folder, newParentID); err != nil {
 		return folder, libraryFolderError(err)
 	}
 	return store.repo.GetLibraryFolder(ctx, folder.ID, projectID)

@@ -13,6 +13,7 @@ import {
 	Images,
 	LibraryBig,
 	Loader2,
+	MoveRight,
 	PencilLine,
 	Search,
 	Trash2,
@@ -821,6 +822,20 @@ export const AssetLibraryWorkspace: React.FC<{
 										<FolderOpen className="size-5 shrink-0" />
 										<span>{folder.name}</span>
 									</button>
+									{folderControls?.onReparent ? (
+										<Button
+											variant="ghost"
+											size="icon"
+											aria-label={`移动子文件夹 ${folder.name}`}
+											title="移动文件夹"
+											onClick={() => {
+												const fn = folderControls?.onReparent;
+												if (fn) fn(folder);
+											}}
+										>
+											<MoveRight className="size-3.5" />
+										</Button>
+									) : null}
 									<Button
 										variant="ghost"
 										size="icon"

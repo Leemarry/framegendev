@@ -11,10 +11,12 @@ import {
 	getLibraryFolders,
 	libraryFoldersKey,
 	renameLibraryFolder,
+	reparentLibraryFolder,
 	type AssetLibraryFolder,
 } from "@/domains/workspace/api/library-folders";
 import {
 	AssetLibraryFolders,
+	AssetLibraryFolderMoveDialog,
 	AssetLibraryFolderNameDialog,
 	AssetLibraryFolderDeleteDialog,
 	type AssetLibraryFolderControls,
@@ -45,6 +47,7 @@ export function AssetLibrary() {
 	const folderId = new URLSearchParams(location.search).get("folderId") || "";
 	const [editingFolder, setEditingFolder] = useState<AssetLibraryFolder | "create" | null>(null);
 	const [deletingFolder, setDeletingFolder] = useState<AssetLibraryFolder | null>(null);
+	const [movingFolder, setMovingFolder] = useState<AssetLibraryFolder | null>(null);
 	const {
 		data: folderData,
 		error: folderError,
@@ -70,6 +73,7 @@ export function AssetLibrary() {
 		onCreate: () => setEditingFolder("create"),
 		onRename: setEditingFolder,
 		onDelete: setDeletingFolder,
+		onReparent: setMovingFolder,
 		onRefresh: () => mutateFolders(),
 	};
 	const saveFolder = async (name: string) => {
@@ -99,6 +103,16 @@ export function AssetLibrary() {
 			{ revalidate: false },
 		);
 		if (folderId === deletingFolder.id) navigateFolder(deletingFolder.parentId);
+	};
+	const moveFolder = async (newParentId: string) => {
+		if (!movingFolder) return;
+		const saved = await reparentLibraryFolder(projectId, movingFolder.id, newParentId);
+		await mutateFolders(
+			(data) => ({
+				folders: (data?.folders ?? []).map((folder) => (folder.id === saved.id ? saved : folder)),
+			}),
+			{ revalidate: false },
+		);
 	};
 	const savedReturn: unknown = location.state?.assetReturnTo;
 	const returnTo =
@@ -178,6 +192,15 @@ export function AssetLibrary() {
 					].join(" / ")}
 					onDelete={removeFolder}
 					onClose={() => setDeletingFolder(null)}
+				/>
+			) : null}
+			{movingFolder ? (
+				<AssetLibraryFolderMoveDialog
+					key={movingFolder.id}
+					folder={movingFolder}
+					folders={folders}
+					onMove={moveFolder}
+					onClose={() => setMovingFolder(null)}
 				/>
 			) : null}
 		</main>

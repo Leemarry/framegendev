@@ -88,6 +88,65 @@ func (repo *MediaAssetRepository) RenameLibraryFolder(ctx context.Context, folde
 	return nil
 }
 
+// ListDescendantFolderIDs returns all descendant folder IDs of one ancestor within a scope.
+// It is used by the service layer to reject reparent moves that would create a cycle.
+func (repo *MediaAssetRepository) ListDescendantFolderIDs(ctx context.Context, projectID, ancestorID string) ([]string, error) {
+	var all []domain.AssetLibraryFolderModel
+	if err := repo.db.WithContext(ctx).
+		Where("project_id = ?", projectID).
+		Find(&all).Error; err != nil {
+		return nil, fmt.Errorf("listing all folders for descendant check: %w", err)
+	}
+	index := make(map[string]string, len(all))
+	for _, f := range all {
+		index[f.ID] = f.ParentID
+	}
+	result := []string{}
+	for id := range index {
+		if id == ancestorID {
+			continue
+		}
+		cur := index[id]
+		hit := false
+		for cur != "" {
+			if cur == ancestorID {
+				hit = true
+				break
+			}
+			cur = index[cur]
+		}
+		if hit {
+			result = append(result, id)
+		}
+	}
+	return result, nil
+}
+
+// ReparentLibraryFolder updates parent_id when the move would keep the folder
+// in its scope, not create a cycle, and not collide with an existing sibling.
+func (repo *MediaAssetRepository) ReparentLibraryFolder(ctx context.Context, folder domain.AssetLibraryFolderModel, newParentID string) error {
+	newParentID = strings.TrimSpace(newParentID)
+	// Target parent must exist and belong to the same scope.
+	if newParentID != "" {
+		if _, err := repo.GetLibraryFolder(ctx, newParentID, folder.ProjectID); err != nil {
+			return err
+		}
+	}
+	// Sibling name uniqueness at the new parent.
+	siblings := repo.db.Model(&domain.AssetLibraryFolderModel{}).Select("1").
+		Where("project_id = ? AND parent_id = ? AND name = ? AND id <> ?", folder.ProjectID, newParentID, folder.Name, folder.ID)
+	result := repo.db.WithContext(ctx).Model(&domain.AssetLibraryFolderModel{}).
+		Where("id = ? AND NOT EXISTS (?)", folder.ID, siblings).
+		Updates(map[string]any{"parent_id": newParentID, "updated_at": time.Now().UTC()})
+	if result.Error != nil {
+		return fmt.Errorf("reparenting library folder: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrLibraryFolderConflict
+	}
+	return nil
+}
+
 // DeleteLibraryFolder removes an empty logical folder from one library scope.
 func (repo *MediaAssetRepository) DeleteLibraryFolder(ctx context.Context, id, projectID string) error {
 	return repo.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
