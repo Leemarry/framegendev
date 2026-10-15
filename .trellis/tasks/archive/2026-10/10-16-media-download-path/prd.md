@@ -11,9 +11,9 @@ Use the configured workspace root when projecting global adopted/history media d
 
 ## Acceptance Criteria
 
-- [ ] Reproduce against current source with an explicit temporary workspace; test configured global/legacy paths and project/absolute/empty compatibility.
-- [ ] HTTP through real app wiring returns correct paths for imported history and adopted media; hash actual isolated file against media content. Restart and compare complete persisted records (only the corrected projection may differ from the old output).
-- [ ] Actual browser history/reference rendering and failure/cancel controls retain behavior; frontend gates and related regressions, full Windows backend checks/race/build pass. Record native dialog limitations explicitly; no fake desktop success.
+- [x] Reproduce against current source with an explicit temporary workspace; test configured global/legacy paths and project/absolute/empty compatibility.
+- [x] HTTP through real app wiring returns correct paths for imported history and adopted media; hash actual isolated file against media content. Restart and compare complete persisted records (only the corrected projection may differ from the old output).
+- [x] Actual browser history/reference rendering and failure/cancel controls retain behavior; frontend gates and related regressions, full Windows backend checks/race/build pass. Record native dialog limitations explicitly; no fake desktop success.
 
 ## Notes
 

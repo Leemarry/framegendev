@@ -1304,3 +1304,34 @@ Validated media ownership before writes and consistent cancellation; source full
 ### Status
 
 [OK] **Completed**
+
+
+## Session 43: TASK-030 configured media paths accepted in main
+<!-- trellis-session: v=2 fp=641fa6499a6e33ef -->
+
+**Date**: 2026-10-16
+**Task**: TASK-030 configured media paths accepted in main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Configured media roots now propagate to history/adoption; source and main restart/hash/non-write acceptance passed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7c4a3c1` | fix(generation): project media downloads through configured roots |
+| `bcb2c6e` | fix(generation): project media downloads through configured roots |
+
+### Testing
+
+- [OK] Full Windows check/race, frontend gates and 57 related tests; main focused race/build and actual production restart passed.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-070 remaining history/source/read views; native dialog and real generation remain unverified.

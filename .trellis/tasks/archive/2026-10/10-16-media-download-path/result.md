@@ -17,4 +17,10 @@ GenerationTaskService receives immutable WorkspaceRoot/MediaDir from existing ap
 
 ## Limits And Integration
 
-Main integration and production smoke pending. No real provider generation, Agent, login/payment, native Jianying reopening or session2 native-window acceptance. Overall030/080/150 remain incomplete. Session2 branch remains617a80d.
+Source7c4a3c1 integrated as main bcb2c6e. Main embedded production executable built; focused app/generation race passed11.429s/4.962s. Main31456 runs .cache/parity/s1-integration/mediago-server-path.exe with the existing independent workspace/config. Frontend bytes are unchanged from the prior full accepted gate.
+
+Actual main old binary reproduced the wrong path using newly uploaded global asset-dc31fd4a4fccff51; the new binary corrects only downloadPath in full history/selection responses. Actual content/copy hashes match, full documents and media metadata stay unchanged. A second real backend stop/restart retained exact full records, then unadopt restored both projects' original selection lists. Browser-harness actual preview click displayed480x640 image; evidence/main-preview.png inspected. The imported task and unadopted media remain as isolated fixtures.
+
+The first main fixture script expected upload.data.asset, but this endpoint returns upload.data; it stopped after upload. Corrected the response interpretation and reused that exact uploaded ID rather than duplicating the upload. Existing documents/selections were untouched by the failed attempt. A source inspection command also used nonexistent shared/lib/downloads.ts; corrected to domains/workspace/lib/downloads.ts. No test or gate failure suppressed.
+
+No real provider generation, Agent, login/payment, native Jianying reopening or session2 native-window acceptance. Overall030/080/150 remain incomplete. Session2 branch remains617a80d. Next independent item: remaining TASK-070 history/source/read views.

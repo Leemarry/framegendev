@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 42
+- **Total Sessions**: 43
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1306 | Active |
+| `journal-1.md` | ~1337 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 43 | 2026-10-16 | TASK-030 configured media paths accepted in main | `7c4a3c1`, `bcb2c6e` | `codex/nle-export` |
 | 42 | 2026-10-16 | TASK-030 direct media adoption boundaries and integration | `087932e`, `a7e5827` | `codex/nle-export` |
 | 41 | 2026-10-16 | Accept project task ownership before adoption | `dd34016` | `codex/nle-export` |
 | 40 | 2026-10-16 | Accept browser recovery of persisted audio failures | `a747a54`, `b776423` | `codex/nle-export` |

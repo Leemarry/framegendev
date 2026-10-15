@@ -33,6 +33,8 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 8. TASK-030直接媒体来源隔离1e0099e→087932e已验收：缺失/外项目ID、URL、任务解析素材在写入前拒绝404；修复自动补标题后无法取消采用。实际同项目/全局双项目采用取消、双方完整正文历史/采用记录零写、重启及主生产包390px引用增减通过；完整Windows check/race、主235文件1552测试/前端门/Electron/嵌入构建通过。主31456现运行mediago-server-media.exe，结果见selection-media-isolation归档。下一项核实全局采用/历史downloadPath默认根目录投影；仅发现响应字符串，未访问默认目录。030/080/150整体仍未完成，会话2仍617a80d。
 
+9. TASK-030配置根目录投影7c4a3c1→bcb2c6e已验收：全局历史/采用downloadPath与实际配置MediaDir一致，兼容旧相对根/项目/绝对路径；源和主实际重启完整记录不变、文件/content/复制hash一致、取消采用还原，真实图片预览通过。完整Windows门/race、前端门及3文件57测试、主额外race与嵌入构建通过。主31456现运行mediago-server-path.exe；原生目录对话框未验收，030/080/150整体不完成。见media-download-path归档；下一项TASK-070历史/源码/阅读视图。会话2仍617a80d，无新增已验证提交。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |
