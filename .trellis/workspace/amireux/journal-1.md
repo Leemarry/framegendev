@@ -1179,3 +1179,36 @@ Integrated full-selection validation, request deduplication and explicit session
 ### Status
 
 [OK] **Completed**
+
+
+## Session 39: Accept prior-window recovery in integrated production bundle
+<!-- trellis-session: v=2 fp=ac68f0c255be93fd -->
+
+**Date**: 2026-10-16
+**Task**: Accept prior-window recovery in integrated production bundle
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK-181 retained-profile restart and integrated recovery accepted; fixed layout/passive loading race; session2 native windows remain pending.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7ea7f4e` | feat(documents): stage prior-window recovery pending restart acceptance |
+| `f2517ad` | test(documents): verify recovery after retained-profile restart |
+| `e363a3c` | fix(documents): preserve ready state after layout hydration |
+
+### Testing
+
+- [OK] Main 97 files 641 tests; lint; full705-fileformat with exact CRLF restoration; build; Electron compile; Windows build and tagged embedded executable pass.
+- [OK] Actual source restart/download/failure/missing document/mergev4; main390px preview/cancel/stage/reload; source bytes and full server body/history unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Continue TASK-080 audio persisted-history reopening without external generation; TASK150/native040/041 remain pending.

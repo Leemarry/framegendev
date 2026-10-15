@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 38
+- **Total Sessions**: 39
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1181 | Active |
+| `journal-1.md` | ~1214 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-10-16 | Accept prior-window recovery in integrated production bundle | `7ea7f4e`, `f2517ad`, `e363a3c` | `codex/nle-export` |
 | 38 | 2026-10-16 | TASK-080 local history import validation integrated | `90b07c9` | `codex/nle-export` |
 | 37 | 2026-10-16 | S1 recovery blocker and audio cache integration | `a747a54`, `9d7468b` | `codex/nle-export` |
 | 36 | 2026-10-16 | Asset aggregate accepted and update retry integrated | `6cc7b90`, `03cd506`, `1ec42e9`, `986ad37` | `codex/parity-s1` |
