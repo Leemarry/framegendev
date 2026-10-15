@@ -2,6 +2,7 @@ import type React from "react";
 import { FileText, Rows3 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CommentsGutter } from "@/domains/documents/components/CommentsGutter";
+import { StoryboardTimelinePanel } from "./StoryboardTimelinePanel";
 import { ProjectAssetPreviewPane } from "@/domains/documents/components/ProjectAssetPreviewPane";
 import {
 	prewarmWritingEditorDocument,
@@ -34,6 +35,14 @@ export const WritingWorkspace: React.FC = () => {
 	const timelineRequested = storyboard && params.get("documentMode") === "timeline";
 	const unsafeDraft = Boolean(activeDocument?.isDirty || activeDocument?.saveConflict);
 	const timeline = timelineRequested && !unsafeDraft;
+	const resourcesOpen = storyboard && !timeline && params.get("resourcePanel") === "open";
+	const closeResources = () => {
+		params.delete("resourcePanel");
+		navigate(
+			{ pathname: location.pathname, search: `?${params.toString()}` },
+			{ state: location.state },
+		);
+	};
 	const selectMode = (mode: "document" | "timeline") => {
 		params.set("documentMode", mode);
 		navigate(
@@ -82,9 +91,27 @@ export const WritingWorkspace: React.FC = () => {
 					<ProjectAssetPreviewPane asset={activeAsset} projectId={projectId} />
 				) : (
 					<>
-						<div hidden={timeline} className={timeline ? "hidden" : "relative flex min-h-0 flex-1"}>
+						<div
+							hidden={timeline}
+							className={
+								timeline
+									? "hidden"
+									: resourcesOpen
+										? "relative flex min-h-0 flex-1 flex-col md:flex-row"
+										: "relative flex min-h-0 flex-1"
+							}
+						>
 							<WritingEditor showHeaderActions={false} />
-							<CommentsGutter />
+							{resourcesOpen && activeDocument && projectId ? (
+								<StoryboardTimelinePanel
+									key={`${projectId}:${activeDocument.id}`}
+									document={activeDocument}
+									projectId={projectId}
+									onClose={closeResources}
+								/>
+							) : (
+								<CommentsGutter />
+							)}
 						</div>
 						{timeline ? (
 							<div className="min-h-0 flex-1">

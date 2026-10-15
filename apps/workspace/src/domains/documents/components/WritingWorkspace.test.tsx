@@ -4,6 +4,21 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WritingWorkspace } from "./WritingWorkspace";
 import { useDocumentsStore, type MarkdownDocument } from "@/domains/documents/stores";
 
+vi.mock("./StoryboardTimelinePanel", () => ({
+	StoryboardTimelinePanel: ({
+		document,
+		onClose,
+	}: {
+		document: MarkdownDocument;
+		onClose: () => void;
+	}) => (
+		<aside aria-label="分镜资源栏">
+			Resources:{document.id}
+			<button onClick={onClose}>关闭资源栏</button>
+		</aside>
+	),
+}));
+
 vi.mock("./WritingEditor", () => ({
 	WritingEditor: () => <input aria-label="editor draft" defaultValue="pending selection" />,
 	prewarmWritingEditorDocument: vi.fn(),
@@ -78,6 +93,22 @@ it.each([{ isDirty: true }, { saveConflict: { server: null } }])(
 		expect(screen.getByRole("textbox", { name: "editor draft" })).toBeVisible();
 	},
 );
+
+it("reopens and closes resources without remounting the editor or changing the document", () => {
+	show("?projectId=p&documentId=doc&resourcePanel=open&other=keep");
+	const editor = screen.getByRole("textbox", { name: "editor draft" });
+	fireEvent.change(editor, { target: { value: "unsaved transient text" } });
+	expect(screen.getByRole("complementary", { name: "分镜资源栏" })).toHaveTextContent(
+		"Resources:doc",
+	);
+	fireEvent.click(screen.getByRole("button", { name: "关闭资源栏" }));
+	expect(screen.queryByRole("complementary", { name: "分镜资源栏" })).toBeNull();
+	expect(screen.getByRole("textbox", { name: "editor draft" })).toBe(editor);
+	expect(editor).toHaveValue("unsaved transient text");
+	expect(screen.getByRole("status")).toHaveTextContent("other=keep");
+	expect(screen.getByRole("status")).not.toHaveTextContent("resourcePanel");
+	expect(useDocumentsStore.getState().documents[0]).toEqual(document);
+});
 
 it("reopens a saved timeline URL and ignores timeline for non-storyboard or stale project context", () => {
 	const view = show("?projectId=p&documentId=doc&documentMode=timeline");

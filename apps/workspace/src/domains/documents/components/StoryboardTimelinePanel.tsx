@@ -1,6 +1,6 @@
-import { Captions, ChevronLeft, ChevronRight, Film, Image, Mic2, Music2 } from "lucide-react";
+import { Captions, Film, Image, Mic2, Music2, RefreshCw, X } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useEffect } from "react";
 import useSWR from "swr";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -11,7 +11,8 @@ import {
 	type TimelineClip,
 	type TimelineTrackType,
 } from "@/domains/episode/lib/sample";
-import { useDocumentsStore } from "@/domains/documents/stores";
+import type { MarkdownDocument } from "@/domains/documents/stores";
+import { listDocumentSections } from "@/domains/documents/lib/sections";
 import {
 	getWorkspaceResolvedEpisode,
 	workspaceResolvedEpisodeKey,
@@ -19,9 +20,9 @@ import {
 import { cn } from "@/shared/lib/utils";
 
 interface StoryboardTimelinePanelProps {
-	documentContent: string;
-	documentId?: string;
-	documentTitle?: string;
+	document: MarkdownDocument;
+	projectId: string;
+	onClose: () => void;
 }
 
 const previewTrackTypes = ["video", "voiceover", "caption"] as const;
@@ -37,114 +38,145 @@ const trackMeta: Record<
 > = {
 	video: {
 		icon: Film,
-		label: "video",
+		label: "画面",
 		empty: "未填写视觉描述",
 	},
 	voiceover: {
 		icon: Mic2,
-		label: "voiceover",
+		label: "旁白",
 		empty: "未填写旁白",
 	},
 	caption: {
 		icon: Captions,
-		label: "caption",
+		label: "字幕",
 		empty: "未填写对白字幕",
 	},
 	music: {
 		icon: Music2,
-		label: "music",
+		label: "背景音乐",
 		empty: "自动铺底",
 	},
 	asset: {
 		icon: Image,
-		label: "asset",
+		label: "素材",
 		empty: "自动标记",
 	},
 };
 
-export const StoryboardTimelinePanel: React.FC<StoryboardTimelinePanelProps> = ({ documentId }) => {
-	const [isExpanded, setIsExpanded] = useState(false);
-	const projectId = useDocumentsStore((state) => state.projectId);
-	const resolvedDocumentId = documentId?.trim() ?? "";
-	const canLoadEpisode = Boolean(isExpanded && resolvedDocumentId && projectId?.trim());
-	const { data: resolvedEpisodeState, isLoading } = useSWR(
-		canLoadEpisode ? workspaceResolvedEpisodeKey(resolvedDocumentId, projectId) : null,
-		() => getWorkspaceResolvedEpisode(resolvedDocumentId, projectId),
+export const StoryboardTimelinePanel: React.FC<StoryboardTimelinePanelProps> = ({
+	document,
+	projectId,
+	onClose,
+}) => {
+	const unsafeDraft = Boolean(document.isDirty || document.saveConflict);
+	const hasGroups = listDocumentSections(document).length > 0;
+	const canLoadEpisode = Boolean(document.id && projectId && hasGroups && !unsafeDraft);
+	const { data, error, isLoading, isValidating, mutate } = useSWR(
+		canLoadEpisode ? workspaceResolvedEpisodeKey(document.id, projectId) : null,
+		() => getWorkspaceResolvedEpisode(document.id, projectId),
 	);
-	const episode = resolvedEpisodeState?.episode ?? null;
+	useEffect(() => {
+		if (canLoadEpisode) void mutate();
+	}, [canLoadEpisode, document.id, document.updatedAt, projectId, mutate]);
+	const identityMatches =
+		data?.documentId === document.id &&
+		data.projectId === projectId &&
+		(!data.documentUpdatedAt || data.documentUpdatedAt === document.updatedAt);
+	const loading = isLoading || isValidating || (!data && !error);
+	const episode =
+		hasGroups && !unsafeDraft && !loading && !error && identityMatches ? data.episode : null;
 
 	return (
 		<aside
-			className={cn(
-				"hidden h-full min-h-0 shrink-0 flex-col border-l border-border bg-ide-panel text-ide-panel-foreground md:flex",
-				isExpanded ? "w-80" : "w-11",
-			)}
+			aria-label="分镜资源栏"
+			className="flex max-h-[45%] min-h-32 w-full shrink-0 flex-col border-t border-border bg-ide-panel text-ide-panel-foreground md:h-full md:max-h-none md:w-80 md:border-l md:border-t-0"
 		>
 			<header className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-ide-toolbar px-2 text-ide-toolbar-foreground">
-				{isExpanded ? (
-					<>
-						<div className="min-w-0">
-							<h2 className="truncate text-sm font-semibold text-foreground">分镜同步</h2>
-							<p className="truncate text-xs text-muted-foreground">
-								{episode?.sections.length ?? 0} 个组 · {formatTimelineTime(episode?.duration ?? 0)}
-							</p>
-						</div>
-						<Button
-							type="button"
-							variant="ghost"
-							size="icon"
-							className="size-7 rounded-sm"
-							aria-label="折叠分镜同步面板"
-							onClick={() => setIsExpanded(false)}
-						>
-							<ChevronRight />
-						</Button>
-					</>
-				) : (
+				<div className="min-w-0">
+					<h2 className="truncate text-sm font-semibold text-foreground">分镜资源</h2>
+					<p className="truncate text-xs text-muted-foreground">
+						{episode
+							? `${episode.sections.length} 个组 · ${formatTimelineTime(episode.duration)}`
+							: !hasGroups && !unsafeDraft
+								? "0 个组"
+								: "读取未完成"}
+					</p>
+				</div>
+				<div className="flex shrink-0 items-center">
 					<Button
 						type="button"
 						variant="ghost"
 						size="icon"
 						className="size-7 rounded-sm"
-						aria-label="展开分镜同步面板"
-						onClick={() => setIsExpanded(true)}
+						aria-label="刷新分镜资源"
+						title="刷新分镜资源"
+						disabled={loading || unsafeDraft || !hasGroups}
+						onClick={() => void mutate()}
 					>
-						<ChevronLeft />
+						<RefreshCw className="size-4" />
 					</Button>
-				)}
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="size-7 rounded-sm"
+						aria-label="关闭资源栏"
+						title="关闭资源栏"
+						onClick={onClose}
+					>
+						<X />
+					</Button>
+				</div>
 			</header>
 
-			{isExpanded ? (
-				<div className="min-h-0 flex-1 overflow-y-auto p-2">
-					<div className="mb-2 flex flex-wrap gap-1">
-						{autoTrackTypes.map((type) => {
-							const TrackIcon = trackMeta[type].icon;
-							return (
-								<Badge key={type} variant="outline" className="gap-1">
-									<TrackIcon className="size-3" />
-									{trackMeta[type].label}
-								</Badge>
-							);
-						})}
-					</div>
-					{isLoading ? (
-						<p className="py-3 text-xs text-muted-foreground">正在读取分镜组...</p>
-					) : episode && episode.sections.length > 0 ? (
-						<div className="space-y-2">
-							{episode.sections.map((section, index) => (
-								<StoryboardSectionSummary
-									key={section.id}
-									episodeSection={section}
-									index={index}
-									clipsByTrack={clipsForSection(episode, section)}
-								/>
-							))}
-						</div>
-					) : (
-						<p className="py-3 text-xs text-muted-foreground">还没有识别到二级标题分镜组。</p>
-					)}
+			<div className="min-h-0 flex-1 overflow-y-auto p-2">
+				<div className="mb-2 flex flex-wrap gap-1">
+					{autoTrackTypes.map((type) => {
+						const TrackIcon = trackMeta[type].icon;
+						return (
+							<Badge key={type} variant="outline" className="gap-1">
+								<TrackIcon className="size-3" />
+								{trackMeta[type].label}
+							</Badge>
+						);
+					})}
 				</div>
-			) : null}
+				{unsafeDraft ? (
+					<p role="status" className="py-3 text-xs text-warning-foreground">
+						请先保存正文并处理文档冲突。
+					</p>
+				) : !hasGroups ? (
+					<p className="py-3 text-xs text-muted-foreground">还没有识别到二级标题分镜组。</p>
+				) : loading ? (
+					<p className="py-3 text-xs text-muted-foreground">正在读取分镜组...</p>
+				) : error || !identityMatches ? (
+					<div role="alert" className="space-y-2 py-3 text-xs text-error-foreground">
+						<p>分镜资源读取失败，请重试。</p>
+						<Button
+							variant="outline"
+							size="sm"
+							aria-label="重试读取分镜资源"
+							onClick={() => void mutate()}
+						>
+							<RefreshCw className="size-4" />
+							重试
+						</Button>
+					</div>
+				) : episode && episode.sections.length > 0 ? (
+					<div className="space-y-2">
+						{episode.sections.map((section, index) => (
+							<StoryboardSectionSummary
+								key={section.id}
+								episodeSection={section}
+								index={index}
+								clipsByTrack={clipsForSection(episode, section)}
+							/>
+						))}
+					</div>
+				) : (
+					<p className="py-3 text-xs text-muted-foreground">还没有识别到二级标题分镜组。</p>
+				)}
+			</div>
 		</aside>
 	);
 };

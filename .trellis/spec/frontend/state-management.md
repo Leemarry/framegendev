@@ -70,6 +70,16 @@ Use 30fps frame-aligned seconds; clip edit volume/opacity zero are valid values.
 
 ## NLE Audio And Caption Contract
 
+Storyboard resource summaries use URL resourcePanel=open in the documents domain;
+preserve all other query parameters and route state. Keep WritingEditor mounted
+across open/close; resources and comments are mutually exclusive. Reuse the
+resolved-episode read, checking project/document and available documentUpdatedAt.
+Hide cached groups during revalidation/failure or dirty/conflicted drafts, expose
+retry, and revalidate after saved document updatedAt changes. Use existing H2
+section detection before showing groups: the episode API's generic Markdown
+fallback is useful for timeline previews but is not an authored storyboard group.
+Panel visibility and reads must never save documents or episodes.
+
 Storyboard document view uses URL `documentMode=document|timeline`, preserving
 project/document/query and route state. Keep the writing editor mounted while
 hidden; disable timeline for dirty/conflicted drafts. Merely opening a timeline
