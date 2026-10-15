@@ -1032,3 +1032,33 @@ Preserved local drafts on409/SSE/Agent conflicts, added per-window recovery and 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 33: TASK-070 safe history restore and dual-session integration
+<!-- trellis-session: v=2 fp=dd29d837c6ca062d -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 safe history restore and dual-session integration
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+Accepted history diff/restore slice; main c2261df plus session2 verified settings/cache slices integrated and checked.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b7bc362` | feat(documents): compare history and restore with reviewed version checks |
+
+### Testing
+
+- [OK] 40 files237 document tests; main69 files406 tests; frontend gates/Electron; full Windows check/race; actual restore409/cancel/offline/restart and main390px.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-050 comment context and failure protection; whole070 views/resources remain open.

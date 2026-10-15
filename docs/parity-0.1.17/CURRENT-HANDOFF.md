@@ -1,6 +1,6 @@
 # 当前交接
 
-更新：2026-10-15。只保留活跃事实，历史见 [快照](HISTORY-HANDOFF-2026-10-15.md)。续作入口 [README](README.md)。
+更新：2026-10-16。只保留活跃事实，历史见 [快照](HISTORY-HANDOFF-2026-10-15.md)。续作入口 [README](README.md)。
 
 ## 任务与协作
 
@@ -9,7 +9,7 @@
 - `domains/workspace/` 不作整目录认领。会话1独占：`api/workspace.ts`、`api/media.ts`、`api/project-assets.ts`、`api/library-folders.ts` 及测试；`components/AssetLibraryButton*`、`AssetLibraryFolders.tsx`、`AssetLibraryMetadataEditor*`、`AssetLibraryScopes.tsx`、`NewDocumentDialog*`、`NewReferenceDocumentDialog*`、`GenerationNotificationButton*`、`GenerationConversationCreateDialog.tsx`、`AgentProjectCreateDialog.tsx`、`AgentWorkbenchTopBar*`、`ProjectDirectory.tsx`、`ProjectDirectoryTree*`、`directory/*`；`lib/asset-library*`、`lib/library-folders.ts`。会话2独占其余现有 workspace 组件（含 AppLayout/ProjectNavigator/ProjectWorkspaceShell/ProjectDocumentSearchDialog/WorkspaceUserMenu）与其测试及导航、路由描述/设置返回等 lib 文件。新增跨界文件先在本节登记。
 - 公共文件唯一负责人为会话1：本交接、TASKS/REQUIREMENTS/DECISIONS/BASELINE-REVIEW、AGENTS自定义区、共享模型 `src/types/`、`router/`、`shared/components/ui/`、`shared/lib/`、`shared/stores/`、样式与依赖/锁文件、后端 `domain/`、`repository/`、`app/`、`http/routes/routes.go`、`service/workspace_state_service*`、`http/handlers/workspace.go`。会话2仅在自己任务目录记录结果/所需公共契约，通过独立提交供会话1读取；公共修改由会话1小提交提供契约。各自 Trellis 任务目录独立；公共日志由会话1串行维护。
 - 公共契约更新（TASK-020，回应会话2 `8296b0e` 的 result）：`apps/workspace/src/App.tsx` 本项唯一写入人指定为会话2，仅限向既有 AppLayout 传入 `globalSettings={routeIsSettings && !projectWorkspace}`、相关导航 key/类型连接与必要回归；AppLayout 仍由会话2拥有。复用原窄屏抽屉，不将 projectWorkspace 全局化。会话1在会话2提交该修复前不编辑 App.tsx。共享 `services/server/internal/service/model/workspace.go` 归会话1；TASK-181增加可选 `expectedVersions` 原子校验契约，公共API小提交验收后提供。此处不授权TASK-010/042/170~178。
-- 会话2原生菜单子项 `f1515cb`/`6d92fa9` 已以 `454b90c`/`e6bf582` 串行集成，真实Windows独立desktop菜单/设置返回/关于/重启证据与主集成检查通过；TASK-090整体未完成。已读取设置导航8296b0e与基础设置26190ee/c05ab94的result，390px全局壳仍失败，保持开发中，不作为已验证项合并。App.tsx修复写入已由主目录31e4fa1/本节明确授权会话2，待其读取并提交。
+- 会话2已验收子项串行集成：菜单454b90c/e6bf582；设置导航50e4d56、基础设置ef5ff3a/7cb807c、本地账户2b411f1、窄屏壳f37fdb1及归档175de18；扩展复用入口a586b81、只读桌面缓存统计09235ef及归档da9ab00。来源分支对应8296b0e/26190ee/c05ab94/d30bde4/e1b55bc/39617ee/c6b0ff0/0b6e50c/7363286。原390px失败已由会话2真实重验修复；主集成390px账户点击/抽屉关闭焦点/文档历史实际通过，69文件406测试、lint/全700文件format/build/Electron编译与Windows完整check/race通过。TASK-020设置导航子项可用，090/100/110/140整体仍未完成；商业、清理、安装/飞书保持待开发或待接入。项目transfer/storage契约请求见会话2已提交dbf28fa；新窗口现在可基于已集成181由会话2独立规划，不代表已经可用。
 - 运行约定（启动前重新检查占用）：会话1 backend/frontend `31450/31451`，浏览器CDP `9240`，官方CDP `9242`；会话2 `31452/31453`、`9241`、`9243`。各自在自己的 `.cache/parity/<任务>/` 保存配置/DB/workspace/log/profile，BU_NAME 分别以 `parity-s1-` / `parity-s2-` 开头，desktop以 `MediaGoParityS1` / `MediaGoParityS2` 开头。会话1现用task-181缓存、MediaGoParityS1Task181官方desktop；主目录集成生产构建使用31456、`.cache/parity/s1-integration/server.yaml`和独立workspace。真实 workspace-v2 禁止访问；既有NLE/素材/用户官方实例不接管。冲突改号并记录。
 
 - TASK-166 已完成：本轮新截图与源码复查、隔离官方体验、任务补项和资料收敛；结果与证据见 [复查索引](BASELINE-REVIEW.md)。产品整体仍未验收。
@@ -18,7 +18,7 @@
 
 ## 下一步与限制
 
-1. TASK-181 已完成并以8fc428b串行集成：409暂停/SSE与stream保护、窗口恢复稿、显式合并与备份重载、全量workspace可选CAS；双窗口/真实409/离线失败/下载/重启正文历史通过，主目录243测试、lint/format/build、Electron编译、Windows完整check含race通过；真实主集成新项目保存/刷新正文v2不变。详见 `.trellis/tasks/archive/2026-10/10-15-document-conflict-protection/result.md`。GAP-004及旧外部无CAS客户端边界保留。下一单项TASK-070历史差异/安全恢复，视图往返独立验收。
+1. TASK-181已完成8fc428b。TASK-070历史差异/安全恢复子项b7bc362→主c2261df已验收：并排/合并与导航、真实两次409不写入、取消/离线刷新/安全恢复v6、空标签恢复、页面和后端重启后全文与六条历史不变。主目录406组合测试与前后端完整门通过，最新生产构建31456可运行；历史阅读/源码/版本互换及正文视图/资源引用往返仍未验收，070整体不完成。详见 `.trellis/tasks/archive/2026-10/10-16-document-history-parity/result.md`。下一单项TASK-050批注上下文与失败保护；GAP-004及旧外部无CAS客户端边界保留。
 2. TASK-030/034 新图聚合验收，以及 TASK-050 已有批注流程、TASK-080 本地生成历史与引用链路。按台账逐单项推进，优先复用现有实现。
 3. 项目导入/导出/新窗口归 TASK-060/062；设置入口/存储/商业结构分归原任务。不要把参考候选清单当成缺失实现的事实。
 

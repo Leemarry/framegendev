@@ -72,4 +72,8 @@ Fresh backend config/workspace live under `.cache/parity/task-070/`.
 - ACP runtime probe503 remains because codex-acp is absent; no Agent/generation
   was sent. No login, payment, external send, cleanup or real workspace access.
   Native NLE/Jianying reopening is outside this document slice and remains open.
-- Main integration and its checks are recorded in CURRENT-HANDOFF after commit.
+- Feature b7bc362 integrated as c2261df. Main combined document/settings/desktop
+  suite69 files406 tests, lint/full700-file format/build/Electron compile and
+  Windows full check/race pass. Fresh main embedded build is served on31456;
+  actual390px Settings drawer/account/return focus and document history passed.
+  Main old document body/version2 retained. No TASK-150 complete claim.
