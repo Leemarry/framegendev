@@ -12,7 +12,6 @@ import {
 	LogOut,
 	Pencil,
 	Save,
-	SlidersHorizontal,
 	Sparkles,
 	Trash2,
 } from "lucide-react";
@@ -53,26 +52,18 @@ import { DialogDismissButton } from "@/shared/components/ui/dialog-dismiss";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/shared/components/ui/select";
 import { SettingsPanelLayout } from "@/domains/settings/components/SettingsPanelLayout";
 import { useToast } from "@/hooks/useToast";
 import { settingsInsetRowClassName } from "@/lib/settings-layout";
 import { useSettingsNavigationStore } from "@/lib/stores/settings";
-import { useThemeStore, type ThemeMode } from "@/shared/stores/theme";
 import { cn } from "@/shared/lib/utils";
 import { DebugTabPanel, debugTabs, type DebugTabValue } from "@/pages/Debug";
 import { ProjectSettings } from "@/pages/ProjectSettings";
 import { getRouteProjectId } from "@/domains/workspace/lib/workbench-route";
-import { getProjects, projectsKey } from "@/domains/projects/api/projects";
 import { isDesktopRuntime, openProjectDirectory } from "@/domains/projects/lib/project-directory";
 import { openExternalUrl, pickDesktopDirectory } from "@/shared/desktop/actions";
 import { UpdatesPanel } from "@/domains/settings/components/UpdatesPanel";
+import { BasicSettingsPanel } from "@/domains/settings/components/BasicSettingsPanel";
 import { PendingSettingsPanel } from "@/domains/settings/components/PendingSettingsPanel";
 import {
 	isPendingSettingsTab,
@@ -130,8 +121,6 @@ const normalizeSettingsTab = (value: string) =>
 export const Settings: React.FC = () => {
 	const location = useLocation();
 	const projectId = getRouteProjectId(location.search);
-	const themeMode = useThemeStore((state) => state.mode);
-	const setThemeMode = useThemeStore((state) => state.setMode);
 	const activeTab = useSettingsNavigationStore((state) => state.activeTab);
 	const normalizedTab = normalizeSettingsTab(activeTab);
 	const { data: agentBackends } = useSWR(agentBackendsKey, getAgentBackends);
@@ -145,9 +134,7 @@ export const Settings: React.FC = () => {
 
 	return (
 		<div className="h-full min-h-0 overflow-hidden bg-ide-editor text-ide-editor-foreground">
-			{visibleTab === "appearance" ? (
-				<AppearancePanel mode={themeMode} onSelectMode={setThemeMode} />
-			) : null}
+			{visibleTab === "appearance" ? <BasicSettingsPanel /> : null}
 
 			{jianyingDraftSettingsEnabled && visibleTab === "jianying-draft" ? (
 				<JianyingDraftPanel />
@@ -1302,100 +1289,6 @@ const JianyingDraftPanel: React.FC = () => {
 		</SettingsPanelLayout>
 	);
 };
-
-const AppearancePanel: React.FC<{
-	mode: ThemeMode;
-	onSelectMode: (mode: ThemeMode) => void;
-}> = ({ mode, onSelectMode }) => {
-	const toast = useToast();
-	const { data: projectsPayload } = useSWR(projectsKey, getProjects);
-	const [isOpeningWorkspace, setIsOpeningWorkspace] = useState(false);
-	const selectedThemeOption =
-		themeModeOptions.find((option) => option.value === mode) ?? themeModeOptions[0];
-	const workspaceDir = projectsPayload?.workspaceDir ?? "";
-	const canOpenWorkspaceDir = Boolean(workspaceDir) && isDesktopRuntime();
-
-	const openWorkspaceDir = async () => {
-		if (!workspaceDir || isOpeningWorkspace) return;
-
-		setIsOpeningWorkspace(true);
-		try {
-			await openProjectDirectory(workspaceDir);
-		} catch (err) {
-			const message = err instanceof Error ? err.message : "打开全局目录失败。";
-			toast.error("打开失败", { description: message });
-		} finally {
-			setIsOpeningWorkspace(false);
-		}
-	};
-
-	return (
-		<SettingsPanelLayout
-			title="基础设置"
-			description="管理工作区的基础偏好。"
-			icon={<SlidersHorizontal className="size-4" />}
-		>
-			<div className="divide-y divide-border">
-				<div className="flex flex-wrap items-center justify-between gap-3 pb-5">
-					<div className="min-w-0 flex-1">
-						<p className="text-sm font-medium text-foreground">全局目录</p>
-						<p className="mt-1 truncate text-xs text-muted-foreground">
-							{workspaceDir || "正在读取工作区目录"}
-						</p>
-					</div>
-					<Button
-						type="button"
-						variant="secondary"
-						size="sm"
-						className="shrink-0"
-						disabled={!canOpenWorkspaceDir || isOpeningWorkspace}
-						onClick={() => void openWorkspaceDir()}
-						title={canOpenWorkspaceDir ? "打开全局目录" : "当前运行环境不支持打开本地文件夹"}
-					>
-						{isOpeningWorkspace ? (
-							<Loader2 className="size-3.5 animate-spin" />
-						) : (
-							<FolderOpen className="size-3.5" />
-						)}
-						<span>打开</span>
-					</Button>
-				</div>
-				<div className="flex flex-wrap items-center justify-between gap-3 pt-5">
-					<div className="min-w-0 flex-1">
-						<Label htmlFor="theme-mode" className="text-sm font-medium text-foreground">
-							外观
-						</Label>
-						<p className="mt-1 text-xs text-muted-foreground">{selectedThemeOption.description}</p>
-					</div>
-					<div className="w-56 shrink-0">
-						<Select value={mode} onValueChange={(value) => onSelectMode(value as ThemeMode)}>
-							<SelectTrigger id="theme-mode" className="w-full rounded-md">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent align="end">
-								{themeModeOptions.map((option) => (
-									<SelectItem key={option.value} value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
-			</div>
-		</SettingsPanelLayout>
-	);
-};
-
-const themeModeOptions: Array<{
-	description: string;
-	label: string;
-	value: ThemeMode;
-}> = [
-	{ value: "light", label: "浅色", description: "使用浅色编辑器和面板。" },
-	{ value: "dark", label: "深色", description: "使用深色编辑器和面板。" },
-	{ value: "system", label: "跟随系统", description: "根据系统外观自动切换。" },
-];
 
 const APIKeyProviderRow: React.FC<{
 	apiKey: string;
