@@ -23,8 +23,9 @@ available; it is not archived.
 - Poster generation, HTTP serving and cleanup share per-path leases. The UI
   keeps Chromium HTTP-cache readings, shows category/scan/preview/cleanup
   states, starts poster scanning only after an explicit preview click, confirms
-  exact candidate count/bytes, and only exposes preview/delete controls in
-  desktop runtime.
+  exact candidate count/bytes. Active candidates are called out in the
+  confirmation and result UI and remain protected by the server-side lease
+  recheck. Preview/delete controls are only exposed in desktop runtime.
 
 ## Verification
 
@@ -32,8 +33,9 @@ available; it is not archived.
   run used the local ignored Swagger cache updated for the new routes because
   downloading `swag` was unavailable.
 - Workspace lint passes; TypeScript build-check passes; StoragePanel tests pass
-  (4/4), including no automatic preview on mount; changed frontend files pass
-  targeted formatting.
+  (6/6), including no automatic preview on mount, empty-preview handling,
+  partial results, and the active-file retention warning; changed frontend
+  files pass targeted formatting.
 - Isolated API runtime on port 31581 used only
   `.cache/parity/task-100/workspace` and an external fixture project under
   `.cache/parity/task-100`. Statistics reported all four categories; preview
@@ -44,23 +46,40 @@ available; it is not archived.
   project-in-library de-duplication, symlink traversal where supported,
   active-use protection, stale IDs and changed candidate metadata.
 
+- Real browser acceptance now passes in an isolated Edge profile connected by
+  browser-harness to Vite `31580` and API `31581`: the app mounts without a
+  blank page, the Storage settings page renders all four categories, and the
+  initial page load requests statistics only. No poster-cache preview request
+  is sent until the explicit preview action. Browser runtime correctly hides
+  the desktop-only cleanup controls.
+- The blank page was caused by installed `@tiptap/extension-list@3.32.0`
+  importing `getPreviousBlockSibling` from installed
+  `@tiptap/core@3.23.4`, followed by the same version skew on the core JSX
+  runtime subpath. Vite now uses a local compatibility export and explicit JSX
+  runtime aliases; this keeps the uncommitted lockfile untouched.
+- Electron native acceptance now passes in an isolated app profile using Vite
+  `31582`, API `31581`, CDP `9245`, and user data under
+  `.cache/parity/task-062/electron-user-data`: the Storage page renders, the
+  native confirmation dialog can be cancelled without deleting candidates,
+  and confirmed cleanup removes only poster cache files while preserving the
+  project source file. `electron:compile` also passes after replacing the
+  unavailable `electron-updater` `UpdateInfo` export with a local minimal type.
+
 ## Remaining acceptance and environment limits
 
-- Real browser interaction is pending. `browser-harness` reached Chrome's
-  explicit “Allow remote debugging?” prompt; the required user action is still
-  pending.
-- `pnpm run build` passes TypeScript but Vite fails because installed
-  `@tiptap/extension-list@3.32.0` imports `getPreviousBlockSibling` missing from
-  installed `@tiptap/core@3.23.4`. The default Vite dev server hits the same
-  dependency optimization failure.
-- `pnpm run electron:compile` is blocked by installed `electron-updater`
-  declaring `UpdateInfo` locally but not exporting it.
+- Direct isolated HTTP checks remain healthy: Vite returns 200, and
+  `/api/v1/storage/statistics` plus poster-cache preview return successful
+  envelopes with the expected category/candidate shape. Browser and the
+  available Electron confirmation/cancellation/deletion path are verified;
+  TASK-100 remains in progress for broader native partial-result and
+  active-file protection acceptance.
+- `pnpm run build` passes TypeScript and Vite with the compatibility aliases.
+- `pnpm run electron:compile` passes after the updater type compatibility fix.
 - Full workspace format reports 83 pre-existing unmodified files. Go race and
   golangci-lint are unavailable here (`CGO_ENABLED=0`, no Windows GCC and no
   local golangci-lint); Swagger tool download also failed due network access.
 - `oxfmt --check` passes the TASK-100 task artifacts and changed TypeScript
   files. It still flags the shared `TASKS.md` and `CURRENT-HANDOFF.md`; they
   were left intact rather than reformatting unrelated project records.
-- After dependencies are aligned and browser access is available, verify the
-  Storage settings page in browser and Electron, including exact confirmation,
-  cancellation, partial result feedback and browser-hidden cleanup controls.
+- Continue native acceptance for partial-result feedback and active-file
+  protection. Keep TASK-100 in progress until those broader checks are done.
