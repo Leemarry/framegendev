@@ -1554,3 +1554,33 @@ Fixed imported provenance, failed deselection rollback and write-free reopen. So
 ### Status
 
 [OK] **Completed**
+
+
+## Session 53: TASK030 real image dimensions integrated
+<!-- trellis-session: v=2 fp=53ee6f39d034e391 -->
+
+**Date**: 2026-10-16
+**Task**: TASK030 real image dimensions integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Actual image dimensions import/backfill/detail accepted in source and embedded main; original hashes and complete records retained; later source adoption mismatch documented.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8dc674f` | feat(media): persist and display actual local image dimensions |
+
+### Testing
+
+- [OK] Source full Windows check/race/build; main media race/build, frontend gates and actual failure/retry/restart/390px pass.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Inspect remaining TASK030 filters; retain native Jianying and external generation blockers.

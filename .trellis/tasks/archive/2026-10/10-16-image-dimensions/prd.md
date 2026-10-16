@@ -15,10 +15,10 @@ Read actual local image dimensions using existing media metadata fields, display
 
 ## Acceptance Criteria
 
-- [ ] PNG/JPEG/GIF dimensions persist on import and missing dimensions backfill.
-- [ ] Unsupported/corrupt images remain usable with no fake dimensions.
-- [ ] Actual source/main import, detail/reopen/restart and unchanged records pass.
-- [ ] Frontend and Windows backend quality gates pass; failures remain recorded.
+- [x] PNG/JPEG/GIF dimensions persist on import and missing dimensions backfill.
+- [x] Unsupported/corrupt images remain usable with no fake dimensions.
+- [x] Actual source/main import, detail/reopen/restart and unchanged records pass.
+- [x] Frontend and Windows backend quality gates pass; failures remain recorded.
 
 ## Notes
 

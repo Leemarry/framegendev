@@ -31,6 +31,21 @@ corrupt-file preview placeholder are not counted as repaired by this item.
 
 ## Integration
 
-Pending source commit and clean-main production acceptance. TASK030/080/150
-overall remain incomplete; this does not cover external generation, Agent503 or
-native Jianying reopen.
+Source80d63f6 cherry-picked cleanly as main8dc674f. Main3files32tests, lint,
+full708-file canonical format, build, Electron compile, media package race,
+separate go build ./... and embedded workspace_dist Windows build pass. Source
+full backend gates apply to identical integrated backend changes; no semantic
+conflict occurred. Main31456 runs mediago-server-dimensions.exe.
+
+Dedicated main project-aa47c8ddc69d1cc1 imported real480x640 image
+asset-72ad4791a58936b2; actual UI uploaded corrupt asset-2476ec7895e36361 without
+dimensions. Real detail/failure-hidden/retry-restored/page reload/backend restart
+and390CSS detail pass. Complete project documents/body/version/history/tasks,
+complete media records and both actual file hashes remain identical after restart.
+Protected main history/scope/media-editor and confirmed adoption baselines pass.
+Evidence: main .cache/parity/task-030-dimensions/. New-tab initial AX inspection
+ran before async loading and returned no buttons; subsequent AX lookup waited
+for the actual control. No failed business request was treated as successful.
+
+TASK030/080/150 overall remain incomplete; this does not cover external generation,
+Agent503 or native Jianying reopen. Session2 remains617a80d.
