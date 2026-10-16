@@ -325,7 +325,7 @@ export const AssetLibraryWorkspace: React.FC<{
 				query,
 				rating: ratingFilter,
 				resourceType: projectMode ? resourceFilter : "all",
-				source: projectMode ? sourceFilter : "all",
+				source: sourceFilter,
 				sort,
 				tag: tagFilter,
 			}),

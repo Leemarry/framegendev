@@ -84,3 +84,8 @@ placement and hides folder cards while keeping the current upload destination.
 Opening a folder resets directory mode. Disable include-subfolders in all mode
 without losing its choice; scope/open resets both local preferences. Do not
 requery global assets to implement an all-folders view within a project.
+
+Apply the visible source filter in both global and project library views. Its
+existing media/selected values describe physical assets versus adoption records,
+not provider provenance. Global mode never fetches project adoption records;
+selected-only therefore has an empty result instead of leaking other projects.

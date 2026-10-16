@@ -19,6 +19,7 @@ import {
 } from "@/domains/workspace/api/library-folders";
 import { AssetLibrary } from "./AssetLibrary";
 import { getWorkspaceDocuments } from "@/domains/workspace/api/workspace";
+import { getSelectedGenerationAssets } from "@/domains/generation/api/generation";
 
 vi.mock("@/components/AudioPlayer", () => ({ AudioPlayer: () => null }));
 vi.mock("@/components/VideoPlayer", () => ({ VideoPlayer: () => null }));
@@ -252,6 +253,25 @@ const folder = (id: string, name: string, parentId = ""): AssetLibraryFolder => 
 });
 
 describe("material folder workflows", () => {
+	it("applies the displayed source filter to global physical media", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [{ ...asset("global", "global.png", "2026-10-16T00:00:00Z"), projectId: "" }],
+		});
+		mount(undefined, "?scope=all");
+		await screen.findByRole("button", { name: "预览 global.png" });
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "来源" }), { key: "Enter" });
+		fireEvent.keyDown(await screen.findByRole("option", { name: "已选资源" }), { key: "Enter" });
+		expect(screen.queryByRole("button", { name: "预览 global.png" })).not.toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "来源" }), { key: "Enter" });
+		fireEvent.keyDown(await screen.findByRole("option", { name: "媒体素材" }), { key: "Enter" });
+		expect(screen.getByRole("button", { name: "预览 global.png" })).toBeInTheDocument();
+		expect(getMediaAssets).toHaveBeenCalledWith({ projectId: undefined });
+		expect(getSelectedGenerationAssets).not.toHaveBeenCalled();
+		expect(updateMediaAssetFields).not.toHaveBeenCalled();
+	});
+
 	it("browses all scoped assets and returns to directory mode on folder navigation", async () => {
 		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [folder("child", "Child")] });
 		vi.mocked(getMediaAssets).mockResolvedValue({
