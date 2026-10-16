@@ -64,7 +64,8 @@
     "10-16-asset-tag-filter",
     "10-16-asset-folder-descendants",
     "10-16-asset-browse-scope",
-    "10-16-asset-global-source-filter"
+    "10-16-asset-global-source-filter",
+    "10-16-local-production-combination"
   ],
   "parent": null,
   "relatedFiles": [],
