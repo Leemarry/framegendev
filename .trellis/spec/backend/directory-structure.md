@@ -56,3 +56,15 @@ and unchanged document bodies/versions; verify real UI and restart persistence.
 Wrong: regex the entire Markdown text or query only project_selected_assets and
 declare unused. Correct: parse rendered image nodes through document ownership,
 merge the two sources, and propagate failures.
+
+## Local Image Dimensions (TASK030)
+
+`media.enrichImageMetadata` reads local headers with existing PNG/JPEG/GIF
+standard-library decoders; it does not decode pixels or change file bytes.
+New local imports persist width/height/status. Listing backfills missing dimensions
+through the existing guarded metadata path, preserving image updatedAt explicitly
+because Gorm otherwise touches it. Keep video metadata policy unchanged. Missing,
+corrupt and unsupported files leave dimensions unknown with failed metadata and
+do not turn successful asset storage/listing into a decoder error. No external
+fetch for linked assets. Verify actual encoded imports, repeated backfill,
+identity/hash/timestamp, persisted fields and source/main restart records.

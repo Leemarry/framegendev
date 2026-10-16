@@ -1290,6 +1290,15 @@ const AssetLibraryPreview: React.FC<{
 				<p>更新：{formatDateTime(item.updatedAt)}</p>
 				<p>创建：{formatDateTime(item.createdAt)}</p>
 				{item.mimeType ? <p className="break-all">MIME：{item.mimeType}</p> : null}
+				{(item.kind === "image" || item.kind === "video") &&
+				Number.isFinite(item.mediaAsset?.width) &&
+				Number.isFinite(item.mediaAsset?.height) &&
+				(item.mediaAsset?.width ?? 0) > 0 &&
+				(item.mediaAsset?.height ?? 0) > 0 ? (
+					<p>
+						尺寸：{item.mediaAsset?.width} x {item.mediaAsset?.height} px
+					</p>
+				) : null}
 				{item.mediaAsset?.source ? (
 					<p>来源：{mediaAssetSourceLabel(item.mediaAsset.source)}</p>
 				) : null}

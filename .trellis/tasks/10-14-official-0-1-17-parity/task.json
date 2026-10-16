@@ -59,7 +59,8 @@
     "10-16-local-import-usage",
     "10-16-media-workspace-history-state",
     "10-16-generation-modal-header",
-    "10-16-local-adoption-roundtrip"
+    "10-16-local-adoption-roundtrip",
+    "10-16-image-dimensions"
   ],
   "parent": null,
   "relatedFiles": [],

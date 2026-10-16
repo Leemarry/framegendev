@@ -69,3 +69,16 @@ Protected prior history/scope/media-editor baselines remain unchanged.
 TASK030/080/150 overall remain incomplete; external generation, Agent and native
 Jianying reopening are not covered. Session2 remains617a80d; no newer verified
 commits. No backend source changed, existing Windows check/race reused.
+
+## Later Source Fixture Mismatch
+
+The same coordinate-click sequence also created empty screenplay
+doc-1792118320610-0rgv57vd5osr in original source project-a5cd155de4ec484a at02:38:40,
+after its earlier successful acceptance. Later complete-project comparison fails
+on this extra document and project/document metadata; original document body,
+version and history remain unchanged. Preserve the original snapshot and failed
+state without deleting/restoring anything. The earlier source run passed before
+this action; it does not establish unchanged current complete-project records.
+Subsequent independent dimensions fixture and main confirmed adoption fixture
+have separate identities and cannot erase this mismatch. Use AX-verified DOM
+click fallback on owned tabs after the demonstrated coordinate failures.
