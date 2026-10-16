@@ -1,0 +1,5 @@
+{"check":"packaged-lifecycle","status":"passed","evidence":"evidence/packaged-processes.json,evidence/packaged-three-windows.json,evidence/root-and-child-closed.json,evidence/project-hashes-after-exit.json"}
+{"check":"native-picker-owner-and-cancel","status":"passed","evidence":"evidence/file-dialog-owner.json,evidence/directory-dialog-owner.json,evidence/directory-cancel.json"}
+{"check":"settings-shortcuts-browser-structure","status":"passed","evidence":"evidence/packaged-shortcuts.png,evidence/packaged-browser-pending.png"}
+{"check":"notification-click-origin","status":"unrun","reason":"isolated Windows desktop returned shown=true but harness cannot safely synthesize OS notification click"}
+{"check":"frontend-and-electron-quality","status":"passed","commands":"pnpm -C apps/workspace lint; pnpm -C apps/workspace electron:compile; pnpm -C apps/workspace build; vitest 12 files/91 tests; LF format copy"}

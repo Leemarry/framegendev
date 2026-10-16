@@ -1,0 +1,20 @@
+[
+  {
+    "targetId": "EC6A30FBC17EB9122A83B941BA850A62",
+    "target_id": "EC6A30FBC17EB9122A83B941BA850A62",
+    "title": "MediaGo Drama",
+    "url": "app://localhost/index.html?version=0.1.0-beta.0#/projects?projectId=project-8d509129c6aea8de"
+  },
+  {
+    "targetId": "598899ADF9FC75E49EF4654567C45784",
+    "target_id": "598899ADF9FC75E49EF4654567C45784",
+    "title": "MediaGo Drama",
+    "url": "app://localhost/index.html?version=0.1.0-beta.0#/"
+  },
+  {
+    "targetId": "823204AB05132A1FF8FCB68966A4F6E8",
+    "target_id": "823204AB05132A1FF8FCB68966A4F6E8",
+    "title": "MediaGo Drama",
+    "url": "app://localhost/index.html?version=0.1.0-beta.0#/projects?projectId=project-8d509129c6aea8de"
+  }
+]

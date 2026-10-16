@@ -1,0 +1,20 @@
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "workspaceDir": "E:\\AI\\framegendev-wt\\session-2\\.cache\\parity\\s2-packaged-runtime\\official-roaming\\mediago-drama\\workspace",
+    "databasePath": "E:\\AI\\framegendev-wt\\session-2\\.cache\\parity\\s2-packaged-runtime\\official-roaming\\mediago-drama\\workspace\\.mediago-drama\\db\\app.db",
+    "projects": [
+      {
+        "id": "project-8d509129c6aea8de",
+        "name": "S2 Packaged Multiwindow 090",
+        "status": "active",
+        "projectDir": "E:\\AI\\framegendev-wt\\session-2\\.cache\\parity\\s2-packaged-runtime\\official-roaming\\mediago-drama\\workspace\\projects\\project-8d509129c6aea8de",
+        "relativeDir": "projects/project-8d509129c6aea8de",
+        "createdAt": "2026-10-16T12:52:26.7316152Z",
+        "updatedAt": "2026-10-16T12:52:26.7316152Z"
+      }
+    ]
+  },
+  "success": true
+}

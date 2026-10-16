@@ -1,0 +1,74 @@
+[
+  {
+    "owner": 0,
+    "pid": 72184,
+    "window": 661946,
+    "bounds": {
+      "left": 2449,
+      "top": 1329,
+      "right": 2512,
+      "bottom": 1392
+    },
+    "title": ""
+  },
+  {
+    "owner": 0,
+    "pid": 72184,
+    "window": 596486,
+    "bounds": {
+      "left": 2449,
+      "top": 1329,
+      "right": 2512,
+      "bottom": 1392
+    },
+    "title": ""
+  },
+  {
+    "owner": 1251706,
+    "pid": 72184,
+    "window": 2562388,
+    "bounds": {
+      "left": 489,
+      "top": 161,
+      "right": 1769,
+      "bottom": 881
+    },
+    "title": "S2 090 directory ownership"
+  },
+  {
+    "owner": 0,
+    "pid": 72184,
+    "window": 1251706,
+    "bounds": {
+      "left": 480,
+      "top": 123,
+      "right": 2080,
+      "bottom": 1259
+    },
+    "title": "🐴 MediaGo Drama"
+  },
+  {
+    "owner": 0,
+    "pid": 72184,
+    "window": 137764,
+    "bounds": {
+      "left": 480,
+      "top": 123,
+      "right": 2080,
+      "bottom": 1259
+    },
+    "title": "MediaGo Drama"
+  },
+  {
+    "owner": 0,
+    "pid": 72184,
+    "window": 924144,
+    "bounds": {
+      "left": 480,
+      "top": 123,
+      "right": 2080,
+      "bottom": 1259
+    },
+    "title": "MediaGo Drama"
+  }
+]
