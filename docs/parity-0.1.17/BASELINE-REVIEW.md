@@ -59,6 +59,8 @@ TASK-030采用边界补证：dd34016拒绝外项目任务来源；087932e同时�
 | 扩展/安装/助手，71~78/87~95 | 已有CodexSkills、PromptPack编辑/导入与Agent运行，不等于官方扩展诊断、安装与Drami全局工作流                                              | TASK-110/120/130分别补，保留现有高级编辑能力；飞书/商业待接入，未安装空态不冒充可用                                                               |
 | Electron壳菜单，07~14       | `electron/src/main.ts` 有安全窗口/更新/目录桥接，未定义官方应用菜单                                                                     | 候选182并入TASK-090桌面壳；默认菜单不等于官方菜单。新窗口需考虑文档冲突保护依赖                                                                   |
 
+2026-10-16素材来源分组e8f1aaa→7fe1f6b已验收：在隔离官方实际展开六类来源，源主真实本地/空组/资源记录及标签交集、失败重试/390×480/页面后端重启完整记录hash通过；主3文件63测试和前端/Electron/嵌入Windows门通过。物理来源优先，缺失才使用采用来源，不从文件名推测。浏览器采集无producer契约，明确禁用待接入；真实生成非空UI未覆盖。证据见asset-provenance-filter归档。剩余收藏/回收站/使用状态/详情和200项列表截断均保留。
+
 ## 本轮实际体验
 
 官方 EXE 在独立 `WinSta0/MediaGoParityAudit166` desktop 运行，另设 APPDATA、LOCALAPPDATA、user-data 与 `MEDIAGO_WORKSPACE_DIR`，未接管原实例。独立服务实际地址 `127.0.0.1:56930`，CDP9226；存储页可见数据确在 `.cache/parity/task-166/official-workspace`。用 browser-harness 点击和读取可访问树；native PrintWindow 核实虚拟桌面主窗1600×1136且非空。

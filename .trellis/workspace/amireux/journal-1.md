@@ -1744,3 +1744,25 @@ UI screenplay/storyboard, local video/audio import, adoption/history, NLE and re
 ### Next Steps
 
 - Official provenance source filter through existing fields; six options confirmed by actual isolated app.
+
+
+## Session 59: Accept recorded media provenance in integrated main
+<!-- trellis-session: v=2 fp=aa1e7fb4805a119c -->
+
+**Date**: 2026-10-16
+**Task**: Accept recorded media provenance in integrated main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Source/main63tests and frontend gates pass; actual source intersections, failures,390x480,page/backend reopen and complete fixture/hash preservation pass. Browser capture pending; Edge process restart blocked by automatic policy. Next silent200-item truncation.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7fe1f6b` | feat(media): filter library by recorded provenance |
+
+### Status
+
+[OK] **Completed**

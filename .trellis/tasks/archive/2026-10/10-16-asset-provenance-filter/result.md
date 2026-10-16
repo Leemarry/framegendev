@@ -23,7 +23,22 @@ and restores5. Complete global media/hash, nested folder/media/documents/full
 body/versions/history/tasks/four image hashes, and saved tag fixture records/hash
 remain identical. Cache/screenshots: .cache/parity/task-030-provenance/.
 
-Source accepted; main integration/production checks and adopted-video local
-precedence remain pending. Native Edge process restart remains unverified after
+Source e8f1aaa integrated as main7fe1f6b. Main focused3files/63tests, lint, full
+708-file canonical format, build, Electron compile and embedded Windows build
+pass. Actual main global local1 and other groups0; combined project local3,
+local-selected1 (adopted uploaded video stays local), generated0, tag0/clear3,
+failed0/retry3, reload3. 390x480 source dropdown and bottom controls are reachable.
+After actual backend restart, page reload restores3; complete protected global,
+nested and tag fixtures plus combination two documents/body/versions/both
+histories/media/folders/tasks/adoption/resolved chapter/uploaded and export hashes
+remain identical. Screenshots from source official and main production are in
+evidence/. No real generation was sent; non-local populated browser workflows
+remain unverified, with recorded mapping covered by regressions.
+
+Full237files/1595tests passed at preceding product b514f6b; current change claims
+the focused63tests above, not a new full-suite run. Session2 remains617a80d.
+Next independent item is the verified silent200-item media-list truncation.
+Favorites/trash/usage/details and overall030/070/080/150 remain incomplete.
+Native Edge process restart remains unverified after
 automatic approval rejected isolated9240 launch as blocked by policy despite
 user authorization. Page/backend reopen are distinct and passed.

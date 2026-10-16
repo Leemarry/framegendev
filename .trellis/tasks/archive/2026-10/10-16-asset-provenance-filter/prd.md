@@ -21,10 +21,10 @@ Align official source groups through recorded media/adoption provenance, retaini
 
 ## Acceptance Criteria
 
-- [ ] Meaningful mapping/precedence/unknown tests and page interaction regression.
-- [ ] Source/main actual local/generation/empty, intersections, failure/retry,
+- [x] Meaningful mapping/precedence/unknown tests and page interaction regression.
+- [x] Source/main actual local/generation/empty, intersections, failure/retry,
   clear/reload/390x480 and backend reopen preserve full records/hashes.
-- [ ] Relevant frontend gates and main embedded build pass; no external sends.
+- [x] Relevant frontend gates and main embedded build pass; no external sends.
 
 ## Plan
 
