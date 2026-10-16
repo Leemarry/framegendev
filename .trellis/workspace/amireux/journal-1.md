@@ -1766,3 +1766,25 @@ Source/main63tests and frontend gates pass; actual source intersections, failure
 ### Status
 
 [OK] **Completed**
+
+
+## Session 60: Accept complete material list beyond 200 in main
+<!-- trellis-session: v=2 fp=b9acacb67c2dce22 -->
+
+**Date**: 2026-10-16
+**Task**: Accept complete material list beyond 200 in main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Source full native Windows check including race and build pass; main media/repository race, frontend gates and embedded build pass. Both actual201-file scans retain oldest search/preview, failure/retry/cancel,reopen and full records201hashes; protected production combination unchanged. O(N)pagination limits remain. Next history kind error status.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dff25bd` | fix(media): retain complete visible library beyond 200 items |
+
+### Status
+
+[OK] **Completed**

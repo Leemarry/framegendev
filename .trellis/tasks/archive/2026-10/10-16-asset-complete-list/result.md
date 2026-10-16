@@ -17,8 +17,11 @@ lint/full708-file canonical format/build/Electron compile pass. Full native Wind
 canonical check exits0 (tidy/fmt/vet/lint/build/test, including full go test -race
 ./...), and independent native go build ./... exits0. The helper restores original
 CRLF bytes, including embedded instruction templates, after testing canonical LF;
-no unrelated formatting or dependency changes are committed. Main integration
-and corrected production acceptance remain pending.
+no unrelated formatting or dependency changes are committed. Source67643ed is
+integrated as maindff25bd. Main media/repository race tests pass (31.828s/44.505s),
+lint/full708canonical format/build/Electron/embedded Windows build pass. Frontend
+unchanged in this backend correction: retain63focused tests from preceding
+provenance change, without claiming another full frontend-suite run.
 
 Actual source independent project project-2612b0b0d6f329bd contains201real local
 text files. Library refresh scans them; old binary listed200 and bulk-000.txt search
@@ -28,7 +31,15 @@ failed read0/retry1,390x480 title/delete reachable, reload oldest1. Repeat after
 backend restart passes. Complete201records/all201content hashes and protected
 prior global/nested/tag documents/full bodies/versions/history/tasks/hash fixtures
 remain identical. Main project project-ce1fd0479a9b27d2 also reproduced201scan/
-200list/oldest0 on its previous binary; corrected main acceptance is pending.
+200list/oldest0 on its previous binary. Corrected main repeats202total, text/local
+201, actual oldest content preview, cancel-delete, tag intersection, failed0/retry1,
+390x480 scrolling and page reload. After actual backend restart202/oldest1 remains;
+complete201records/all201content hashes and protected global/nested/tag fixtures
+pass. Combined production fixture retains both full documents/versions/both
+histories/tasks/adoption/resolved chapters/uploaded and exported hashes. HTTP
+kind=text&q=bulk-000.txt yields project1/studio0 in both environments. Source and
+main durable UI screenshots are in evidence/. Main31456 runs
+mediago-server-complete-list.exe; session2 still617a80d, no new verified commit.
 
 Failures retained: initial task create lacked required description; corrected before
 activation. One PRD patch used unsupported delete+add same path and another had a

@@ -61,6 +61,8 @@ TASK-030采用边界补证：dd34016拒绝外项目任务来源；087932e同时�
 
 2026-10-16素材来源分组e8f1aaa→7fe1f6b已验收：在隔离官方实际展开六类来源，源主真实本地/空组/资源记录及标签交集、失败重试/390×480/页面后端重启完整记录hash通过；主3文件63测试和前端/Electron/嵌入Windows门通过。物理来源优先，缺失才使用采用来源，不从文件名推测。浏览器采集无producer契约，明确禁用待接入；真实生成非空UI未覆盖。证据见asset-provenance-filter归档。剩余收藏/回收站/使用状态/详情和200项列表截断均保留。
 
+2026-10-16素材完整列表67643ed→dff25bd已验收：现有assets[]无分页信息却只取200项，源主201真实本地文件均复现最早项搜索0；去掉上限后完整202含全局/文本201/最早搜索预览1，失败取消/390×480滚动及页面后端重启完整记录/hash通过。源完整Windows check含全量race/独立build，主媒体仓储race、前端门/Electron/嵌入构建通过，见asset-complete-list归档。本项修复隐藏截断，仍是O(N)全量载入，不能把超大库分页/虚拟滚动标完成。
+
 ## 本轮实际体验
 
 官方 EXE 在独立 `WinSta0/MediaGoParityAudit166` desktop 运行，另设 APPDATA、LOCALAPPDATA、user-data 与 `MEDIAGO_WORKSPACE_DIR`，未接管原实例。独立服务实际地址 `127.0.0.1:56930`，CDP9226；存储页可见数据确在 `.cache/parity/task-166/official-workspace`。用 browser-harness 点击和读取可访问树；native PrintWindow 核实虚拟桌面主窗1600×1136且非空。

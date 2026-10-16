@@ -18,10 +18,10 @@ Return all currently visible media through the existing list contract so older-t
 
 ## Acceptance Criteria
 
-- [ ] SQLite regression fails meaningfully before the correction, then verifies
+- [x] SQLite regression fails meaningfully before the correction, then verifies
   201global+201project+foreign records, oldest-item search, scope and order.
-- [ ] Full Windows backend check/race/build and relevant frontend tests/gates pass.
-- [ ] Source/main201real imports: oldest search/filter/error/retry/cancel and
+- [x] Full Windows backend check/race/build and relevant frontend tests/gates pass.
+- [x] Source/main201real imports: oldest search/filter/error/retry/cancel and
   page/backend reopen preserve complete records/hashes and protected prior data.
 
 ## Plan
