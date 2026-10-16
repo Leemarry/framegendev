@@ -252,6 +252,37 @@ const folder = (id: string, name: string, parentId = ""): AssetLibraryFolder => 
 });
 
 describe("material folder workflows", () => {
+	it("browses all scoped assets and returns to directory mode on folder navigation", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [folder("child", "Child")] });
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				asset("root", "root.png", "2026-10-16T00:00:00Z"),
+				{ ...asset("nested", "nested.png", "2026-10-16T00:00:00Z"), folderId: "child" },
+			],
+		});
+		mount();
+		await screen.findByRole("button", { name: "预览 root.png" });
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "浏览范围" }), { key: "Enter" });
+		fireEvent.keyDown(await screen.findByRole("option", { name: "全部素材" }), { key: "Enter" });
+		expect(screen.getByRole("button", { name: "预览 nested.png" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "打开文件夹 Child" })).not.toBeInTheDocument();
+		expect(screen.getByRole("checkbox", { name: "包含子文件夹" })).toBeDisabled();
+		fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+			target: { value: "nested" },
+		});
+		expect(screen.queryByRole("button", { name: "预览 root.png" })).not.toBeInTheDocument();
+		expect(getMediaAssets).toHaveBeenCalledWith({ projectId: "project-a" });
+		fireEvent.keyDown(screen.getByRole("textbox", { name: "筛选标签" }), { key: "Escape" });
+		fireEvent.click(screen.getByRole("button", { name: "Child" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "预览 root.png" })).not.toBeInTheDocument(),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		expect(screen.getByRole("combobox", { name: "浏览范围" })).toHaveTextContent("目录浏览");
+		expect(updateMediaAssetFields).not.toHaveBeenCalled();
+	});
+
 	it("includes nested assets from the root only when enabled", async () => {
 		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [folder("child", "Child")] });
 		vi.mocked(getMediaAssets).mockResolvedValue({

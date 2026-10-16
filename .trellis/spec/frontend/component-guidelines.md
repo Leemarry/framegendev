@@ -78,3 +78,9 @@ retain direct-folder defaults and reject foreign scope before descendant matchin
 Keep immediate child navigation. Filter popup height follows Radix available
 height with scrolling and collision padding so all controls remain reachable at
 390x480; inspect both the top checkbox and bottom tag field after scrolling.
+
+Directory/all browse mode uses the same scoped API data; all ignores folder
+placement and hides folder cards while keeping the current upload destination.
+Opening a folder resets directory mode. Disable include-subfolders in all mode
+without losing its choice; scope/open resets both local preferences. Do not
+requery global assets to implement an all-folders view within a project.

@@ -217,6 +217,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [query, setQuery] = useState("");
 	const [tagFilter, setTagFilter] = useState("");
 	const [includeSubfolders, setIncludeSubfolders] = useState(false);
+	const [browseScope, setBrowseScope] = useState<"directory" | "all">("directory");
 	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
@@ -298,18 +299,19 @@ export const AssetLibraryWorkspace: React.FC<{
 	}, [folderControls, folderId, includeSubfolders]);
 	const folderItems = useMemo(
 		() =>
-			folderControls
+			folderControls && browseScope === "directory"
 				? items.filter((item) => {
 						const asset = item.mediaAsset;
 						if (!asset || (asset.projectId || "") !== selectedProjectId) return !folderId;
 						return visibleFolderIds.has(asset.folderId || "");
 					})
 				: items,
-		[folderControls, folderId, items, selectedProjectId, visibleFolderIds],
+		[browseScope, folderControls, folderId, items, selectedProjectId, visibleFolderIds],
 	);
 	const folderPath = libraryFolderPath(folderControls?.folders ?? [], folderId);
 	const childFolders = (folderControls?.folders ?? []).filter(
 		(folder) =>
+			browseScope === "directory" &&
 			folder.parentId === folderId &&
 			(!query || folder.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())),
 	);
@@ -366,9 +368,14 @@ export const AssetLibraryWorkspace: React.FC<{
 		setRatingFilter("all");
 		setTagFilter("");
 		setIncludeSubfolders(false);
+		setBrowseScope("directory");
 		setActiveKey("");
 		setRefreshError(null);
 	}, [open, selectedProjectId]);
+
+	useEffect(() => {
+		setBrowseScope("directory");
+	}, [folderId]);
 
 	useEffect(() => {
 		if (!activeItem) {
@@ -742,11 +749,23 @@ export const AssetLibraryWorkspace: React.FC<{
 							collisionPadding={16}
 						>
 							{folderControls ? (
+								<AssetLibrarySelect
+									label="浏览范围"
+									value={browseScope}
+									options={[
+										{ label: "目录浏览", value: "directory" },
+										{ label: "全部素材", value: "all" },
+									]}
+									onValueChange={(value) => setBrowseScope(value === "all" ? "all" : "directory")}
+								/>
+							) : null}
+							{folderControls ? (
 								<label className="flex items-center gap-2 text-xs text-muted-foreground">
 									<input
 										type="checkbox"
 										className="accent-primary"
 										checked={includeSubfolders}
+										disabled={browseScope !== "directory"}
 										onChange={(event) => setIncludeSubfolders(event.target.checked)}
 									/>
 									包含子文件夹

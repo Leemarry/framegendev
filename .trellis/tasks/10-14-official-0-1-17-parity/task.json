@@ -62,7 +62,8 @@
     "10-16-local-adoption-roundtrip",
     "10-16-image-dimensions",
     "10-16-asset-tag-filter",
-    "10-16-asset-folder-descendants"
+    "10-16-asset-folder-descendants",
+    "10-16-asset-browse-scope"
   ],
   "parent": null,
   "relatedFiles": [],
