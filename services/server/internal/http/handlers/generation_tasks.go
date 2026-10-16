@@ -494,7 +494,7 @@ func (handler GenerationTasks) HandleRetryGenerationTask(context *gin.Context) {
 // @Param sessionId query string false "Session ID"
 // @Param status query string false "Task status"
 // @Param kind query string false "Generation kind"
-// @Param projectId query string false "Project ID"
+// @Param projectId query string false "Project ID; intersects an explicit session before pagination"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
@@ -540,6 +540,7 @@ func (handler GenerationTasks) HandleGenerationTasks(context *gin.Context) {
 // @Param sessionId path string true "Session ID"
 // @Param status query string false "Task status"
 // @Param kind query string false "Generation kind"
+// @Param projectId query string false "Project ID; intersects this session before pagination"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope

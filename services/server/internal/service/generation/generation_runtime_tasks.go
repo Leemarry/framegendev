@@ -333,7 +333,7 @@ func (workflow *GenerationService) ListGenerationTasks(query GenerationTaskListQ
 			end = min(start+query.Limit, end)
 		}
 		return generationTasksResponse{Tasks: GenerationTasksForClient(filtered[start:end])}, nil
-	} else if projectID != "" {
+	} else if projectID != "" && conversationID == "" {
 		tasks, err := workflow.generationTasks.ListByProject(kind, projectID, listOptions)
 		if err != nil {
 			return generationTasksResponse{}, err
@@ -373,6 +373,7 @@ func (workflow *GenerationService) ListGenerationTasks(query GenerationTaskListQ
 		return generationTasksResponse{Tasks: GenerationTasksForClient(tasks)}, nil
 	}
 
+	listOptions.ProjectID = projectID
 	tasks, err := workflow.generationTasks.ListByConversation(kind, conversationID, includeLegacyDefault, listOptions)
 	if err != nil {
 		return generationTasksResponse{}, err

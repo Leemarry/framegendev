@@ -25,7 +25,12 @@ kind uses its stored kind; legacy unnamed scope retains its existing default-ima
 fallback. Explicit mismatched or unsupported kind wraps ErrInvalidGenerationTaskQuery
 and both list handlers map it to400. Repository failures remain safe500; never
 classify all errors as client errors. These reads and rejected filters must not
-upsert conversations/tasks. Keep existing project/batch precedence unchanged.
+upsert conversations/tasks. An explicit session and projectId intersect before
+limit/offset through repository options; projectId alone retains project-wide
+aggregation. Both GET route variants honor this intersection and named kind
+validation. Preserve legacy session-as-scope fallback and existing batch behavior.
+When a supplied project ID cleans to empty, retain the empty-value predicate;
+never treat it as an omitted filter and broaden an explicit session query.
 
 `ImportGenerationMediaAssets` handles
 `POST /generation/sessions/:sessionId/media-assets/import` with assetIds/kind,

@@ -21,10 +21,11 @@ const (
 	maxPendingGenerationTaskCap     = 100
 )
 
-// GenerationTaskListOptions bounds generation task list queries.
+// GenerationTaskListOptions scopes and bounds generation task list queries.
 type GenerationTaskListOptions struct {
-	Limit  int
-	Offset int
+	Limit     int
+	Offset    int
+	ProjectID string
 }
 
 // NewGenerationTaskRepository opens the workspace database via the central workspace schema owner.
@@ -817,6 +818,9 @@ func firstGenerationTaskListOptions(options []GenerationTaskListOptions) Generat
 
 func applyGenerationTaskListOptions(query *gorm.DB, options GenerationTaskListOptions) *gorm.DB {
 	options = normalizeGenerationTaskListOptions(options)
+	if strings.TrimSpace(options.ProjectID) != "" {
+		query = query.Where("project_id = ?", domain.CleanProjectID(options.ProjectID))
+	}
 	return query.Limit(options.Limit).Offset(options.Offset)
 }
 

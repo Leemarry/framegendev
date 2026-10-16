@@ -69,7 +69,8 @@
     "10-16-asset-provenance-filter",
     "10-16-asset-complete-list",
     "10-16-history-optional-kind",
-    "10-16-asset-usage-filter"
+    "10-16-asset-usage-filter",
+    "10-16-history-project-session"
   ],
   "parent": null,
   "relatedFiles": [],
