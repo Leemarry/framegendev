@@ -14,10 +14,10 @@ Add the official dedicated tag filter using existing saved media tags; preserve 
 
 ## Acceptance Criteria
 
-- [ ] Tagged/non-tagged/missing-tag and combined-filter cases pass.
-- [ ] Actual source/main saved tags, filtering/clear/cancel/failure retry and
+- [x] Tagged/non-tagged/missing-tag and combined-filter cases pass.
+- [x] Actual source/main saved tags, filtering/clear/cancel/failure retry and
       page/backend reopen preserve complete records and file hashes.
-- [ ] Relevant frontend tests, lint/full canonical format/build/Electron pass.
+- [x] Relevant frontend tests, lint/full canonical format/build/Electron pass.
 
 ## Boundary And Plan
 

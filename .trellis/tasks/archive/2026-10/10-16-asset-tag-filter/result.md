@@ -31,5 +31,21 @@ ASCII-escaped script completed actual save, then captured a fresh snapshot.
 
 ## Integration
 
-Pending clean-main production workflow and restart acceptance. Browsing scope,
-usage state and remaining detail parity stay open;030/080/150 overall incomplete.
+Source35472ef cherry-picked cleanly as mainb6aa54e. Main3files48tests, lint,
+full708-file canonical format/build/Electron compile and embedded workspace_dist
+Windows build pass. Backend code unchanged from accepted image-dimensions full
+Windows check/race/build. Main31456 runs mediago-server-tag-filter.exe.
+
+Dedicated main project-c2e86fbc1265f5ef / asset-fc5b19f634e3fe84 uses actual metadata
+save, uppercase/space tag filter, no-match/clear, Escape, list failure/retry and
+390x480 popup. Actual page/backend restart resets local filter while saved tags
+continue matching. Complete media/documents/body/version/history/import tasks and
+actual image hash remain identical. Prior dimensions and confirmed adoption
+baselines also pass. Evidence: main .cache/parity/task-030-tag-filter/.
+
+Main full frontend suite passes237files1591tests in390s; existing jsdom pause and
+scrollBy warnings remain. Official runtime was not reopened for this acceptance;
+shot59 confirms the separate input, not its matching semantics. The implementation
+uses the documented conservative substring rule. Browsing scope, usage state and
+remaining detail parity stay open;030/080/150 overall incomplete. Session2 remains
+617a80d with no new verified commits.

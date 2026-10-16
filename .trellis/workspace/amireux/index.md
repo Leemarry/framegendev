@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 53
+- **Total Sessions**: 54
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1586 | Active |
+| `journal-1.md` | ~1616 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 54 | 2026-10-16 | TASK030 dedicated tag filtering integrated | `b6aa54e` | `codex/nle-export` |
 | 53 | 2026-10-16 | TASK030 real image dimensions integrated | `8dc674f` | `codex/nle-export` |
 | 52 | 2026-10-16 | TASK030/150 local adoption round trip integrated | `8187d88`, `a1b079d` | `codex/nle-export` |
 | 51 | 2026-10-16 | Generation modal narrow header integrated | `3e330de`, `3216d97` | `codex/nle-export` |

@@ -1584,3 +1584,33 @@ Actual image dimensions import/backfill/detail accepted in source and embedded m
 ### Next Steps
 
 - Inspect remaining TASK030 filters; retain native Jianying and external generation blockers.
+
+
+## Session 54: TASK030 dedicated tag filtering integrated
+<!-- trellis-session: v=2 fp=c21647bd0531f150 -->
+
+**Date**: 2026-10-16
+**Task**: TASK030 dedicated tag filtering integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Dedicated saved-tag filter accepted in source and embedded main; actual save/failure/retry/restart and complete records/hash checks pass.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b6aa54e` | feat(media): filter asset library by saved tags |
+
+### Testing
+
+- [OK] Main full 237 files 1591 tests; lint, full708 format, build, Electron and embedded Windows build pass.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Inspect official browse scope and usage-state options in isolated desktop; remaining TASK030/150 gaps retained.
