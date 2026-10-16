@@ -43,5 +43,17 @@ daemon is separately named parity-s1-filter-official.
 
 ## Integration
 
-Pending clean-main production acceptance. Browsing modes, favorite/trash, usage
-state, remaining details and overall030/080/150 stay incomplete.
+Sourcea47441f cherry-picked cleanly as main4068f39. Main3files50tests, lint,
+full708-file canonical format/build/Electron compile and embedded Windows build
+pass. Backend unchanged from accepted dimensions full Windows gates. Main31456
+runs mediago-server-descendants.exe. Earlier full237files1591tests passed on
+b6aa54e before this isolated checkbox change; it is not reported as a rerun here.
+
+Main project-9f2d6823a31ba1a1 uses its own four real images/nested folders. Actual
+parent1 -> checked3, child2/root5, failure0/retry3,390x480 top checkbox and scrolled
+last input, page/backend restart reset then checked3 all pass. Complete folder,
+media/documents/body/version/history/import tasks and four file hashes unchanged.
+Evidence: main .cache/parity/task-030-descendants/. Independent local harness
+parity-s1-local and official parity-s1-filter-official are separate from shared
+default. Session2 still617a80d, no new verified commits. Browsing modes,
+favorite/trash, usage state, remaining details and overall030/080/150 stay open.

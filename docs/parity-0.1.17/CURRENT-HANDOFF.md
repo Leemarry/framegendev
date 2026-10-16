@@ -54,6 +54,8 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 20. TASK-030独立标签筛选`35472ef`→主`b6aa54e`已验收：复用已保存tags，独立于文件名/备注全文搜索，与其他条件取交集。源主实际保存/筛选/清空/Escape/失败重试/390×480及页面后端重启完整记录/hash通过；主237文件1591测试、前端门/full708format/Electron/嵌入构建通过，见asset-tag-filter归档。主31456运行`mediago-server-tag-filter.exe`，源31450/31451。官方59图确认独立输入入口，具体匹配规则采用已记录的去空白/大小写无关子串，不声称官方输入行为已实测。下一项浏览范围/使用状态及剩余详情；整体030/080/150未完成，会话2仍`617a80d`。
 
+21. TASK-030包含子文件夹`a47441f`→主`4068f39`已验收：现有目录树/祖先路径派生子孙范围，保留项目隔离和直接目录默认；源主真实四文件嵌套目录父1→3/子2/根5、失败重试/取消/390×480滚动及重启完整记录与四文件hash通过。主3文件50测试/前端门/full708format/Electron/嵌入构建通过，见asset-folder-descendants归档。主31456运行`mediago-server-descendants.exe`，源31450/31451。本地使用独立BU_NAME=`parity-s1-local`，官方`parity-s1-filter-official`，勿再使用共享default的当前标签。官方新desktop=`MediaGoParityS1Filters`、CDP9242、独立task-030-filter-official配置，实际存储页确认路径，官方服务48273。真实下拉补采在本项evidence：范围目录/全部/收藏/回收站，使用状态已选用/候选/参考/未使用；标签实际input+datalist。下一项目录/全部范围；收藏/回收站/使用状态/其余详情及030/080/150整体未完成，会话2仍617a80d。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |

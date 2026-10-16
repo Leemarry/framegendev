@@ -1614,3 +1614,33 @@ Dedicated saved-tag filter accepted in source and embedded main; actual save/fai
 ### Next Steps
 
 - Inspect official browse scope and usage-state options in isolated desktop; remaining TASK030/150 gaps retained.
+
+
+## Session 55: TASK030 descendant folder browsing integrated
+<!-- trellis-session: v=2 fp=a9b27fc1b6e76053 -->
+
+**Date**: 2026-10-16
+**Task**: TASK030 descendant folder browsing integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Include-subfolders accepted in source and embedded main; independent browser daemon established; official filter options captured.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4068f39` | feat(media): include descendant folder assets in library filters |
+
+### Testing
+
+- [OK] 3files50tests, frontend gates, embedded Windows build and real nested/failure/restart/full records/four image hashes pass.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Implement independently verifiable directory/all browsing using existing scoped data; keep favorite/trash and usage-state gaps.

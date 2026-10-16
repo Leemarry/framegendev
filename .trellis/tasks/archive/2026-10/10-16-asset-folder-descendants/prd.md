@@ -17,10 +17,10 @@ Add the official include-subfolders checkbox using the existing folder tree and 
 
 ## Acceptance Criteria
 
-- [ ] Direct/child/grandchild/sibling/root and existing global-scope guard pass.
-- [ ] Actual nested folders with real files: toggle/navigation, no-match/clear,
+- [x] Direct/child/grandchild/sibling/root and existing global-scope guard pass.
+- [x] Actual nested folders with real files: toggle/navigation, no-match/clear,
       failure/cancel/retry, refresh/backend restart and full records/hash pass.
-- [ ] Source/main relevant frontend gates, build and production UI pass.
+- [x] Source/main relevant frontend gates, build and production UI pass.
 
 ## Boundary And Plan
 
