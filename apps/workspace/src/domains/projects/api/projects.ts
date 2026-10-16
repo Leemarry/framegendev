@@ -36,6 +36,12 @@ export interface WorkspaceProjectsPayload {
 	projects: WorkspaceProject[];
 }
 
+export interface ProjectDirectoryPreview {
+	project: WorkspaceProject;
+	fingerprint: string;
+	registered: boolean;
+}
+
 export interface ProjectOverviewConfig {
 	categoryDefaults?: ProjectCategoryDefaults;
 }
@@ -83,6 +89,21 @@ export const getProjects = async (status: ProjectStatusFilter = "active") => {
 
 export const createProject = async (payload: CreateWorkspaceProjectRequest) => {
 	const response = await httpClient.post<WorkspaceProject>(projectsKey, payload);
+	return response.data;
+};
+
+export const previewProjectDirectory = async (directory: string) => {
+	const response = await httpClient.post<ProjectDirectoryPreview>(`${projectsKey}/open/preview`, {
+		directory,
+	});
+	return response.data;
+};
+
+export const openProjectDirectory = async (directory: string, fingerprint: string) => {
+	const response = await httpClient.post<WorkspaceProject>(`${projectsKey}/open`, {
+		directory,
+		fingerprint,
+	});
 	return response.data;
 };
 

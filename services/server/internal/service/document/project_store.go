@@ -547,8 +547,12 @@ func (store *Service) loadProjectsUnlocked(status string) ([]workspaceProjectRec
 
 	for index := range projects {
 		if projects[index].Status != repository.ProjectStatusTrashed {
-			if err := store.ensureProjectLayout(projects[index]); err != nil {
-				return nil, err
+			// Existing external projects are already validated at open time. Listing
+			// them must not create README/library files in a user-owned directory.
+			if !existingProjectLayout(projects[index]) {
+				if err := store.ensureProjectLayout(projects[index]); err != nil {
+					return nil, err
+				}
 			}
 		}
 		count, err := store.countProjectDocumentsUnlocked(projects[index].ID)
@@ -561,6 +565,16 @@ func (store *Service) loadProjectsUnlocked(status string) ([]workspaceProjectRec
 	}
 
 	return NormalizeProjectRecords(projects), nil
+}
+
+func existingProjectLayout(project workspaceProjectRecord) bool {
+	dir := strings.TrimSpace(project.ProjectDir)
+	if dir == "" {
+		return false
+	}
+	manifest, manifestErr := os.Stat(filepath.Join(dir, "project.media.json"))
+	work, workErr := os.Stat(filepath.Join(dir, "work"))
+	return manifestErr == nil && manifest.IsDir() == false && workErr == nil && work.IsDir()
 }
 
 func (store *Service) countProjectDocumentsUnlocked(projectID string) (int, error) {

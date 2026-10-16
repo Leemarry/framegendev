@@ -70,7 +70,8 @@
     "10-16-asset-complete-list",
     "10-16-history-optional-kind",
     "10-16-asset-usage-filter",
-    "10-16-history-project-session"
+    "10-16-history-project-session",
+    "10-16-s2-open-existing-project"
   ],
   "parent": null,
   "relatedFiles": [],

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,6 +14,14 @@ import (
 // WorkspaceRepository persists workspace projects and operation logs.
 type WorkspaceRepository struct {
 	db *gorm.DB
+}
+
+// RegisterProject inserts a project without overwriting an existing identity.
+func (repo *WorkspaceRepository) RegisterProject(ctx context.Context, model domain.WorkspaceProjectModel) error {
+	if err := repo.db.WithContext(ctx).Create(&model).Error; err != nil {
+		return fmt.Errorf("registering project: %w", err)
+	}
+	return nil
 }
 
 const (

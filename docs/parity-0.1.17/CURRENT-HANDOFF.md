@@ -33,6 +33,7 @@
 ### 会话2已执行接管（2026-10-16）
 
 - 最新TASK-030：会话2真实四PNG界面发现并修复刷新漏传includeUsage，原mock改为按请求返回投影后先红后绿。四状态/标签交集/失败零卡片与重试/页面重开/390px深浅通过，完整正文历史任务采用及四文件hash不变；3文件66测试、lint/build/Electron/full711格式通过。见asset-usage-filter/result.md和evidence。依用户最新要求优先功能，减少重复回归；尚待主目录生产冒烟，任务暂不归档。下一项项目已有目录与流转。
+- TASK-062已有目录第一段已实现：`POST /projects/open/preview`只读校验v1 manifest/work、指纹/文档数，确认`POST /projects/open`二次校验后仅登记数据库，不初始化/改写源Markdown；重复登记、冲突、取消/过期指纹安全失败。Projects页接入原生目录选择与确认入口；导入按钮暂复用安全打开目录，跨工作区包导入/导出仍待官方格式证据。提交待交付，见`s2-open-existing-project/result.md`。
 
 - 会话2原工作树干净，已将主目录 `fd1c71a` 合入 `codex/parity-s2`，合并提交 `ce27bde`。唯一冲突为 desktop/actions.test.ts，保留两侧测试；桌面动作/旧窗口恢复/冲突面板/状态同步四文件20测试通过，lint、Electron compile和TypeScript/Vite build通过。主目录尚未纳入本轮新窗口功能。
 - TASK-062原生新窗口子项已完成独立验收：同profile完整退出重启发现3份草稿、选择/取消/402字节下载/读取失败重试/显式暂停载入/reload/已有dirty拒绝均通过，来源字节和完整服务器正文历史不变；最新加载失败销毁/重试、关闭root存活、项目隔离及390px深浅和完整原生截图通过。12文件91测试及前端门通过，详见`.trellis/tasks/archive/2026-10/10-16-s2-project-windows/result.md`和evidence（验收354ce3f）。TASK-090已提交 `7712f23`：打包单sidecar生命周期、原生文件/目录选择框归属取消、快捷键页和浏览器待开发状态实测；通知仅显示回执，点击回来源窗口未运行，任务保持进行中。项目流转也未完成。

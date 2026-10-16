@@ -18,6 +18,8 @@ import useSWR, { useSWRConfig } from "swr";
 import {
 	archiveProject,
 	createProject,
+	openProjectDirectory,
+	previewProjectDirectory,
 	deleteProject,
 	getProjects,
 	permanentlyDeleteProject,
@@ -49,7 +51,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { analytics, AnalyticsEvent } from "@/shared/analytics";
 import { cn } from "@/shared/lib/utils";
-import { openDesktopProjectWindow } from "@/shared/desktop/actions";
+import { openDesktopProjectWindow, pickDesktopDirectory } from "@/shared/desktop/actions";
 import { isDesktopRuntime } from "@/shared/desktop/runtime";
 
 type ProjectManagementTab = Exclude<ProjectStatusFilter, "all">;
@@ -103,6 +105,7 @@ export const Projects: React.FC = () => {
 	const [activeTab, setActiveTab] = useState<ProjectManagementTab>("active");
 	const [action, setAction] = useState<{ kind: ProjectAction; projectId: string } | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
+	const [isOpeningDirectory, setIsOpeningDirectory] = useState(false);
 	const swrKey = projectsKeyForStatus(activeTab);
 	const {
 		data,
@@ -168,6 +171,37 @@ export const Projects: React.FC = () => {
 			});
 		} finally {
 			setIsCreating(false);
+		}
+	};
+
+	const openExistingDirectory = async () => {
+		if (isOpeningDirectory || action) return;
+		setIsOpeningDirectory(true);
+		try {
+			const directory = await pickDesktopDirectory("打开已有项目目录");
+			if (!directory) return;
+			const preview = await previewProjectDirectory(directory);
+			const confirmed = await confirmDialog({
+				title: preview.registered ? "项目已打开" : "确认打开项目目录？",
+				description: preview.registered
+					? `“${preview.project.name}”已登记，将直接进入项目。`
+					: `将登记“${preview.project.name}”，读取 ${preview.project.documentCount} 个文档。原目录文件不会被改写。`,
+				confirmLabel: preview.registered ? "进入项目" : "确认打开",
+				confirmIcon: <FolderOpen />,
+				variant: "default",
+			});
+			if (!confirmed) return;
+			const project = preview.registered
+				? preview.project
+				: await openProjectDirectory(directory, preview.fingerprint);
+			await refreshProjectLists();
+			openProject(project);
+		} catch (err) {
+			toast.error("打开项目目录失败", {
+				description: projectManagementErrorMessage(err, "请确认目录包含有效的项目配置。"),
+			});
+		} finally {
+			setIsOpeningDirectory(false);
 		}
 	};
 
@@ -314,11 +348,21 @@ export const Projects: React.FC = () => {
 			<div className="project-management-body">
 				{activeTab === "active" ? (
 					<div className="project-management-toolbar">
-						<button type="button" disabled title="待接入" aria-label="导入项目（待接入）">
+						<button
+							type="button"
+							disabled={isOpeningDirectory}
+							onClick={() => void openExistingDirectory()}
+							aria-label="导入项目"
+						>
 							<Upload />
 							<span>导入项目</span>
 						</button>
-						<button type="button" disabled title="待接入" aria-label="打开已有项目目录（待接入）">
+						<button
+							type="button"
+							disabled={isOpeningDirectory}
+							onClick={() => void openExistingDirectory()}
+							aria-label="打开已有项目目录"
+						>
 							<FolderOpen />
 							<span>打开已有项目目录</span>
 						</button>

@@ -231,6 +231,16 @@ func (store *WorkspaceStateService) CreateProject(id string, request createWorks
 	return store.createProject(id, request)
 }
 
+// PreviewProjectDirectory validates an existing local project without writing.
+func (store *WorkspaceStateService) PreviewProjectDirectory(ctx context.Context, directory string) (servicedocument.ProjectDirectoryPreview, error) {
+	return store.StateService().Documents.PreviewProjectDirectory(ctx, directory)
+}
+
+// OpenProjectDirectory registers an existing local project after a preview.
+func (store *WorkspaceStateService) OpenProjectDirectory(ctx context.Context, directory, fingerprint string) (workspaceProjectRecord, error) {
+	return store.StateService().Documents.OpenProjectDirectory(ctx, directory, fingerprint)
+}
+
 func (store *WorkspaceStateService) createProject(id string, request createWorkspaceProjectRequest) (workspaceProjectRecord, error) {
 	return store.StateService().Documents.CreateProject(id, request)
 }

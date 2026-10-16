@@ -18,6 +18,7 @@ type Handlers struct {
 	ProjectAssets         httphandlers.ProjectAssets
 	AgentBackends         httphandlers.AgentBackends
 	Projects              httphandlers.Projects
+	ProjectDirectories    httphandlers.ProjectDirectories
 	ProjectConfigs        httphandlers.ProjectConfigs
 	ProjectBriefs         httphandlers.ProjectBriefs
 	Workspace             httphandlers.Workspace
@@ -62,6 +63,8 @@ func registerCoreRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
 	apiRoutes.GET("/billing/summary", handlers.Billing.HandleBillingSummary)
 	apiRoutes.GET("/projects", handlers.Projects.HandleListProjects)
 	apiRoutes.POST("/projects", handlers.Projects.HandleCreateProject)
+	apiRoutes.POST("/projects/open/preview", handlers.ProjectDirectories.HandlePreview)
+	apiRoutes.POST("/projects/open", handlers.ProjectDirectories.HandleOpen)
 	apiRoutes.GET("/packs", handlers.PromptPacks.HandleListPacks)
 	apiRoutes.POST("/packs", handlers.PromptPacks.HandleCreatePack)
 	apiRoutes.POST("/packs/import", handlers.PromptPacks.HandleImportPack)
