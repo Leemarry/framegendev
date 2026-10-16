@@ -1,5 +1,5 @@
 import { type BrowserWindow, type IpcMainInvokeEvent, app, ipcMain } from "electron";
-import electronUpdater, { type UpdateInfo } from "electron-updater";
+import electronUpdater from "electron-updater";
 import {
 	type DesktopUpdateAck,
 	type DesktopUpdateCapability,
@@ -16,6 +16,13 @@ const defaultReleasePageUrl = "https://github.com/mediago-dev/mediago-drama/rele
 // electron-updater cannot install updates on unsigned mac builds (Squirrel.Mac refuses),
 // so mac falls back to opening the GitHub releases page in the browser.
 const macAutoUpdateEnabled = false;
+
+type UpdaterInfo = {
+	version: string;
+	releaseDate?: string | null;
+	releaseName?: string | null;
+	releaseNotes?: unknown;
+};
 
 const resolveCapability = (): DesktopUpdateCapability => {
 	if (!app.isPackaged) {
@@ -49,7 +56,7 @@ const extractReleaseNotes = (value: unknown): string | undefined => {
 	return undefined;
 };
 
-const normalizeInfo = (info: UpdateInfo | null | undefined): DesktopUpdateInfo | undefined => {
+const normalizeInfo = (info: UpdaterInfo | null | undefined): DesktopUpdateInfo | undefined => {
 	if (!info || typeof info.version !== "string" || !info.version) return undefined;
 	return {
 		version: info.version,

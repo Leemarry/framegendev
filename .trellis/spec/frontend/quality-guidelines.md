@@ -38,3 +38,12 @@ but does not establish which caller initiated it. Keep original snapshots and
 changed files, record the mismatch and investigate provenance; never restore or
 silently replace a failed baseline. A fresh isolated acceptance run proves only
 its own unchanged documents/hashes and does not close the original anomaly.
+
+When Vite fails before React mounts with a missing named export from a Tiptap
+package, inspect the installed package versions and the declared package-manager
+version before running install. Mixed `@tiptap/core` and extension versions can
+produce a blank page even when TypeScript passes. Do not regenerate a shared or
+uncommitted lockfile with a different pnpm major. For an isolated acceptance
+profile only, a Vite alias may provide a narrowly documented compatibility export
+and explicit `jsx-runtime` subpath aliases; verify the production build and real
+browser mount afterward, then replace the shim when dependencies are aligned.

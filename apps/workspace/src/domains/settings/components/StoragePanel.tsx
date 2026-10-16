@@ -38,14 +38,18 @@ export function StoragePanel() {
 	const [cleanupResult, setCleanupResult] = useState<PosterCleanupResult>();
 	const [cleanupError, setCleanupError] = useState<string>();
 	const [cleaning, setCleaning] = useState(false);
+	const previewCandidates = preview.data?.candidates ?? [];
+	const activePreviewCount = previewCandidates.filter((candidate) => candidate.active).length;
 
 	const runCleanup = async () => {
 		const data = preview.data;
-		if (!data?.candidates.length) return;
-		const count = data.candidates.length;
+		if (!data || !previewCandidates.length) return;
+		const count = previewCandidates.length;
 		if (
 			!window.confirm(
-				`将清理 ${count} 个生成的海报缓存文件，共 ${data.bytes.toLocaleString()} 字节。继续？`,
+				`将处理 ${count} 个生成的海报缓存文件，共 ${data.bytes.toLocaleString()} 字节。${
+					activePreviewCount ? `其中 ${activePreviewCount} 个正在使用，清理时会自动保留。` : ""
+				}继续？`,
 			)
 		) {
 			return;
@@ -53,7 +57,7 @@ export function StoragePanel() {
 		setCleaning(true);
 		setCleanupError(undefined);
 		try {
-			const result = await cleanupPosterCache(data.candidates.map((candidate) => candidate.id));
+			const result = await cleanupPosterCache(previewCandidates.map((candidate) => candidate.id));
 			setCleanupResult(result);
 			void statistics.mutate();
 			void preview.mutate();
@@ -237,12 +241,17 @@ export function StoragePanel() {
 					{desktop && preview.data ? (
 						<>
 							<p className="text-sm text-muted-foreground">
-								预览发现 {preview.data.candidates.length} 个文件，共{" "}
-								{preview.data.bytes.toLocaleString()} 字节。
+								预览发现 {previewCandidates.length} 个文件，共 {preview.data.bytes.toLocaleString()}{" "}
+								字节。
 							</p>
-							{preview.data.candidates.length ? (
+							{activePreviewCount ? (
+								<p className="text-xs text-warning-foreground">
+									{activePreviewCount} 个文件正在使用，确认后仍会保留；清理时会再次检查文件状态。
+								</p>
+							) : null}
+							{previewCandidates.length ? (
 								<ul className="max-h-56 divide-y divide-border overflow-auto border-y border-border">
-									{preview.data.candidates.map((candidate) => (
+									{previewCandidates.map((candidate) => (
 										<li
 											key={candidate.id}
 											className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
@@ -258,7 +267,7 @@ export function StoragePanel() {
 									))}
 								</ul>
 							) : null}
-							{preview.data.candidates.length ? (
+							{previewCandidates.length ? (
 								<Button
 									variant="destructive"
 									size="sm"

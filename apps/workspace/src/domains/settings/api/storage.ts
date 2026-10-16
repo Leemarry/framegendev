@@ -56,7 +56,7 @@ export const getStorageSnapshot = async () => {
 
 export const previewPosterCacheCleanup = async () => {
 	const response = await httpClient.post<PosterCachePreview>("/storage/poster-cache/preview");
-	return response.data;
+	return { ...response.data, candidates: response.data.candidates ?? [] };
 };
 
 export const cleanupPosterCache = async (ids: string[]) => {

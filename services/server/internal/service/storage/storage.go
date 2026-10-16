@@ -159,7 +159,7 @@ func (service *Service) Preview(projects []ProjectRoot) (Preview, error) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	service.candidates = make(map[string]candidateRecord)
-	result := Preview{MeasuredAt: time.Now().UTC()}
+	result := Preview{Candidates: make([]Candidate, 0), MeasuredAt: time.Now().UTC()}
 	for _, root := range roots {
 		rootPath := filepath.Clean(root.path)
 		info, err := os.Lstat(rootPath)

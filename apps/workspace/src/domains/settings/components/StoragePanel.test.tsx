@@ -41,6 +41,11 @@ const candidate = {
 	categoryId: "project-1",
 };
 const preview = { candidates: [candidate], bytes: 1024, measuredAt: "2026-10-16T00:00:00.000Z" };
+const emptyPreview = {
+	candidates: null,
+	bytes: 0,
+	measuredAt: "2026-10-16T00:00:00.000Z",
+} as unknown as Awaited<ReturnType<typeof previewPosterCacheCleanup>>;
 const mount = () =>
 	render(
 		<SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
@@ -113,6 +118,20 @@ describe("StoragePanel", () => {
 		expect(screen.getByText(/已保留（poster is in use）/)).toBeInTheDocument();
 	});
 
+	it("warns that active preview candidates are retained during cleanup", async () => {
+		vi.mocked(previewPosterCacheCleanup).mockResolvedValueOnce({
+			...preview,
+			candidates: [{ ...candidate, active: true }],
+		});
+		mount();
+		fireEvent.click(screen.getByRole("button", { name: "预览清理" }));
+		await screen.findByText(/正在使用，确认后仍会保留/);
+		fireEvent.click(screen.getByRole("button", { name: "确认清理" }));
+		expect(window.confirm).toHaveBeenCalledWith(
+			expect.stringContaining("其中 1 个正在使用，清理时会自动保留"),
+		);
+	});
+
 	it("shows retryable scan and preview errors without inventing zero usage", async () => {
 		vi.mocked(getStorageSnapshot).mockRejectedValueOnce(new Error("统计接口失败"));
 		vi.mocked(previewPosterCacheCleanup).mockRejectedValueOnce(new Error("缓存目录不可读"));
@@ -138,5 +157,14 @@ describe("StoragePanel", () => {
 		expect(screen.queryByRole("button", { name: "预览清理" })).not.toBeInTheDocument();
 		expect(previewPosterCacheCleanup).not.toHaveBeenCalled();
 		expect(cleanupPosterCache).not.toHaveBeenCalled();
+	});
+
+	it("renders an empty preview without crashing or offering cleanup", async () => {
+		vi.mocked(previewPosterCacheCleanup).mockResolvedValueOnce(emptyPreview);
+		mount();
+		await screen.findByText("已登记项目");
+		fireEvent.click(screen.getByRole("button", { name: "预览清理" }));
+		await screen.findByText(/预览发现 0 个文件/);
+		expect(screen.queryByRole("button", { name: "确认清理" })).not.toBeInTheDocument();
 	});
 });
