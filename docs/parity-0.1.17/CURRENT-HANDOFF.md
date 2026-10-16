@@ -30,6 +30,12 @@
 
 已完成导航窄屏、基础设置、本地账户入口、HTTP缓存统计、更新失败重试，不重复开发。外部生成/Agent受缺codex-acp、供应商及服务约束；禁止真实登录/付费/生产生成/外部发送、禁止访问真实workspace-v2。每次只推进一个可验收项，失败/未运行保留，按明确路径提交，不推送。
 
+### 会话2已执行接管（2026-10-16）
+
+- 会话2原工作树干净，已将主目录 `fd1c71a` 合入 `codex/parity-s2`，合并提交 `ce27bde`。唯一冲突为 desktop/actions.test.ts，保留两侧测试；桌面动作/旧窗口恢复/冲突面板/状态同步四文件20测试通过，lint、Electron compile和TypeScript/Vite build通过。主目录尚未纳入本轮新窗口功能。
+- TASK-062原生新窗口子项已完成独立验收：同profile完整退出重启发现3份草稿、选择/取消/402字节下载/读取失败重试/显式暂停载入/reload/已有dirty拒绝均通过，来源字节和完整服务器正文历史不变；最新加载失败销毁/重试、关闭root存活、项目隔离及390px深浅和完整原生截图通过。12文件91测试及前端门通过，详见s2-project-windows/result.md和evidence。下一项TASK-090，打包单sidecar/通知点击/文件picker仍不宣称完成；项目流转也未完成。
+- 31452/31453、CDP9245初查无监听，已启动自己最新版server-takeover.exe及Vite/Electron；数据仍在session-2/.cache/parity/s2-settings与s2-desktop-dev，未操作会话1或主目录实例。后续按上表单项推进，每项完成后提交结果与真实证据。
+
 ## 任务与协作（历史双会话约定，归属以本页最新接管约定为准）
 
 - 2026-10-15 双会话隔离：源码共同起点 `c5a173841473210ea1b100f83c4a6b11ef54cba7`；共同约定基线 `3265748c88f795bf8dc468b45eb83290e843e9a1` 已由双方同步（会话2并发先建于源码起点，随后自行快进约定提交）。主目录 `E:/AI/framegendev`（`codex/nle-export`）只做串行集成；会话1 `E:/AI/framegendev-wt/session-1` / `codex/parity-s1`；会话2 `E:/AI/framegendev-wt/session-2` / `codex/parity-s2`。不覆盖或重置已有分支；只合并对方已提交且有实际验证的独立项，不修改对方工作树/实例。

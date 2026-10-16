@@ -13,10 +13,10 @@ Open an active existing project in an independent secure Electron window using a
 
 ## Acceptance Criteria
 
-- [ ] Trusted parameter-validated IPC opens a fixed project route and rejects unsupported/missing bridges.
-- [ ] Actual project-card menu opens a separate native window; source route/state unchanged, reload and close-one-window work.
-- [ ] Same-project windows keep TASK-181 conflict/recovery behavior; different-project state remains separate.
-- [ ] Relevant frontend/Electron tests, lint/format/build and actual narrow/theme/error checks are recorded.
+- [x] Trusted parameter-validated IPC opens a fixed project route and rejects unsupported/missing bridges.
+- [x] Actual project-card menu opens a separate native window; source route/state unchanged, reload and close-one-window work.
+- [x] Same-project windows keep TASK-181 conflict/recovery behavior; different-project state remains separate.
+- [x] Relevant frontend/Electron tests, lint/format/build and actual narrow/theme/error checks are recorded.
 
 ## Notes
 

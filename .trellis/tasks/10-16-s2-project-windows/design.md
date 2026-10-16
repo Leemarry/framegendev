@@ -9,3 +9,7 @@ Refactor existing workspace-window creation to keep a local window reference and
 Projects card and context menus share the same new-window action. A request loading flag blocks duplicates and error toast allows retry. No browser popup fallback because it cannot establish native lifecycle parity. New-window action does not mutate current selected project or navigate source. No new dependencies/shared model/router/styles or document-core changes.
 
 Rollback removes this feature commit; project data has no migration. No actual login, update install, Agent/generation or external sending in validation.
+
+## 2026-10-16 takeover
+
+Baseline ce27bde merges main fd1c71a and accepted prior-window recovery. Reuse that implementation; this step changes acceptance evidence/records only unless a real native integration defect is found. All remaining public/document/service files now have one owner (session2). Preserve original source records and server snapshots; stage only explicitly, with autosave paused.
