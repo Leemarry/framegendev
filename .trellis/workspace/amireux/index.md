@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 50
+- **Total Sessions**: 51
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1510 | Active |
+| `journal-1.md` | ~1533 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 51 | 2026-10-16 | Generation modal narrow header integrated | `3e330de`, `3216d97` | `codex/nle-export` |
 | 50 | 2026-10-16 | Independent media history read state integrated | `28cbee2`, `346f4f7` | `codex/nle-export` |
 | 49 | 2026-10-16 | TASK-080 local import usage integration | `910f3fb` | `codex/nle-export` |
 | 48 | 2026-10-16 | TASK-080 scoped history read failures integrated | `b266bc7` | `codex/nle-export` |

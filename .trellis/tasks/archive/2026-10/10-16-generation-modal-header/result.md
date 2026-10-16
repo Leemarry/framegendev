@@ -23,4 +23,10 @@ viewport emulation; retain it. A planning patch initially attempted delete/add
 on one path and was rejected without edits; corrected in-place update succeeded.
 No new test asserting CSS classes was added for this reversible layout change.
 
-Main serial integration/real production acceptance pending before archive.
+Source3e330de -> main3216d97. Main3files27tests, lint, canonical full708-file
+format, build, Electron compile and workspace_dist Windows build pass. Main31456
+runs mediago-server-modal-header.exe. Actual desktop/390CSS short-screen capture,
+complete title dimensions, nested history/library open/cancel, close/reopen and
+real imported image pass. Complete new and protected old document/history/task
+baselines remain unchanged. No backend source changed; reuse the unchanged
+backend Windows gates already recorded. Header adjustment accepted.

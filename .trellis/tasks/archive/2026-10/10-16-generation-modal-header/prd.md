@@ -16,11 +16,11 @@ No shared primitive, dependency, API, session2, NLE or provider changes.
 
 ## Acceptance Criteria
 
-- [ ] Actual355/390CSS-pixel and short-screen dialog shows the complete title
+- [x] Actual355/390CSS-pixel and short-screen dialog shows the complete title
   and reachable library/history/close actions without overflow or overlap.
-- [ ] Desktop shell and existing nested preview/Escape behavior remain usable.
-- [ ] Existing shell/caller tests, frontend lint/format/build pass.
-- [ ] Source/main real cancel/reopen and full document/history/task comparison
+- [x] Desktop shell and existing nested preview/Escape behavior remain usable.
+- [x] Existing shell/caller tests, frontend lint/format/build pass.
+- [x] Source/main real cancel/reopen and full document/history/task comparison
   remain unchanged; main embedded build runs the verified adjustment.
 
 ## Notes

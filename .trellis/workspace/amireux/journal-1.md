@@ -1508,3 +1508,26 @@ TASK-080 independent section/episode media history now hides stale actions while
 ### Status
 
 [OK] **Completed**
+
+
+## Session 51: Generation modal narrow header integrated
+<!-- trellis-session: v=2 fp=97f61ab2fb2bf4aa -->
+
+**Date**: 2026-10-16
+**Task**: Generation modal narrow header integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK030/080 responsive modal title fix accepted in source/main. Actual355/390CSS narrow and short-screen titles, nested history/library/cancel/reopen and preview Escape pass; complete records unchanged. Source/main27 tests and frontend/embedded build gates pass. Next local import/adoption/resource-panel combination acceptance; external generation/native reopening remain pending.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3e330de` | fix(documents): keep generation modal titles readable on narrow screens |
+| `3216d97` | fix(documents): keep generation modal titles readable on narrow screens |
+
+### Status
+
+[OK] **Completed**
