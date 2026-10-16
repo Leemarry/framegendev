@@ -42,6 +42,14 @@ export interface ProjectDirectoryPreview {
 	registered: boolean;
 }
 
+export interface ProjectPackagePreview {
+	project: WorkspaceProject;
+	archive: string;
+	fingerprint: string;
+	fileCount: number;
+	totalBytes: number;
+}
+
 export interface ProjectOverviewConfig {
 	categoryDefaults?: ProjectCategoryDefaults;
 }
@@ -105,6 +113,34 @@ export const openProjectDirectory = async (directory: string, fingerprint: strin
 		fingerprint,
 	});
 	return response.data;
+};
+
+export const previewProjectPackage = async (archive: string) => {
+	const response = await httpClient.post<ProjectPackagePreview>(`${projectsKey}/packages/preview`, {
+		archive,
+	});
+	return response.data;
+};
+
+export const importProjectPackage = async (
+	archive: string,
+	destination: string,
+	fingerprint: string,
+) => {
+	const response = await httpClient.post<WorkspaceProject>(`${projectsKey}/packages/import`, {
+		archive,
+		destination,
+		fingerprint,
+	});
+	return response.data;
+};
+
+export const exportProjectPackage = async (projectId: string, destination: string) => {
+	const response = await httpClient.post<{ path: string }>(
+		`${projectsKey}/${encodeURIComponent(projectId)}/package/export`,
+		{ destination },
+	);
+	return response.data.path;
 };
 
 export const updateProject = async (projectId: string, payload: UpdateWorkspaceProjectRequest) => {

@@ -61,6 +61,9 @@ type AgentEvent = agent.AgentEvent
 type workspaceDocumentMetadataResponse = mediamcp.ListDocumentsOutput
 type workspaceProjectsResponse = mediamcp.ProjectList
 type workspaceProjectRecord = mediamcp.Project
+
+// WorkspaceProjectRecord is the public project response used by transfer handlers.
+type WorkspaceProjectRecord = mediamcp.Project
 type workspaceProjectModel = domain.WorkspaceProjectModel
 type createWorkspaceProjectRequest = model.CreateWorkspaceProjectRequest
 type updateWorkspaceProjectRequest = model.UpdateWorkspaceProjectRequest

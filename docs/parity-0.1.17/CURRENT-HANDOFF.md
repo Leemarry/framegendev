@@ -1,6 +1,12 @@
 # 当前交接
 
-更新：2026-10-16。只保留活跃事实，历史见 [快照](HISTORY-HANDOFF-2026-10-15.md)。续作入口 [README](README.md)。
+更新：2026-10-17。只保留活跃事实，历史见 [快照](HISTORY-HANDOFF-2026-10-15.md)。续作入口 [README](README.md)。
+
+## 2026-10-17 TASK-062 项目包
+
+- 主目录 `codex/nle-export` 已实现自定义ZIP v1项目包：只读预览、确定性导出、暂存导入/登记回滚、身份/路径/大小/数量校验、取消与冲突保护，并接入Projects导入/导出和已有目录打开。往返保留文档原字节及 `work/` 到 `library/` 的Markdown相对引用；自动化覆盖冲突、取消、路径穿越、未知schema和身份不匹配。
+- 未找到可核实的官方跨工作区归档格式；该格式是本项目本地定义，明确不兼容技能包`.mgpack`，也不迁移中央workspace数据库中的生成/采用历史。详细实现与门禁见 `.trellis/tasks/10-16-project-transfer/result.md`。
+- Go全量测试/build/vet、Projects 14测试、TypeScript、workspace lint及改动文件格式通过。Vite因已安装TipTap版本错配不能启动（`extension-list@3.32.0`请求`core@3.23.4`缺失导出），故真实页面和原生选择器验收未完成；Go lint下载失败、Windows race缺C编译器、全量workspace format有85个未改文件差异。TASK-062保持待验收，修复依赖后用独立数据补浏览器/Electron导入导出/取消/冲突/重开流程。
 
 ## 2026-10-16 单会话接管（最新约定）
 

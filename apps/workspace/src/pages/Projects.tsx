@@ -1,5 +1,6 @@
 import {
 	Archive,
+	Download,
 	FolderOpen,
 	Loader2,
 	MoreVertical,
@@ -20,6 +21,9 @@ import {
 	createProject,
 	openProjectDirectory,
 	previewProjectDirectory,
+	importProjectPackage,
+	previewProjectPackage,
+	exportProjectPackage,
 	deleteProject,
 	getProjects,
 	permanentlyDeleteProject,
@@ -51,7 +55,11 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { analytics, AnalyticsEvent } from "@/shared/analytics";
 import { cn } from "@/shared/lib/utils";
-import { openDesktopProjectWindow, pickDesktopDirectory } from "@/shared/desktop/actions";
+import {
+	openDesktopProjectWindow,
+	pickDesktopDirectory,
+	pickDesktopFile,
+} from "@/shared/desktop/actions";
 import { isDesktopRuntime } from "@/shared/desktop/runtime";
 
 type ProjectManagementTab = Exclude<ProjectStatusFilter, "all">;
@@ -106,6 +114,7 @@ export const Projects: React.FC = () => {
 	const [action, setAction] = useState<{ kind: ProjectAction; projectId: string } | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
 	const [isOpeningDirectory, setIsOpeningDirectory] = useState(false);
+	const [isExporting, setIsExporting] = useState<string | null>(null);
 	const swrKey = projectsKeyForStatus(activeTab);
 	const {
 		data,
@@ -202,6 +211,52 @@ export const Projects: React.FC = () => {
 			});
 		} finally {
 			setIsOpeningDirectory(false);
+		}
+	};
+
+	const importProject = async () => {
+		if (isOpeningDirectory || action) return;
+		setIsOpeningDirectory(true);
+		try {
+			const archive = await pickDesktopFile({
+				title: "选择 MediaGo 项目包",
+				filters: [{ name: "MediaGo 项目包", extensions: ["zip"] }],
+			});
+			if (!archive) return;
+			const destination = await pickDesktopDirectory("选择项目导入目录");
+			if (!destination) return;
+			const preview = await previewProjectPackage(archive);
+			const confirmed = await confirmDialog({
+				title: "确认导入项目？",
+				description: `将导入“${preview.project.name}”，包含 ${preview.fileCount} 个文件。原项目包不会被改写。`,
+				confirmLabel: "确认导入",
+				confirmIcon: <Upload />,
+			});
+			if (!confirmed) return;
+			const project = await importProjectPackage(archive, destination, preview.fingerprint);
+			await refreshProjectLists();
+			openProject(project);
+		} catch (err) {
+			toast.error("导入项目失败", {
+				description: projectManagementErrorMessage(err, "请确认项目包格式并重试。"),
+			});
+		} finally {
+			setIsOpeningDirectory(false);
+		}
+	};
+
+	const exportProject = async (project: WorkspaceProject) => {
+		if (isExporting || action) return;
+		const destination = await pickDesktopDirectory("选择项目导出目录");
+		if (!destination) return;
+		setIsExporting(project.id);
+		try {
+			const path = await exportProjectPackage(project.id, destination);
+			toast.success("项目已导出", { description: path });
+		} catch (err) {
+			toast.error("导出项目失败", { description: projectManagementErrorMessage(err, "请重试。") });
+		} finally {
+			setIsExporting(null);
 		}
 	};
 
@@ -351,7 +406,7 @@ export const Projects: React.FC = () => {
 						<button
 							type="button"
 							disabled={isOpeningDirectory}
-							onClick={() => void openExistingDirectory()}
+							onClick={() => void importProject()}
 							aria-label="导入项目"
 						>
 							<Upload />
@@ -423,6 +478,7 @@ export const Projects: React.FC = () => {
 								onRequestDelete={() => confirmDeleteProject(project)}
 								onOpen={openProject}
 								onOpenWindow={() => void openProjectWindow(project)}
+								onExport={() => void exportProject(project)}
 								onRename={() => renameCurrentProject(project)}
 								onRestore={() => void restoreCurrentProject(project)}
 								onRequestPermanentDelete={() => confirmPermanentlyDeleteProject(project)}
@@ -441,6 +497,7 @@ const ProjectManagementRow: React.FC<{
 	onArchive: () => void;
 	onOpen: (project: WorkspaceProject) => void;
 	onOpenWindow: () => void;
+	onExport: () => void;
 	onRename: () => void;
 	onRequestDelete: () => void;
 	onRequestPermanentDelete: () => void;
@@ -452,6 +509,7 @@ const ProjectManagementRow: React.FC<{
 	onArchive,
 	onOpen,
 	onOpenWindow,
+	onExport,
 	onRename,
 	onRequestDelete,
 	onRequestPermanentDelete,
@@ -474,6 +532,7 @@ const ProjectManagementRow: React.FC<{
 					disabled: !isDesktopRuntime(),
 				},
 				{ label: "重命名", icon: Pencil, run: onRename },
+				{ label: "导出项目", icon: Download, run: onExport },
 				{ label: "归档", icon: Archive, run: onArchive },
 				{ label: "移到垃圾箱", icon: Trash2, run: onRequestDelete, destructive: true },
 			]

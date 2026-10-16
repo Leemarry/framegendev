@@ -19,6 +19,7 @@ type Handlers struct {
 	AgentBackends         httphandlers.AgentBackends
 	Projects              httphandlers.Projects
 	ProjectDirectories    httphandlers.ProjectDirectories
+	ProjectTransfers      httphandlers.ProjectTransfers
 	ProjectConfigs        httphandlers.ProjectConfigs
 	ProjectBriefs         httphandlers.ProjectBriefs
 	Workspace             httphandlers.Workspace
@@ -65,6 +66,8 @@ func registerCoreRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
 	apiRoutes.POST("/projects", handlers.Projects.HandleCreateProject)
 	apiRoutes.POST("/projects/open/preview", handlers.ProjectDirectories.HandlePreview)
 	apiRoutes.POST("/projects/open", handlers.ProjectDirectories.HandleOpen)
+	apiRoutes.POST("/projects/packages/preview", handlers.ProjectTransfers.HandlePreview)
+	apiRoutes.POST("/projects/packages/import", handlers.ProjectTransfers.HandleImport)
 	apiRoutes.GET("/packs", handlers.PromptPacks.HandleListPacks)
 	apiRoutes.POST("/packs", handlers.PromptPacks.HandleCreatePack)
 	apiRoutes.POST("/packs/import", handlers.PromptPacks.HandleImportPack)
@@ -277,6 +280,7 @@ func registerProjectRoutes(projectRoutes *gin.RouterGroup, handlers Handlers) {
 	projectRoutes.POST("/archive", handlers.Projects.HandleArchiveProject)
 	projectRoutes.POST("/restore", handlers.Projects.HandleRestoreProject)
 	projectRoutes.DELETE("/permanent", handlers.Projects.HandlePermanentlyDeleteProject)
+	projectRoutes.POST("/package/export", handlers.ProjectTransfers.HandleExport)
 	projectRoutes.GET("/billing/summary", handlers.Billing.HandleProjectBillingSummary)
 	projectRoutes.GET("/config", handlers.ProjectConfigs.HandleGetProjectConfig)
 	projectRoutes.PATCH("/config", handlers.ProjectConfigs.HandlePatchProjectConfig)

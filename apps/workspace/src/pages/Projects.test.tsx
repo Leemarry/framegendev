@@ -14,9 +14,12 @@ import { openDesktopProjectWindow } from "@/shared/desktop/actions";
 import { isDesktopRuntime } from "@/shared/desktop/runtime";
 
 const windowMocks = vi.hoisted(() => ({ error: vi.fn() }));
+const desktopPickerMocks = vi.hoisted(() => ({ file: vi.fn(), directory: vi.fn() }));
 vi.mock("@/shared/desktop/actions", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@/shared/desktop/actions")>()),
 	openDesktopProjectWindow: vi.fn(),
+	pickDesktopFile: desktopPickerMocks.file,
+	pickDesktopDirectory: desktopPickerMocks.directory,
 }));
 vi.mock("@/shared/desktop/runtime", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@/shared/desktop/runtime")>()),
@@ -76,6 +79,8 @@ describe("Projects", () => {
 		vi.clearAllMocks();
 		vi.mocked(isDesktopRuntime).mockReturnValue(false);
 		vi.mocked(openDesktopProjectWindow).mockReset().mockResolvedValue(undefined);
+		desktopPickerMocks.file.mockReset().mockResolvedValue(null);
+		desktopPickerMocks.directory.mockReset().mockResolvedValue(null);
 		useProjectStore.getState().setActiveProjectId(null);
 		isProjectDeleted = false;
 		activeProjectStatus = "active";
@@ -244,6 +249,60 @@ describe("Projects", () => {
 		);
 		await waitFor(() =>
 			expect(screen.getByTestId("location")).toHaveTextContent("/projects?projectId=created-id"),
+		);
+	});
+
+	it("previews and confirms project package import before opening it", async () => {
+		vi.mocked(isDesktopRuntime).mockReturnValue(true);
+		desktopPickerMocks.file.mockResolvedValue("C:/transfer/show.zip");
+		desktopPickerMocks.directory.mockResolvedValue("C:/workspace/imports");
+		const imported = { ...activeProject, id: "project-imported", name: "导入项目" };
+		vi.mocked(httpClient.post).mockImplementation(async (url) => {
+			if (url === "/projects/packages/preview") {
+				return apiResponse({
+					archive: "C:/transfer/show.zip",
+					fileCount: 4,
+					fingerprint: "fingerprint-1",
+					project: imported,
+					totalBytes: 24,
+				});
+			}
+			if (url === "/projects/packages/import") return apiResponse(imported);
+			return apiResponse({});
+		});
+		renderManagement();
+		fireEvent.click(await screen.findByRole("button", { name: "导入项目" }));
+		await waitFor(() =>
+			expect(httpClient.post).toHaveBeenCalledWith("/projects/packages/preview", {
+				archive: "C:/transfer/show.zip",
+			}),
+		);
+		const dialog = await screen.findByRole("alertdialog", { name: "确认导入项目？" });
+		expect(within(dialog).getByText(/包含 4 个文件/)).toBeInTheDocument();
+		fireEvent.click(within(dialog).getByRole("button", { name: "确认导入" }));
+		await waitFor(() =>
+			expect(httpClient.post).toHaveBeenCalledWith("/projects/packages/import", {
+				archive: "C:/transfer/show.zip",
+				destination: "C:/workspace/imports",
+				fingerprint: "fingerprint-1",
+			}),
+		);
+		await waitFor(() =>
+			expect(screen.getByTestId("location")).toHaveTextContent("projectId=project-imported"),
+		);
+	});
+
+	it("exports a project package to the selected directory", async () => {
+		vi.mocked(isDesktopRuntime).mockReturnValue(true);
+		desktopPickerMocks.directory.mockResolvedValue("C:/workspace/exports");
+		renderManagement();
+		const trigger = await screen.findByRole("button", { name: "项目操作：短剧项目" });
+		fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false, pointerType: "mouse" });
+		fireEvent.click(await screen.findByRole("menuitem", { name: "导出项目" }));
+		await waitFor(() =>
+			expect(httpClient.post).toHaveBeenCalledWith("/projects/project-111/package/export", {
+				destination: "C:/workspace/exports",
+			}),
 		);
 	});
 

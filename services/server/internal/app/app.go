@@ -228,6 +228,7 @@ func NewHandlerWithConfig(staticFS fs.FS, config Config) http.Handler {
 		AgentBackends:         backendsHandler,
 		Projects:              projectHandler,
 		ProjectDirectories:    httphandlers.NewProjectDirectories(api.workspaceState),
+		ProjectTransfers:      httphandlers.NewProjectTransfers(api.workspaceState),
 		ProjectConfigs:        projectConfigHandler,
 		ProjectBriefs:         projectBriefHandler,
 		Workspace:             workspaceHandler,

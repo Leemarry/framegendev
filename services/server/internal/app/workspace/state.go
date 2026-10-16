@@ -24,6 +24,7 @@ type saveEpisodeTimelineStateRequest = servicedocument.SaveEpisodeTimelineStateR
 type workspaceDocumentMetadataResponse = mediamcp.ListDocumentsOutput
 type workspaceProjectsResponse = mediamcp.ProjectList
 type workspaceProjectRecord = mediamcp.Project
+type projectPackagePreview = servicedocument.ProjectPackagePreview
 type createWorkspaceProjectRequest = servicedocument.CreateWorkspaceProjectRequest
 type updateWorkspaceProjectRequest = servicedocument.UpdateWorkspaceProjectRequest
 type createWorkspaceDocumentRequest = servicedocument.CreateWorkspaceDocumentRequest
@@ -239,6 +240,21 @@ func (store *WorkspaceStateService) PreviewProjectDirectory(ctx context.Context,
 // OpenProjectDirectory registers an existing local project after a preview.
 func (store *WorkspaceStateService) OpenProjectDirectory(ctx context.Context, directory, fingerprint string) (workspaceProjectRecord, error) {
 	return store.StateService().Documents.OpenProjectDirectory(ctx, directory, fingerprint)
+}
+
+// PreviewProjectPackage validates a package without writing to the workspace.
+func (store *WorkspaceStateService) PreviewProjectPackage(ctx context.Context, archivePath string) (servicedocument.ProjectPackagePreview, error) {
+	return store.StateService().Documents.PreviewProjectPackage(ctx, archivePath)
+}
+
+// ExportProjectPackage writes a stable project package.
+func (store *WorkspaceStateService) ExportProjectPackage(ctx context.Context, projectID, destinationDir string) (string, error) {
+	return store.StateService().Documents.ExportProjectPackage(ctx, projectID, destinationDir)
+}
+
+// ImportProjectPackage validates and registers a project package.
+func (store *WorkspaceStateService) ImportProjectPackage(ctx context.Context, archivePath, destinationDir, fingerprint string) (workspaceProjectRecord, error) {
+	return store.StateService().Documents.ImportProjectPackage(ctx, archivePath, destinationDir, fingerprint)
 }
 
 func (store *WorkspaceStateService) createProject(id string, request createWorkspaceProjectRequest) (workspaceProjectRecord, error) {
