@@ -10,6 +10,7 @@ export interface MediaAsset {
 	tags?: string[];
 	note?: string;
 	rating?: number;
+	favorite?: boolean;
 	folderId?: string;
 	mimeType: string;
 	sizeBytes: number;
@@ -144,6 +145,7 @@ export interface MediaAssetMetadataUpdate {
 	tags: string[];
 	note: string;
 	rating: number;
+	favorite?: boolean;
 }
 
 export const updateMediaAssetMetadata = async (

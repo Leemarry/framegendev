@@ -345,7 +345,7 @@ func (handler MediaAssets) HandleProjectMediaAssetReferences(context *gin.Contex
 // @Accept json
 // @Produce json
 // @Param assetId path string true "Asset ID"
-// @Param payload body SwaggerObject true "filename/tags/note/rating/folderId; omitted/null unchanged; empty folderId returns to root"
+// @Param payload body SwaggerObject true "filename/tags/note/rating/favorite/folderId; omitted/null unchanged; empty folderId returns to root"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 404 {object} SwaggerEnvelope
@@ -392,7 +392,7 @@ func (handler MediaAssets) HandleUpdateMediaAsset(context *gin.Context) {
 // @Produce json
 // @Param projectId path string true "Project ID"
 // @Param assetId path string true "Asset ID"
-// @Param payload body SwaggerObject true "filename/tags/note/rating/folderId; scope must own asset and target folder"
+// @Param payload body SwaggerObject true "filename/tags/note/rating/favorite/folderId; scope must own asset and target folder"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 404 {object} SwaggerEnvelope

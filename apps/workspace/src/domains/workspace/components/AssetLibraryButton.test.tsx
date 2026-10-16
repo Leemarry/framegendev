@@ -13,6 +13,7 @@ import {
 	type MediaAsset,
 	type MediaAssetReference,
 	updateMediaAsset,
+	updateMediaAssetFields,
 	updateMediaAssetMetadata,
 } from "@/domains/workspace/api/media";
 import { getWorkspaceDocuments } from "@/domains/workspace/api/workspace";
@@ -118,6 +119,7 @@ vi.mock("@/domains/workspace/api/media", () => ({
 	mediaAssetsKey: "/media-assets",
 	scanMediaAssets: vi.fn(),
 	updateMediaAsset: vi.fn(),
+	updateMediaAssetFields: vi.fn(),
 	updateMediaAssetMetadata: vi.fn(),
 	uploadMediaAsset: vi.fn(),
 }));
@@ -543,6 +545,25 @@ describe("AssetLibraryButton", () => {
 		fireEvent.keyDown(screen.getByLabelText("备注"), { key: "Escape" });
 		expect(screen.getByRole("dialog", { name: "项目素材库" })).toBeInTheDocument();
 		expect(screen.queryByRole("form", { name: "编辑素材元数据" })).not.toBeInTheDocument();
+	});
+
+	it("toggles a physical asset favorite through its owner scope", async () => {
+		const asset = mediaAsset({ id: "media-a", filename: "favorite.png", projectId: "project-a" });
+		vi.mocked(getMediaAssets).mockResolvedValue({ assets: [asset] });
+		vi.mocked(getSelectedGenerationAssets).mockResolvedValue({ assets: [] });
+		vi.mocked(updateMediaAssetFields).mockResolvedValue({ ...asset, favorite: true });
+		renderAssetLibraryButton("/projects?projectId=project-a");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "项目素材库" });
+		fireEvent.click(await screen.findByRole("button", { name: "预览 favorite.png" }));
+		fireEvent.click(screen.getByRole("button", { name: "收藏素材" }));
+		await waitFor(() =>
+			expect(updateMediaAssetFields).toHaveBeenCalledWith(
+				"media-a",
+				{ favorite: true },
+				"project-a",
+			),
+		);
 	});
 
 	it("copies the asset path from the preview panel", async () => {

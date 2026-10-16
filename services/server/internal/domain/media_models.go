@@ -12,6 +12,7 @@ type AssetModel struct {
 	TagsJSON        string    `gorm:"column:tags_json;not null;default:'[]'"`
 	Note            string    `gorm:"column:note;not null;default:''"`
 	Rating          int       `gorm:"column:rating;not null;default:0"`
+	Favorite        bool      `gorm:"column:favorite;not null;default:false;index:assets_favorite_idx"`
 	LibraryFolderID string    `gorm:"column:library_folder_id;not null;default:'';index:assets_library_folder_idx"`
 	MIMEType        string    `gorm:"column:mime_type;not null"`
 	SizeBytes       int64     `gorm:"column:size_bytes;not null"`

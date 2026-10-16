@@ -64,6 +64,7 @@ type MediaAsset struct {
 	Tags              []string `json:"tags"`
 	Note              string   `json:"note"`
 	Rating            int      `json:"rating"`
+	Favorite          bool     `json:"favorite"`
 	FolderID          string   `json:"folderId"`
 	MIMEType          string   `json:"mimeType"`
 	SizeBytes         int64    `json:"sizeBytes"`
@@ -100,6 +101,7 @@ type MediaAssetUpdateRequest struct {
 	Tags     *[]string `json:"tags,omitempty"`
 	Note     *string   `json:"note,omitempty"`
 	Rating   *int      `json:"rating,omitempty"`
+	Favorite *bool     `json:"favorite,omitempty"`
 	FolderID *string   `json:"folderId,omitempty"`
 }
 
@@ -1066,6 +1068,7 @@ func (store *MediaAssets) mediaAssetRecordFromModel(model mediaAssetModel) Media
 		Tags:            libraryTagsFromJSON(model.TagsJSON),
 		Note:            model.Note,
 		Rating:          model.Rating,
+		Favorite:        model.Favorite,
 		FolderID:        model.LibraryFolderID,
 		MIMEType:        model.MIMEType,
 		SizeBytes:       model.SizeBytes,

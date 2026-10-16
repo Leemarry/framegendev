@@ -20,6 +20,7 @@ func TestLibraryMetadataAPI(t *testing.T) {
 		{"save", path, `{"tags":["主角"," 夜景 "],"note":"中文备注","rating":4}`, 200},
 		{"rename compatibility", path, `{"filename":"renamed.png"}`, 200},
 		{"partial", path, `{"rating":5}`, 200},
+		{"favorite", path, `{"favorite":true}`, 200},
 		{"cross project", "/api/v1/projects/" + other.ID + "/media-assets/" + asset.ID, `{"note":"wrong"}`, 404},
 		{"wrong global", "/api/v1/media-assets/" + asset.ID, `{"note":"wrong"}`, 404},
 		{"missing", path + "missing", `{"note":"wrong"}`, 404},
@@ -39,13 +40,13 @@ func TestLibraryMetadataAPI(t *testing.T) {
 	list := requestJSON(t, handler, http.MethodGet, "/api/v1/projects/"+project.ID+"/media-assets?q="+"%E5%A4%9C%E6%99%AF", "")
 	defer list.Body.Close()
 	body := readBody(t, list.Body)
-	if !strings.Contains(body, asset.ID) || !strings.Contains(body, `"note":"中文备注"`) || !strings.Contains(body, `"rating":5`) || strings.Contains(body, "wrong") {
+	if !strings.Contains(body, asset.ID) || !strings.Contains(body, `"note":"中文备注"`) || !strings.Contains(body, `"rating":5`) || !strings.Contains(body, `"favorite":true`) || strings.Contains(body, "wrong") {
 		t.Fatalf("persisted search: %s", body)
 	}
 	clear := requestJSON(t, handler, http.MethodPut, path, `{"tags":[],"note":"","rating":0}`)
 	defer clear.Body.Close()
 	body = readBody(t, clear.Body)
-	if clear.StatusCode != 200 || !strings.Contains(body, `"tags":[]`) || !strings.Contains(body, `"note":""`) || !strings.Contains(body, `"rating":0`) || !strings.Contains(body, asset.URL) {
+	if clear.StatusCode != 200 || !strings.Contains(body, `"tags":[]`) || !strings.Contains(body, `"note":""`) || !strings.Contains(body, `"rating":0`) || !strings.Contains(body, `"favorite":true`) || !strings.Contains(body, asset.URL) {
 		t.Fatalf("clear: %s", body)
 	}
 }

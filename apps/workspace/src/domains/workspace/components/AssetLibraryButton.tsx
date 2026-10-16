@@ -16,6 +16,7 @@ import {
 	MoveRight,
 	PencilLine,
 	Search,
+	Star,
 	Trash2,
 	UploadCloud,
 	X,
@@ -61,6 +62,7 @@ import {
 	type AssetLibraryItem,
 	type AssetLibraryKind,
 	type AssetLibraryKindFilter,
+	type AssetLibraryFavoriteFilter,
 	type AssetLibraryProvenanceFilter,
 	type AssetLibraryRatingFilter,
 	type AssetLibraryResourceFilter,
@@ -139,6 +141,11 @@ const ratingOptions: Array<{ label: string; value: AssetLibraryRatingFilter }> =
 	{ label: "3星及以上", value: "3" },
 	{ label: "4星及以上", value: "4" },
 	{ label: "5星", value: "5" },
+];
+
+const favoriteOptions: Array<{ label: string; value: AssetLibraryFavoriteFilter }> = [
+	{ label: "全部", value: "all" },
+	{ label: "收藏", value: "favorite" },
 ];
 
 const resourceOptions: Array<{ label: string; value: AssetLibraryResourceFilter }> = [
@@ -242,6 +249,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [includeSubfolders, setIncludeSubfolders] = useState(false);
 	const [browseScope, setBrowseScope] = useState<"directory" | "all">("directory");
 	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
+	const [favoriteFilter, setFavoriteFilter] = useState<AssetLibraryFavoriteFilter>("all");
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
 	const [usageFilter, setUsageFilter] = useState<AssetLibraryUsageFilter>("all");
@@ -360,6 +368,7 @@ export const AssetLibraryWorkspace: React.FC<{
 				query,
 				provenance: provenanceFilter,
 				rating: ratingFilter,
+				favorite: favoriteFilter,
 				resourceType: projectMode ? resourceFilter : "all",
 				source: sourceFilter,
 				sort,
@@ -372,6 +381,7 @@ export const AssetLibraryWorkspace: React.FC<{
 			projectMode,
 			query,
 			ratingFilter,
+			favoriteFilter,
 			resourceFilter,
 			sourceFilter,
 			provenanceFilter,
@@ -407,6 +417,7 @@ export const AssetLibraryWorkspace: React.FC<{
 		setProvenanceFilter("all");
 		setResourceFilter("all");
 		setRatingFilter("all");
+		setFavoriteFilter("all");
 		setTagFilter("");
 		setIncludeSubfolders(false);
 		setBrowseScope("directory");
@@ -544,6 +555,22 @@ export const AssetLibraryWorkspace: React.FC<{
 			setBusyKey("");
 		}
 	};
+	const toggleFavorite = async (item: AssetLibraryItem) => {
+		const asset = item.mediaAsset;
+		if (!asset || busyKey) throw new Error("素材暂时无法收藏，请稍后重试。");
+		setBusyKey(item.key);
+		try {
+			await updateMediaAssetFields(
+				asset.id,
+				{ favorite: !asset.favorite },
+				asset.projectId || undefined,
+			);
+			await mutateMediaAssets();
+			toast.success(asset.favorite ? "已取消收藏" : "已收藏素材");
+		} finally {
+			setBusyKey("");
+		}
+	};
 	const moveItem = async (item: AssetLibraryItem, destination: string) => {
 		const asset = item.mediaAsset;
 		if (!asset || busyKey || folderUnavailable || (asset.projectId || "") !== selectedProjectId)
@@ -657,7 +684,8 @@ export const AssetLibraryWorkspace: React.FC<{
 		sourceFilter !== "all" ||
 		usageFilter !== "all" ||
 		resourceFilter !== "all" ||
-		ratingFilter !== "all",
+		ratingFilter !== "all" ||
+		favoriteFilter !== "all",
 	);
 	const content = (
 		<>
@@ -824,6 +852,12 @@ export const AssetLibraryWorkspace: React.FC<{
 								onValueChange={(value) => setKindFilter(value as AssetLibraryKindFilter)}
 							/>
 							<AssetLibrarySelect
+								label="收藏"
+								value={favoriteFilter}
+								options={favoriteOptions}
+								onValueChange={(value) => setFavoriteFilter(value as AssetLibraryFavoriteFilter)}
+							/>
+							<AssetLibrarySelect
 								label="使用状态"
 								value={usageFilter}
 								options={usageOptions}
@@ -918,6 +952,12 @@ export const AssetLibraryWorkspace: React.FC<{
 						value={kindFilter}
 						options={kindOptions}
 						onValueChange={(value) => setKindFilter(value as AssetLibraryKindFilter)}
+					/>
+					<AssetLibrarySelect
+						label="收藏"
+						value={favoriteFilter}
+						options={favoriteOptions}
+						onValueChange={(value) => setFavoriteFilter(value as AssetLibraryFavoriteFilter)}
 					/>
 					{projectMode ? (
 						<>
@@ -1078,6 +1118,9 @@ export const AssetLibraryWorkspace: React.FC<{
 				</div>
 				{showDetails ? (
 					<AssetLibraryPreview
+						onToggleFavorite={() =>
+							activeItem ? toggleFavorite(activeItem) : Promise.reject(new Error("请选择素材"))
+						}
 						onSaveMetadata={(payload) =>
 							activeItem
 								? saveMetadata(activeItem, payload)
@@ -1247,8 +1290,18 @@ const AssetLibraryPreview: React.FC<{
 	onDownload: () => void;
 	onRename: (filename: string) => Promise<boolean>;
 	onSaveMetadata: (payload: MediaAssetMetadataUpdate) => Promise<void>;
+	onToggleFavorite: () => Promise<void>;
 	folderActions?: React.ReactNode;
-}> = ({ busy, item, onDelete, onDownload, onRename, onSaveMetadata, folderActions }) => {
+}> = ({
+	busy,
+	item,
+	onDelete,
+	onDownload,
+	onRename,
+	onSaveMetadata,
+	onToggleFavorite,
+	folderActions,
+}) => {
 	const toast = useToast();
 	const [draftName, setDraftName] = useState<string | null>(null);
 	const source = item ? assetLibraryItemSource(item) : "";
@@ -1407,6 +1460,23 @@ const AssetLibraryPreview: React.FC<{
 						<span>重命名</span>
 					</Button>
 				) : null}
+				{item.mediaAsset ? (
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						className={cn(
+							"h-7 rounded-sm px-2 text-xs",
+							item.mediaAsset.favorite && "text-warning-foreground",
+						)}
+						disabled={busy}
+						aria-label={item.mediaAsset.favorite ? "取消收藏素材" : "收藏素材"}
+						onClick={() => void onToggleFavorite()}
+					>
+						<Star className={cn("size-3.5", item.mediaAsset.favorite && "fill-current")} />
+						<span>{item.mediaAsset.favorite ? "已收藏" : "收藏"}</span>
+					</Button>
+				) : null}
 				<Button
 					type="button"
 					size="sm"
@@ -1481,6 +1551,7 @@ const AssetLibraryPreview: React.FC<{
 					tags={item.mediaAsset.tags ?? []}
 					note={item.mediaAsset.note ?? ""}
 					rating={item.mediaAsset.rating ?? 0}
+					favorite={item.mediaAsset.favorite ?? false}
 					disabled={busy}
 					onSave={onSaveMetadata}
 				/>

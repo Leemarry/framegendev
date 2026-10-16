@@ -19,9 +19,21 @@ func TestLibraryMetadataUpdate(t *testing.T) {
 	if original.Tags == nil {
 		t.Fatal("upload tags must be an empty array, not null")
 	}
+	if original.Favorite {
+		t.Fatal("new media assets must not be favorited")
+	}
+	favorite := true
+	updated, ok, err := store.Update(original.ID, "", MediaAssetUpdateRequest{Favorite: &favorite})
+	if err != nil || !ok || !updated.Favorite {
+		t.Fatalf("favorite-only update: %#v, %v", updated, err)
+	}
+	reopened, ok, err := store.Get(original.ID)
+	if err != nil || !ok || !reopened.Favorite {
+		t.Fatalf("favorite did not persist: %#v, %v", reopened, err)
+	}
 	tags := []string{" 主角 ", "主角", "", "场景"}
 	note, rating := " 中文备注\n保留空白 ", 4
-	updated, ok, err := store.Update(original.ID, "", MediaAssetUpdateRequest{Tags: &tags, Note: &note, Rating: &rating})
+	updated, ok, err = store.Update(original.ID, "", MediaAssetUpdateRequest{Tags: &tags, Note: &note, Rating: &rating})
 	if err != nil || !ok {
 		t.Fatalf("update: %v, %v", ok, err)
 	}
@@ -35,6 +47,11 @@ func TestLibraryMetadataUpdate(t *testing.T) {
 	}
 	if updated.URL != original.URL || updated.FilePath != original.FilePath || updated.ContentHash != original.ContentHash {
 		t.Fatal("metadata changed content identity")
+	}
+	favorite = false
+	updated, ok, err = store.Update(original.ID, "", MediaAssetUpdateRequest{Favorite: &favorite})
+	if err != nil || !ok || updated.Favorite {
+		t.Fatalf("explicit favorite clear: %#v, %v", updated, err)
 	}
 	contents, err := os.ReadFile(original.FilePath)
 	if err != nil || string(contents) != "unchanged bytes" {

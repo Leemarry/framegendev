@@ -7,9 +7,36 @@ it("searches saved media tags and notes", () => {
 	const items = buildAssetLibraryItems({
 		mediaAssets: [mediaAsset({ tags: ["夜景"], note: "雨夜主角" })],
 	});
+
 	expect(filterAssetLibraryItems(items, { query: " 夜景 " })).toHaveLength(1);
 	expect(filterAssetLibraryItems(items, { query: "雨夜" })).toHaveLength(1);
 	expect(filterAssetLibraryItems(items, { query: "不存在" })).toHaveLength(0);
+});
+
+describe("asset-library favorites", () => {
+	it("filters persisted favorites and intersects other filters", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [
+				mediaAsset({ id: "favorite-image", favorite: true, kind: "image", rating: 5 }),
+				mediaAsset({ id: "favorite-audio", favorite: true, kind: "audio", rating: 1 }),
+				mediaAsset({ id: "plain-image", favorite: false, kind: "image", rating: 5 }),
+			],
+			selectedAssets: [selectedAsset({ id: "selected-only", url: "/selected-only" })],
+		});
+		expect(
+			filterAssetLibraryItems(items, { favorite: "favorite" })
+				.map((item) => item.id)
+				.sort(),
+		).toEqual(["favorite-audio", "favorite-image"]);
+		expect(
+			filterAssetLibraryItems(items, { favorite: "favorite", kind: "image", rating: "5" }).map(
+				(item) => item.id,
+			),
+		).toEqual(["favorite-image"]);
+		expect(
+			filterAssetLibraryItems(items, { favorite: "favorite", source: "selected" }),
+		).toHaveLength(0);
+	});
 });
 import {
 	buildAssetLibraryItems,

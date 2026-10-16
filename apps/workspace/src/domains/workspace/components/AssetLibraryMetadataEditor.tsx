@@ -7,6 +7,7 @@ export function AssetLibraryMetadataEditor({
 	tags,
 	note,
 	rating,
+	favorite = false,
 	disabled = false,
 	onSave,
 }: MediaAssetMetadataUpdate & {
@@ -38,6 +39,10 @@ export function AssetLibraryMetadataEditor({
 					<div>
 						<dt className="text-muted-foreground">评分</dt>
 						<dd className="mt-1">{rating ? `${rating} / 5` : "未评分"}</dd>
+					</div>
+					<div>
+						<dt className="text-muted-foreground">收藏</dt>
+						<dd className="mt-1">{favorite ? "已收藏" : "未收藏"}</dd>
 					</div>
 				</dl>
 				<Button

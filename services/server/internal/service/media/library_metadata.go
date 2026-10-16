@@ -85,6 +85,9 @@ func (store *MediaAssets) Update(id string, projectID string, payload MediaAsset
 		}
 		updates["rating"] = *payload.Rating
 	}
+	if payload.Favorite != nil {
+		updates["favorite"] = *payload.Favorite
+	}
 	if payload.FolderID != nil {
 		folderID := strings.TrimSpace(*payload.FolderID)
 		if folderID != "" {

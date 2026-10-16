@@ -24,6 +24,7 @@ export type AssetLibrarySort =
 	| "nameAsc"
 	| "sizeDesc";
 export type AssetLibraryRatingFilter = "all" | "rated" | "1" | "2" | "3" | "4" | "5";
+export type AssetLibraryFavoriteFilter = "all" | "favorite";
 
 export interface AssetLibraryItem {
 	createdAt: string;
@@ -54,6 +55,7 @@ export interface FilterAssetLibraryItemsOptions {
 	provenance?: AssetLibraryProvenanceFilter;
 	query?: string;
 	rating?: AssetLibraryRatingFilter;
+	favorite?: AssetLibraryFavoriteFilter;
 	resourceType?: AssetLibraryResourceFilter;
 	sort?: AssetLibrarySort;
 	source?: AssetLibrarySourceFilter;
@@ -142,6 +144,7 @@ export const filterAssetLibraryItems = (
 		provenance = "all",
 		query = "",
 		rating = "all",
+		favorite = "all",
 		resourceType = "all",
 		sort = "updatedDesc",
 		source = "all",
@@ -153,6 +156,7 @@ export const filterAssetLibraryItems = (
 	const normalizedTag = tag.trim().toLowerCase();
 	const minRating = rating === "all" || rating === "rated" ? 0 : Number(rating);
 	const filtered = items.filter((item) => {
+		if (favorite === "favorite" && !item.mediaAsset?.favorite) return false;
 		if (usage !== "all") {
 			const known =
 				item.mediaAsset?.usage ??

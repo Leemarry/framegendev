@@ -28,10 +28,10 @@ func TestLibraryMetadataMigrationAndReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 	before, err := repo.GetMediaAsset("legacy")
-	if err != nil || before.TagsJSON != "[]" || before.Note != "" || before.Rating != 0 || before.URL != "/stable" {
+	if err != nil || before.TagsJSON != "[]" || before.Note != "" || before.Rating != 0 || before.Favorite || before.URL != "/stable" {
 		t.Fatalf("migration: %#v %v", before, err)
 	}
-	if err := repo.UpdateMediaAssetMetadata("legacy", map[string]any{"tags_json": `["中文"]`, "note": "备注\n", "rating": 5}); err != nil {
+	if err := repo.UpdateMediaAssetMetadata("legacy", map[string]any{"tags_json": `["中文"]`, "note": "备注\n", "rating": 5, "favorite": true}); err != nil {
 		t.Fatal(err)
 	}
 	pool, err := db.DB()
@@ -47,14 +47,14 @@ func TestLibraryMetadataMigrationAndReopen(t *testing.T) {
 	}
 	testutil.CloseDB(t, reopened)
 	persisted, err := NewMediaAssetRepositoryFromDB(reopened).GetMediaAsset("legacy")
-	if err != nil || persisted.TagsJSON != `["中文"]` || persisted.Note != "备注\n" || persisted.Rating != 5 || persisted.RelPath != before.RelPath || persisted.URL != before.URL {
+	if err != nil || persisted.TagsJSON != `["中文"]` || persisted.Note != "备注\n" || persisted.Rating != 5 || !persisted.Favorite || persisted.RelPath != before.RelPath || persisted.URL != before.URL {
 		t.Fatalf("reopen: %#v %v", persisted, err)
 	}
-	if err := reopened.Model(&domain.AssetModel{}).Where("id = ?", "legacy").Updates(map[string]any{"tags_json": "[]", "note": "", "rating": 0}).Error; err != nil {
+	if err := reopened.Model(&domain.AssetModel{}).Where("id = ?", "legacy").Updates(map[string]any{"tags_json": "[]", "note": "", "rating": 0, "favorite": false}).Error; err != nil {
 		t.Fatal(err)
 	}
 	cleared, err := NewMediaAssetRepositoryFromDB(reopened).GetMediaAsset("legacy")
-	if err != nil || cleared.TagsJSON != "[]" || cleared.Note != "" || cleared.Rating != 0 {
+	if err != nil || cleared.TagsJSON != "[]" || cleared.Note != "" || cleared.Rating != 0 || cleared.Favorite {
 		t.Fatalf("clear: %#v %v", cleared, err)
 	}
 }
