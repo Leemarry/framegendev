@@ -4,7 +4,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
+- **Total Sessions**: 8
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -13,7 +13,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~199 | Active |
+| `journal-1.md` | ~222 | Active |
 <!-- @@@/auto:active-documents -->
 
 ## Session History
@@ -21,6 +21,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-10-16 | Accept native windows after takeover | `ce27bde`, `354ce3f` | `codex/parity-s2` |
 | 7 | 2026-10-16 | Update panel failure recovery accepted | `44e3fce` | `codex/parity-s2` |
 | 6 | 2026-10-16 | Native project windows awaiting restart recovery | `8ccef8b` | `codex/parity-s2` |
 | 5 | 2026-10-16 | Project settings open exact native folder | `9b46896` | `codex/parity-s2` |

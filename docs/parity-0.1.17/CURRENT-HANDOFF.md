@@ -33,7 +33,7 @@
 ### 会话2已执行接管（2026-10-16）
 
 - 会话2原工作树干净，已将主目录 `fd1c71a` 合入 `codex/parity-s2`，合并提交 `ce27bde`。唯一冲突为 desktop/actions.test.ts，保留两侧测试；桌面动作/旧窗口恢复/冲突面板/状态同步四文件20测试通过，lint、Electron compile和TypeScript/Vite build通过。主目录尚未纳入本轮新窗口功能。
-- TASK-062原生新窗口子项已完成独立验收：同profile完整退出重启发现3份草稿、选择/取消/402字节下载/读取失败重试/显式暂停载入/reload/已有dirty拒绝均通过，来源字节和完整服务器正文历史不变；最新加载失败销毁/重试、关闭root存活、项目隔离及390px深浅和完整原生截图通过。12文件91测试及前端门通过，详见s2-project-windows/result.md和evidence。下一项TASK-090，打包单sidecar/通知点击/文件picker仍不宣称完成；项目流转也未完成。
+- TASK-062原生新窗口子项已完成独立验收：同profile完整退出重启发现3份草稿、选择/取消/402字节下载/读取失败重试/显式暂停载入/reload/已有dirty拒绝均通过，来源字节和完整服务器正文历史不变；最新加载失败销毁/重试、关闭root存活、项目隔离及390px深浅和完整原生截图通过。12文件91测试及前端门通过，详见`.trellis/tasks/archive/2026-10/10-16-s2-project-windows/result.md`和evidence（验收354ce3f）。下一项TASK-090，打包单sidecar/通知点击/文件picker仍不宣称完成；项目流转也未完成。
 - 31452/31453、CDP9245初查无监听，已启动自己最新版server-takeover.exe及Vite/Electron；数据仍在session-2/.cache/parity/s2-settings与s2-desktop-dev，未操作会话1或主目录实例。后续按上表单项推进，每项完成后提交结果与真实证据。
 
 ## 任务与协作（历史双会话约定，归属以本页最新接管约定为准）

@@ -197,3 +197,26 @@ Accepted TASK-090 failure-recovery slice only; metadata loading/error/retry and 
 ### Next Steps
 
 - Native windows8ccef8b remains blocked on session1 old-window recovery discovery; transfer/storage contracts dbf28fa and external runtime/commercial protocols remain pending.
+
+
+## Session 8: Accept native windows after takeover
+<!-- trellis-session: v=2 fp=ede48f03e6a03f6e -->
+
+**Date**: 2026-10-16
+**Task**: Accept native windows after takeover
+**Branch**: `codex/parity-s2`
+
+### Summary
+
+Merged fd1c71a; native full app restart discovers three preserved drafts. Actual preview cancel download failed-read retry paused staging reload isolation load-failure retry passed. 12 files 91 tests lint LF format build Electron compile passed. Next TASK-090.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ce27bde` | chore(parity): take over integrated baseline for remaining work |
+| `354ce3f` | test(projects): accept native restart draft recovery and window isolation |
+
+### Status
+
+[OK] **Completed**
