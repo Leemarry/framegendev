@@ -76,15 +76,21 @@ export const GenerationModalShell: React.FC<{
 						contentClassName,
 					)}
 				>
-					<header className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
-						<div className="flex min-w-0 items-center gap-3">
-							<DialogPrimitive.Title className="min-w-0 truncate text-sm font-semibold text-foreground">
+					<header className="flex shrink-0 items-start justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:items-center">
+						<div className="flex min-w-0 flex-1 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+							<DialogPrimitive.Title className="min-w-0 max-w-full [overflow-wrap:anywhere] text-sm font-semibold text-foreground sm:truncate">
 								{title}
 							</DialogPrimitive.Title>
-							{titleAside ? <div className="shrink-0">{titleAside}</div> : null}
+							{titleAside ? <div className="max-w-full shrink-0">{titleAside}</div> : null}
 						</div>
 						<DialogClose asChild>
-							<Button type="button" variant="ghost" size="icon" aria-label="关闭弹窗">
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="shrink-0"
+								aria-label="关闭弹窗"
+							>
 								<X />
 							</Button>
 						</DialogClose>
