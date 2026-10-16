@@ -252,6 +252,55 @@ const folder = (id: string, name: string, parentId = ""): AssetLibraryFolder => 
 });
 
 describe("material folder workflows", () => {
+	it("includes nested assets from the root only when enabled", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [folder("child", "Child")] });
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [{ ...asset("nested", "nested.png", "2026-10-16T00:00:00Z"), folderId: "child" }],
+		});
+		mount();
+		await screen.findByRole("button", { name: "打开文件夹 Child" });
+		expect(screen.queryByRole("button", { name: "预览 nested.png" })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.click(screen.getByRole("checkbox", { name: "包含子文件夹" }));
+		expect(screen.getByRole("button", { name: "预览 nested.png" })).toBeInTheDocument();
+	});
+
+	it("includes descendants on request while excluding siblings and foreign scope", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({
+			folders: [
+				folder("parent", "Parent"),
+				folder("child", "Child", "parent"),
+				folder("deep", "Deep", "child"),
+				folder("sibling", "Sibling"),
+			],
+		});
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				{ ...asset("direct", "direct.png", "2026-10-16T00:00:00Z"), folderId: "parent" },
+				{ ...asset("nested", "nested.png", "2026-10-16T00:00:00Z"), folderId: "child" },
+				{ ...asset("deep", "deep.png", "2026-10-16T00:00:00Z"), folderId: "deep" },
+				{ ...asset("sibling", "sibling.png", "2026-10-16T00:00:00Z"), folderId: "sibling" },
+				{
+					...asset("foreign", "foreign.png", "2026-10-16T00:00:00Z"),
+					projectId: "",
+					folderId: "child",
+				},
+			],
+		});
+		mount(undefined, "?projectId=project-a&folderId=parent");
+		await screen.findByRole("button", { name: "预览 direct.png" });
+		expect(screen.queryByRole("button", { name: "预览 nested.png" })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.click(screen.getByRole("checkbox", { name: "包含子文件夹" }));
+		expect(screen.getByRole("button", { name: "预览 nested.png" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "预览 deep.png" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "预览 sibling.png" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "预览 foreign.png" })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("checkbox", { name: "包含子文件夹" }));
+		expect(screen.queryByRole("button", { name: "预览 deep.png" })).not.toBeInTheDocument();
+		expect(updateMediaAssetFields).not.toHaveBeenCalled();
+	});
+
 	beforeEach(() => {
 		for (const method of [
 			"hasPointerCapture",

@@ -72,3 +72,9 @@ filters. Full-text search still includes notes and filenames. Filter text is loc
 view state, cleared on scope/open changes; filtering must never save metadata.
 Keep unknown tags nonmatching and failure states free of cached actions. Verify
 saved tags separately from filter preference persistence after reload/restart.
+
+Include-subfolders is local page state using the existing cycle-safe folder path;
+retain direct-folder defaults and reject foreign scope before descendant matching.
+Keep immediate child navigation. Filter popup height follows Radix available
+height with scrolling and collision padding so all controls remain reachable at
+390x480; inspect both the top checkbox and bottom tag field after scrolling.

@@ -216,6 +216,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
 	const [query, setQuery] = useState("");
 	const [tagFilter, setTagFilter] = useState("");
+	const [includeSubfolders, setIncludeSubfolders] = useState(false);
 	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
@@ -280,16 +281,31 @@ export const AssetLibraryWorkspace: React.FC<{
 		[documentsData?.documents, mediaData?.assets, projectMode, selectedData?.assets],
 	);
 	const folderId = folderControls?.folderId || "";
+	const visibleFolderIds = useMemo(() => {
+		const ids = new Set([folderId]);
+		if (includeSubfolders && folderControls) {
+			for (const folder of folderControls.folders) {
+				if (
+					!folderId ||
+					libraryFolderPath(folderControls.folders, folder.id).some(
+						(entry) => entry.id === folderId,
+					)
+				)
+					ids.add(folder.id);
+			}
+		}
+		return ids;
+	}, [folderControls, folderId, includeSubfolders]);
 	const folderItems = useMemo(
 		() =>
 			folderControls
 				? items.filter((item) => {
 						const asset = item.mediaAsset;
 						if (!asset || (asset.projectId || "") !== selectedProjectId) return !folderId;
-						return (asset.folderId || "") === folderId;
+						return visibleFolderIds.has(asset.folderId || "");
 					})
 				: items,
-		[folderControls, folderId, items, selectedProjectId],
+		[folderControls, folderId, items, selectedProjectId, visibleFolderIds],
 	);
 	const folderPath = libraryFolderPath(folderControls?.folders ?? [], folderId);
 	const childFolders = (folderControls?.folders ?? []).filter(
@@ -349,6 +365,7 @@ export const AssetLibraryWorkspace: React.FC<{
 		setResourceFilter("all");
 		setRatingFilter("all");
 		setTagFilter("");
+		setIncludeSubfolders(false);
 		setActiveKey("");
 		setRefreshError(null);
 	}, [open, selectedProjectId]);
@@ -719,7 +736,22 @@ export const AssetLibraryWorkspace: React.FC<{
 								<SlidersHorizontal className="size-4" />
 							</Button>
 						</PopoverTrigger>
-						<PopoverContent className="grid w-64 gap-2" align="end">
+						<PopoverContent
+							className="grid max-h-[var(--radix-popover-content-available-height)] w-64 gap-2 overflow-y-auto"
+							align="end"
+							collisionPadding={16}
+						>
+							{folderControls ? (
+								<label className="flex items-center gap-2 text-xs text-muted-foreground">
+									<input
+										type="checkbox"
+										className="accent-primary"
+										checked={includeSubfolders}
+										onChange={(event) => setIncludeSubfolders(event.target.checked)}
+									/>
+									包含子文件夹
+								</label>
+							) : null}
 							<AssetLibrarySelect
 								label="类型"
 								value={kindFilter}

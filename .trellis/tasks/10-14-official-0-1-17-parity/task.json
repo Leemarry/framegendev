@@ -61,7 +61,8 @@
     "10-16-generation-modal-header",
     "10-16-local-adoption-roundtrip",
     "10-16-image-dimensions",
-    "10-16-asset-tag-filter"
+    "10-16-asset-tag-filter",
+    "10-16-asset-folder-descendants"
   ],
   "parent": null,
   "relatedFiles": [],
