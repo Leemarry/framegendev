@@ -1,5 +1,42 @@
 # Material Usage Filter
 
+## Session2 continuation, 2026-10-16
+
+The old browser blocker is resolved using Session2's own native Electron desktop,
+CDP9245, Vite31453/server31452, cache-only workspace. Fresh project
+project-2b6170b9c7c39c5b contains four actual PNGs, two local import tasks, one
+adoption and a Markdown reference (fenced example excluded). No provider sends.
+Actual clicks passed four statuses with exact asset IDs, tag intersection/clear,
+all reset and page reload reset. 390x480 light and390x680 dark selectors remain
+usable; screenshots are renderer captures, not full native window captures.
+
+Actual UI caught a production bug: explicit refresh omitted includeUsage and
+replaced the usage-enabled SWR cache with ordinary assets, leaving all filtered
+cards empty. The existing mock always returned usage and concealed this. It now
+models the optional API projection; both project/global tests failed before the
+fix and pass afterwards. Refresh now preserves includeUsage. Actual same-filter
+blocked usage read shows failure/zero cards, then unblocking/retry restores the
+correct unused card. Complete fixture documents/versions/history/media/tasks/
+conversations/adoption plus four content hashes remain unchanged after checks.
+
+Checks:3 frontend files66tests pass (46+20), lint0 warnings/errors, TypeScript/Vite
+build and Electron compile pass. Full LF verification copy passes711files; initial
+test-file formatting failure fixed only in that file. Backend code unchanged;
+prior accepted Windows gates remain applicable. No new whole-suite run.
+
+Failures retained: first blocked URL pattern revealed the refresh omission;
+subsequent cached empty list was the same bug. A helper used the wrong option
+label and stale AX state; retry used current AX. System-theme emulation did not
+override saved light preference; final dark screenshot uses the real settings
+label and confirms dark class. Initial light captures named dark remain cache
+diagnostics, not dark evidence. An API test path supplied to Vitest did not exist;
+actual executed files were2/46, followed by AssetLibraryButton20 (total3/66).
+
+Following the user's request to prioritize functionality, no further elaborate
+restart matrix is added here. Prior backend restart records remain historical;
+this latest frontend fix's integrated production smoke check remains pending.
+Keep task unarchived until that check; overall TASK030 remains open for other work.
+
 Implementation uses optional includeUsage=true on both existing media list routes,
 an additive usage projection, existing indexed relationships and document image
 parser. Default responses, schema, persistence and external generation are unchanged.

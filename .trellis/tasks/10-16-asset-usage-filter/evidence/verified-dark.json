@@ -1,0 +1,14 @@
+{
+  "page": {
+    "url": "http://127.0.0.1:31453/assets?projectId=project-2b6170b9c7c39c5b",
+    "title": "🐴 MediaGo Drama",
+    "w": 390,
+    "h": 680,
+    "sx": 0,
+    "sy": 0,
+    "pw": 390,
+    "ph": 680
+  },
+  "theme": "is-desktop is-electron dark",
+  "cards": 1
+}

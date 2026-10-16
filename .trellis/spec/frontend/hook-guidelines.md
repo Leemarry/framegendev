@@ -20,6 +20,10 @@ success. SWR bound `mutate()` revalidation can retain cached data after a reject
 fetch; it is not a successful-read acknowledgement. The asset library fetches its
 sources, then populates the existing keys with `revalidate: false`. Loading or
 failed aggregate reads suppress cached preview and keyboard mutation targets.
+Explicit refresh reads must preserve the bound key's projection parameters
+(for example `includeUsage`); a default list response cannot populate a usage key.
+API mocks must omit optional projections when not requested so retry tests catch
+this mismatch instead of always returning enriched fixtures.
 Native NLE media graphs must survive React StrictMode effect reconnection: a media
 element can have only one MediaElementSourceNode, even after its context closes.
 Reuse the graph for the same element and defer final cleanup across reconnection.

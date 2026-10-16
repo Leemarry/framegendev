@@ -13,3 +13,13 @@
    run relevant checks and real UI/restart plus protected fixture comparisons.
 6. Record source/main evidence, limits and ownership; archive only passing item,
    journal --no-commit and explicit acceptance commit; sync to source then next.
+
+## Session2 acceptance correction
+
+Native nonempty UI exposed refresh dropping includeUsage and populating the usage
+SWR key with unprojected media. Change only AssetLibraryButton.tsx's explicit
+refresh read and AssetLibrary.test.tsx's project/global regression. The regression
+must return usage only when requested, matching the real API. Preserve existing
+scan/error guards and default all reads; no backend/schema or filter semantics
+change. Verify failure/retry in the same usage state, narrow themes, page/backend
+restart and full fixture snapshots/hashes before integration.

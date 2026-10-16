@@ -266,7 +266,9 @@ describe("material folder workflows", () => {
 					usage: { selected: false, candidate: false, reference: false },
 				},
 			];
-			vi.mocked(getMediaAssets).mockResolvedValue({ assets });
+			vi.mocked(getMediaAssets).mockImplementation(async (filters) => ({
+				assets: filters?.includeUsage ? assets : assets.map(({ usage: _usage, ...asset }) => asset),
+			}));
 			mount(undefined, scope);
 			await screen.findByRole("button", { name: "预览 free.png" });
 			expect(

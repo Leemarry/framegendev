@@ -625,7 +625,10 @@ export const AssetLibraryWorkspace: React.FC<{
 		try {
 			const result = await scanMediaAssets(mediaProjectId || undefined);
 			const [media, selected, documents] = await Promise.all([
-				getMediaAssets({ projectId: mediaProjectId || undefined }),
+				getMediaAssets({
+					projectId: mediaProjectId || undefined,
+					...(includeUsage ? { includeUsage: true } : {}),
+				}),
 				projectMode ? getSelectedGenerationAssets(selectedProjectId) : undefined,
 				projectMode ? getWorkspaceDocuments(selectedProjectId) : undefined,
 				...(folderControls ? [folderControls.onRefresh()] : []),
