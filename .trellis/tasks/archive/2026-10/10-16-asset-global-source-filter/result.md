@@ -23,8 +23,21 @@ records and actual hash plus protected nested folders/media/documents/full body/
 versions/history/import tasks/four hashes and saved tag fixture records/hash
 remain identical. Screenshots/cache: .cache/parity/task-030-global-source/.
 
-Source acceptance complete; main integration/production validation pending.
+Source9cc101c integrated as mainb514f6b. Main 3 files / 52 tests, lint, full708
+canonical format/build/Electron compile and embedded Windows build pass. Actual
+main production controls repeat 1 -> selected0 -> media1, blocked0/retry1,
+clear1, 390x480 and page/backend restart. First restart probe's fixed0.7s wait
+was premature; waiting for the actual card passes, with original failure kept.
+Complete global media/hash and protected nested/tag fixtures pass after restart;
+the independent confirmed adoption fixture also retains full documents/history/
+tasks/selection/resolved episode/media hash. Main31456 runs
+mediago-server-global-source.exe; cache/screenshots use the same task path in main.
+
 Reuse accepted dimensions-backend Windows check/race/build on unchanged backend.
 No full-suite rerun claim beyond prior main b6aa54e 237 files / 1591 tests.
 Native Edge process restart remains unverified; this tests page/backend restart
 through owned parity-s1-local browser. Session2 still 617a80d.
+Next independent item is TASK150 local production combination acceptance through
+existing document/import/adoption/NLE/export functionality. External generation,
+Agent and native Jianying remain pending; favorite/trash/usage/details and the
+media-list200 pagination ceiling remain open.

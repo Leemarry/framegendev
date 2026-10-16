@@ -58,6 +58,8 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 22. TASK-030目录/全部范围`eb7d272`→主`c1de8a9`已验收：全部复用当前scope数据跨目录显示、保留上传目录，侧栏导航回目录模式。源主实际全部5/标签0/失败0重试5/子目录1、390×480及页面后端重启完整记录与四hash通过；主3文件51测试/前端门/full708format/Electron/嵌入构建通过，见asset-browse-scope归档。主31456运行`mediago-server-browse-scope.exe`。既有后端列表上限200保留为分页差距，不宣称大库完整覆盖。下一项修复全局页来源筛选被projectMode忽略的实证缺陷；收藏/回收站/使用状态/其余详情及030/080/150整体未完成，会话2仍617a80d。
 
+23. TASK-030全局来源筛选`9cc101c`→主`b514f6b`已验收：移除调用方projectMode忽略条件，保留media/selected既有语义与全局不取项目采用契约；源主实际1→selected0→media1、失败0/重试1/清空1、390×480及页面后端重启完整记录/hash通过。主3文件52测试/前端门/full708format/Electron/嵌入Windows构建通过，见asset-global-source-filter归档。主31456运行`mediago-server-global-source.exe`；独立confirmed采用fixture亦保持完整文档历史任务/解析章节/hash。脚本AX过早及重启固定等待过短的失败保留；浏览器进程本身重启未验收。下一项TASK-150本地制作组合验收，复用现有文档/本地导入/采用/NLE/导出；外部生成/Agent和原生剪映、收藏/回收站/使用状态/详情/大库分页仍未完成。会话2仍617a80d。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |

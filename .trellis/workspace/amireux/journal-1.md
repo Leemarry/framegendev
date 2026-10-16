@@ -1674,3 +1674,38 @@ Scoped directory/all view accepted in source/main production with real nested fi
 ### Next Steps
 
 - Fix confirmed global source filter no-op; retain pagination and other remaining parity gaps.
+
+
+## Session 57: Global library source filter acceptance
+<!-- trellis-session: v=2 fp=ae85bf163e14ac31 -->
+
+**Date**: 2026-10-16
+**Task**: Global library source filter acceptance
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Source and integrated production filter/retry/reopen workflows pass; complete records and hashes preserved.
+
+### Main Changes
+
+- Apply visible source filter globally without fetching project adoptions.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b514f6b` | fix(media): apply source filter in global library |
+
+### Testing
+
+- [OK] Source/main 52 tests, lint/full708 format/build/Electron, embedded Windows build, actual 390x480 and page/backend restart pass.
+- [OK] Preserve AX-transition and premature fixed-wait failures; browser process restart and external/native checks remain unrun.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK150 local production combination acceptance using existing local imports/adoption/NLE/export.

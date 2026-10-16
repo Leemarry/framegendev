@@ -14,11 +14,11 @@ Make the displayed global source filter actually apply existing media/selected s
 
 ## Acceptance Criteria
 
-- [ ] Page regression proves global selected hides physical-only assets and media
+- [x] Page regression proves global selected hides physical-only assets and media
       restores them without project adoption requests or metadata writes.
-- [ ] Actual global source/main filter, failure/retry/clear and page/backend reopen
+- [x] Actual global source/main filter, failure/retry/clear and page/backend reopen
       preserve full media/document/history/task records and hashes.
-- [ ] Relevant frontend gates and embedded main build pass.
+- [x] Relevant frontend gates and embedded main build pass.
 
 ## Plan
 
