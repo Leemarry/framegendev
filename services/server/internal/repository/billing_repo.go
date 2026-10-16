@@ -53,6 +53,7 @@ func (repo *BillingRepository) ListUsageBuckets(query UsageQuery) ([]UsageBucket
 	rows := []UsageBucketRow{}
 	clauses := []string{
 		"LOWER(TRIM(status)) IN ('completed', 'succeeded', 'success')",
+		"LOWER(TRIM(COALESCE(provider, ''))) <> 'media-library'",
 	}
 	args := []any{}
 	if start := strings.TrimSpace(query.Start); start != "" {

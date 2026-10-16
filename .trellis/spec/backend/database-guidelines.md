@@ -13,6 +13,12 @@ SQLite; follow their helpers rather than require an unrelated Docker DB.
 New persistence needs save/reopen coverage and legacy migration checks where
 applicable. Never inspect, migrate or clean production `workspace-v2`.
 
+BillingRepository.ListUsageBuckets excludes the internal media-library provider
+before grouping: local image/video imports retain completed history records but
+are not provider calls or billable usage. Do not filter all zero-token tasks:
+real image/video provider routes may charge per call. Keep the same predicate for
+global/project/kind/range summaries; reads must not alter retained task records.
+
 Generation media download paths are read projections, not stored relocation data.
 App wiring supplies GenerationTaskPaths with its WorkspaceRoot and MediaDir to
 GenerationTaskService. All task and selected-asset projections must forward these
