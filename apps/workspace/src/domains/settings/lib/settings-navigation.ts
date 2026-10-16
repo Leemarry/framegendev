@@ -9,7 +9,6 @@ import {
 	HardDrive,
 	Keyboard,
 	KeyRound,
-	Network,
 	PackageOpen,
 	SlidersHorizontal,
 	Sparkles,
@@ -47,12 +46,6 @@ export const pendingSettingsPages = {
 		status: "待开发",
 		task: "TASK-120",
 		description: "生成引擎的安装目录与安装管理尚未实现。不会自动下载或安装运行时。",
-	},
-	"model-access": {
-		title: "模型接入",
-		status: "待评审",
-		task: "TASK-010",
-		description: "模型接入整合方案仍待评审，已有 API 密钥与 Codex 接入可继续使用。",
 	},
 	extensions: {
 		title: "Agent 扩展",
@@ -111,11 +104,6 @@ export const officialSettingsGroups = [
 			{ value: "drami-motion", label: "Drami 动效", icon: Sparkles },
 		],
 	},
-];
-
-export const existingModelSettingsLinks = [
-	{ value: "api-keys", label: "API 密钥", icon: KeyRound },
-	{ value: "codex-access", label: "Codex 接入", icon: Network },
 ];
 
 export const existingExtensionSettingsLinks = [

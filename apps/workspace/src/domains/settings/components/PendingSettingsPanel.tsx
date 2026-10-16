@@ -2,27 +2,15 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { useSettingsNavigationStore } from "@/lib/stores/settings";
 import {
-	existingModelSettingsLinks,
 	existingExtensionSettingsLinks,
 	pendingSettingsPages,
 	type PendingSettingsTab,
 } from "../lib/settings-navigation";
 import { SettingsPanelLayout } from "./SettingsPanelLayout";
 
-export function PendingSettingsPanel({
-	tab,
-	isCodexActive,
-}: {
-	tab: PendingSettingsTab;
-	isCodexActive: boolean;
-}) {
+export function PendingSettingsPanel({ tab }: { tab: PendingSettingsTab }) {
 	const page = pendingSettingsPages[tab];
-	const existingLinks =
-		tab === "model-access"
-			? existingModelSettingsLinks
-			: tab === "extensions"
-				? existingExtensionSettingsLinks
-				: [];
+	const existingLinks = tab === "extensions" ? existingExtensionSettingsLinks : [];
 	const setActiveTab = useSettingsNavigationStore((state) => state.setActiveTab);
 	return (
 		<SettingsPanelLayout title={page.title}>
@@ -34,15 +22,13 @@ export function PendingSettingsPanel({
 				<p className="text-sm leading-6 text-muted-foreground">{page.description}</p>
 				{existingLinks.length > 0 ? (
 					<div className="flex flex-wrap gap-2">
-						{existingLinks
-							.filter((link) => link.value !== "codex-access" || isCodexActive)
-							.map((link) => (
-								<Button key={link.value} variant="outline" onClick={() => setActiveTab(link.value)}>
-									<link.icon />
-									{link.label}
-									<ArrowRight />
-								</Button>
-							))}
+						{existingLinks.map((link) => (
+							<Button key={link.value} variant="outline" onClick={() => setActiveTab(link.value)}>
+								<link.icon />
+								{link.label}
+								<ArrowRight />
+							</Button>
+						))}
 					</div>
 				) : null}
 			</div>

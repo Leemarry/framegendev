@@ -63,12 +63,18 @@ export interface CodexOfficialChannel {
 
 interface CodexRelayPanelProps {
 	description?: React.ReactNode;
+	/**
+	 * 嵌入到「模型接入」整合页时为 true：不渲染整页 SettingsPanelLayout，
+	 * 只输出区块标题与卡片内容，由外层 ModelAccessPanel 提供唯一整页容器。
+	 */
+	embedded?: boolean;
 	officialChannel?: CodexOfficialChannel;
 	title?: React.ReactNode;
 }
 
 export const CodexRelayPanel: React.FC<CodexRelayPanelProps> = ({
 	description = "配置 Codex ACP 请求使用的本地中转代理。",
+	embedded = false,
 	officialChannel,
 	title = "Codex 中转",
 }) => {
@@ -333,6 +339,102 @@ export const CodexRelayPanel: React.FC<CodexRelayPanelProps> = ({
 		});
 	};
 
+	const addRelayButton = (
+		<Button
+			type="button"
+			variant="outline"
+			className="rounded-md"
+			disabled={busy !== ""}
+			onClick={openNewProfile}
+		>
+			<Plus />
+			<span>新增中转</span>
+		</Button>
+	);
+
+	const body = (
+		<div className="w-full space-y-3">
+			{officialChannel ? (
+				<OfficialChannelCard
+					active={!enabled}
+					channel={officialChannel}
+					disabled={busy !== ""}
+					onActivate={activateOfficialChannel}
+				/>
+			) : null}
+
+			{isLoading && profiles.length === 0 ? (
+				<div className="flex items-center justify-center gap-2 rounded-md border border-border py-10 text-sm text-muted-foreground">
+					<Loader2 className="size-4 animate-spin" />
+					<span>正在读取中转渠道</span>
+				</div>
+			) : null}
+
+			{profiles.map((profile) => (
+				<RelayChannelCard
+					key={profile.id}
+					active={enabled && activeProfileID === profile.id}
+					busy={busy}
+					profile={profile}
+					onActivate={() => void activateRelayProfile(profile)}
+					onDelete={() => confirmRemoveProfile(profile)}
+					onEdit={() => openProfileEditor(profile)}
+					onTest={() => void testConnectivity(profile)}
+				/>
+			))}
+
+			{!isLoading && profiles.length === 0 ? (
+				<button
+					type="button"
+					className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border px-4 py-8 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+					onClick={openNewProfile}
+				>
+					<Plus className="size-4" />
+					新增第一个中转渠道
+				</button>
+			) : null}
+		</div>
+	);
+
+	const editDialog = (
+		<RelayProfileEditDialog
+			apiKey={profileAPIKey}
+			busy={busy}
+			draft={profileDraft}
+			onAPIKeyChange={setProfileAPIKey}
+			onClearAPIKey={confirmClearAPIKey}
+			onDraftChange={setProfileDraft}
+			onOpenChange={(open) => {
+				setProfileDialogOpen(open);
+				if (!open) {
+					setProfileDraft(undefined);
+					setProfileAPIKey("");
+				}
+			}}
+			onSave={() => void saveProfile()}
+			open={profileDialogOpen}
+			isExisting={Boolean(
+				profileDraft && profiles.some((profile) => profile.id === profileDraft.id),
+			)}
+		/>
+	);
+
+	if (embedded) {
+		return (
+			<section className="space-y-3" data-testid="codex-access-section">
+				<div className="flex flex-wrap items-start justify-between gap-2">
+					<div className="min-w-0">
+						<h3 className="text-sm font-semibold text-foreground">{title}</h3>
+						<p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+					</div>
+					{addRelayButton}
+				</div>
+				{body}
+				{editDialog}
+			</section>
+		);
+	}
+
 	return (
 		<SettingsPanelLayout
 			title={title}
@@ -346,81 +448,12 @@ export const CodexRelayPanel: React.FC<CodexRelayPanelProps> = ({
 						disabled={busy !== "" || isLoading}
 						onCheckedChange={(nextChecked) => void saveEnabled(nextChecked)}
 					/>
-					<Button
-						type="button"
-						variant="outline"
-						className="rounded-md"
-						disabled={busy !== ""}
-						onClick={openNewProfile}
-					>
-						<Plus />
-						<span>新增中转</span>
-					</Button>
+					{addRelayButton}
 				</>
 			}
 		>
-			<div className="mx-auto w-full max-w-5xl space-y-3">
-				{officialChannel ? (
-					<OfficialChannelCard
-						active={!enabled}
-						channel={officialChannel}
-						disabled={busy !== ""}
-						onActivate={activateOfficialChannel}
-					/>
-				) : null}
-
-				{isLoading && profiles.length === 0 ? (
-					<div className="flex items-center justify-center gap-2 rounded-md border border-border py-10 text-sm text-muted-foreground">
-						<Loader2 className="size-4 animate-spin" />
-						<span>正在读取中转渠道</span>
-					</div>
-				) : null}
-
-				{profiles.map((profile) => (
-					<RelayChannelCard
-						key={profile.id}
-						active={enabled && activeProfileID === profile.id}
-						busy={busy}
-						profile={profile}
-						onActivate={() => void activateRelayProfile(profile)}
-						onDelete={() => confirmRemoveProfile(profile)}
-						onEdit={() => openProfileEditor(profile)}
-						onTest={() => void testConnectivity(profile)}
-					/>
-				))}
-
-				{!isLoading && profiles.length === 0 ? (
-					<button
-						type="button"
-						className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border px-4 py-8 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
-						onClick={openNewProfile}
-					>
-						<Plus className="size-4" />
-						新增第一个中转渠道
-					</button>
-				) : null}
-			</div>
-
-			<RelayProfileEditDialog
-				apiKey={profileAPIKey}
-				busy={busy}
-				draft={profileDraft}
-				onAPIKeyChange={setProfileAPIKey}
-				onClearAPIKey={confirmClearAPIKey}
-				onDraftChange={setProfileDraft}
-				onOpenChange={(open) => {
-					setProfileDialogOpen(open);
-					if (!open) {
-						setProfileDraft(undefined);
-						setProfileAPIKey("");
-					}
-				}}
-				onSave={() => void saveProfile()}
-				open={profileDialogOpen}
-				isExisting={Boolean(
-					profileDraft && profiles.some((profile) => profile.id === profileDraft.id),
-				)}
-			/>
+			<div className="mx-auto w-full max-w-5xl">{body}</div>
+			{editDialog}
 		</SettingsPanelLayout>
 	);
 };

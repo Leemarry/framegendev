@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/useToast";
 import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import { openExternalUrl } from "@/shared/desktop/actions";
 
-export const CodexAccessPanel: React.FC = () => {
+export const CodexAccessPanel: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
 	const toast = useToast();
 	const { mutate: mutateGlobal } = useSWRConfig();
 	const {
@@ -139,6 +139,7 @@ export const CodexAccessPanel: React.FC = () => {
 
 	return (
 		<CodexRelayPanel
+			embedded={embedded}
 			title="Codex 接入"
 			description="选择 ChatGPT 官方订阅，或通过中转平台接入 Codex。"
 			officialChannel={{

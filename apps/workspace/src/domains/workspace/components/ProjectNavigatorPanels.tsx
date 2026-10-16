@@ -8,9 +8,7 @@ import {
 	File,
 	Film,
 	Image as ImageIcon,
-	KeyRound,
 	Loader2,
-	Network,
 	Settings,
 	SlidersHorizontal,
 	SquarePen,
@@ -620,14 +618,11 @@ const debugNavItem = (value: DebugTabValue): SettingsNavItem => {
 	return { value: tab.value, label: tab.label, icon: tab.icon };
 };
 
-const settingsNavGroups = (activeAgentBackendId = "codex"): SettingsNavGroup[] => {
+const settingsNavGroups = (): SettingsNavGroup[] => {
+	// API 密钥与 Codex 接入已并入「模型接入」整合页，不再作为独立侧边栏入口。
 	const generationItems: SettingsNavItem[] = [
-		{ value: "api-keys", label: "API 密钥", icon: KeyRound },
+		{ value: "codex-skills", label: "Codex 技能", icon: Blocks },
 	];
-	if (activeAgentBackendId === "codex") {
-		generationItems.push({ value: "codex-access", label: "Codex 接入", icon: Network });
-	}
-	generationItems.push({ value: "codex-skills", label: "Codex 技能", icon: Blocks });
 	generationItems.push(debugNavItem("instructions"));
 	return officialSettingsGroups.map((group) => ({
 		...group,
@@ -645,7 +640,6 @@ export const SettingsSidebarPanel: React.FC<{
 	onOpenGlobalSettings?: () => void;
 	onOpenSkills?: () => void;
 }> = ({
-	activeAgentBackendId,
 	activeTab,
 	isProjectSettings,
 	onBack,
@@ -697,7 +691,7 @@ export const SettingsSidebarPanel: React.FC<{
 			</button>
 
 			<div className="mt-2 min-h-0 flex-1 space-y-4 overflow-y-auto" aria-label="设置导航">
-				{settingsNavGroups(activeAgentBackendId).map((group) => (
+				{settingsNavGroups().map((group) => (
 					<section key={group.label} className="space-y-1">
 						<p className="px-2 text-2xs font-semibold text-muted-foreground">{group.label}</p>
 						{group.items.map((item) => {
