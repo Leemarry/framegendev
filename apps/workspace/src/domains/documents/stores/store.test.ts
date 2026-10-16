@@ -1281,7 +1281,7 @@ describe("documents store remote sync", () => {
 		expect(getWorkspaceDocuments).toHaveBeenCalledWith("project-a");
 	});
 
-	it("rolls back optimistic document operations when server persistence fails", async () => {
+	it("retains optimistic document operations when server persistence fails", async () => {
 		vi.mocked(updateWorkspaceState).mockRejectedValueOnce(new Error("network failed"));
 		useDocumentsStore
 			.getState()
@@ -1307,9 +1307,115 @@ describe("documents store remote sync", () => {
 		await Promise.resolve();
 
 		const state = useDocumentsStore.getState();
-		expect(state.documents[0]).toEqual(before);
-		expect(state.operationLog).toEqual([]);
+		expect(state.documents[0]?.content).toContain("追加内容");
+		expect(state.documents[0]?.version).toBe(before.version);
+		expect(state.documents[0]?.isDirty).toBe(true);
+		expect(state.documents[0]?.saveConflict).toBeDefined();
+		expect(state.operationLog).toHaveLength(1);
 		expect(state.syncStatus).toBe("error");
-		expect(state.syncMessage).toBe("后端保存文档操作失败");
+		expect(state.syncMessage).toBe("文档操作保存失败，自动保存已暂停，本地修改已保留");
+	});
+
+	it("keeps later typing and another document when a delayed comment save fails", async () => {
+		let rejectSave: (error: Error) => void = () => {};
+		vi.mocked(updateWorkspaceState).mockImplementationOnce(
+			() =>
+				new Promise((_, reject) => {
+					rejectSave = reject;
+				}),
+		);
+		useDocumentsStore
+			.getState()
+			.hydrateWorkspaceState(
+				[makeDocument("doc-a"), makeDocument("doc-b")],
+				[],
+				"/workspace/project-a",
+				"project-a",
+			);
+		useDocumentsStore.getState().addComment("doc-a", "doc-a", "Keep this comment");
+		useDocumentsStore.setState((state) => ({
+			documents: state.documents.map((document) => ({
+				...document,
+				content: `${document.content}later ${document.id}`,
+				isDirty: true,
+			})),
+			activeDocumentId: "doc-b",
+		}));
+		rejectSave(new Error("offline"));
+		await Promise.resolve();
+		await Promise.resolve();
+		const state = useDocumentsStore.getState();
+		expect(state.activeDocumentId).toBe("doc-b");
+		expect(state.documents[0].content).toContain("later doc-a");
+		expect(state.documents[0].comments[0].body).toBe("Keep this comment");
+		expect(state.documents[0].saveConflict).toBeDefined();
+		expect(state.documents[1].content).toContain("later doc-b");
+		expect(state.documents[1].isDirty).toBe(true);
+	});
+
+	it("retains the undone comment state and later typing when undo persistence fails", async () => {
+		const document = makeDocument("doc-a");
+		document.comments = [
+			{
+				id: "comment",
+				body: "Saved comment",
+				anchorText: "doc-a",
+				anchor: createTextAnchor(document.content, "doc-a"),
+				createdAt: "2026-10-16",
+				resolved: false,
+			},
+		];
+		useDocumentsStore
+			.getState()
+			.hydrateWorkspaceState([document], [makeLogEntry("doc-a")], "/workspace/a", "project-a");
+		let rejectSave: (error: Error) => void = () => {};
+		vi.mocked(updateWorkspaceState).mockImplementationOnce(
+			() =>
+				new Promise((_, reject) => {
+					rejectSave = reject;
+				}),
+		);
+		expect(useDocumentsStore.getState().undoLastOperation("doc-a")).toBe(true);
+		useDocumentsStore.setState((state) => ({
+			documents: state.documents.map((document) => ({
+				...document,
+				content: `${document.content}Later typing`,
+				isDirty: true,
+			})),
+		}));
+		rejectSave(new Error("offline undo"));
+		await Promise.resolve();
+		await Promise.resolve();
+		const state = useDocumentsStore.getState();
+		expect(state.documents[0].comments).toEqual([]);
+		expect(state.documents[0].content).toContain("Later typing");
+		expect(state.documents[0].saveConflict).toBeDefined();
+		expect(state.operationLog[0].undoneAt).toBeDefined();
+		expect(state.syncMessage).toBe("撤销保存失败，自动保存已暂停，本地修改已保留");
+	});
+
+	it("does not restore the old project when a pending comment write rejects after navigation", async () => {
+		let rejectSave: (error: Error) => void = () => {};
+		vi.mocked(updateWorkspaceState).mockImplementationOnce(
+			() =>
+				new Promise((_, reject) => {
+					rejectSave = reject;
+				}),
+		);
+		useDocumentsStore
+			.getState()
+			.hydrateWorkspaceState([makeDocument("doc-a")], [], "/workspace/a", "project-a");
+		useDocumentsStore.getState().addComment("doc-a", "doc-a", "Pending A");
+		useDocumentsStore
+			.getState()
+			.hydrateWorkspaceState([makeDocument("doc-b")], [], "/workspace/b", "project-b");
+		rejectSave(new Error("late offline"));
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(useDocumentsStore.getState().projectId).toBe("project-b");
+		expect(useDocumentsStore.getState().documents.map((document) => document.id)).toEqual([
+			"doc-b",
+		]);
+		expect(useDocumentsStore.getState().documents[0].saveConflict).toBeUndefined();
 	});
 });

@@ -19,10 +19,9 @@ export const persistDocumentRecovery = (projectId: string, documents: MarkdownDo
 	else localStorage.removeItem(key);
 };
 
-const readRecovery = (projectId: string | null): MarkdownDocument[] => {
-	if (!projectId) return [];
+const readRecoveryAtKey = (key: string): MarkdownDocument[] => {
 	try {
-		const raw: unknown = JSON.parse(localStorage.getItem(recoveryKey(projectId)) ?? "[]");
+		const raw: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
 		if (!Array.isArray(raw)) return [];
 		return raw.filter((draft): draft is MarkdownDocument => {
 			if (!draft || typeof draft !== "object") return false;
@@ -53,6 +52,35 @@ const readRecovery = (projectId: string | null): MarkdownDocument[] => {
 	} catch {
 		return [];
 	}
+};
+
+const readRecovery = (projectId: string | null): MarkdownDocument[] =>
+	projectId ? readRecoveryAtKey(recoveryKey(projectId)) : [];
+
+export interface DocumentRecoveryDraft {
+	key: string;
+	windowId: string;
+	projectId: string;
+	document: MarkdownDocument;
+}
+
+/** Other windows may still be alive: discovery never adopts or removes their work. */
+export const listOtherWindowRecoveries = (projectId: string): DocumentRecoveryDraft[] => {
+	const ownKey = recoveryKey(projectId);
+	const suffix = `:${projectId}`;
+	const result: DocumentRecoveryDraft[] = [];
+	for (let index = 0; index < localStorage.length; index += 1) {
+		const key = localStorage.key(index);
+		if (!key || key === ownKey || !key.startsWith(`${prefix}:`) || !key.endsWith(suffix)) continue;
+		const windowId = key.slice(prefix.length + 1, -suffix.length);
+		if (!windowId || windowId.includes(":")) continue;
+		for (const document of readRecoveryAtKey(key)) {
+			if (document.isDirty === true) result.push({ key, windowId, projectId, document });
+		}
+	}
+	return result.sort((left, right) =>
+		right.document.updatedAt.localeCompare(left.document.updatedAt),
+	);
 };
 
 export const recoverDocument = (projectId: string | null, server: MarkdownDocument) => {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -14,6 +15,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -311,7 +313,7 @@ func TestImportGenerationMediaAssetsCreatesReferenceHistoryTasks(t *testing.T) {
 		DocumentID:        "story-doc",
 		SectionID:         "section-a",
 		CapabilityID:      "scene",
-		AssetIDs:          []string{asset.ID},
+		AssetIDs:          []string{" " + asset.ID + " ", asset.ID},
 		AssetTitle:        "场景图",
 	})
 	if err != nil {
@@ -350,6 +352,109 @@ func TestImportGenerationMediaAssetsCreatesReferenceHistoryTasks(t *testing.T) {
 	}
 	if !ok || conversation.ScopeID != "agent" || conversation.Kind != "image" {
 		t.Fatalf("conversation = %+v ok=%v, want imported image conversation", conversation, ok)
+	}
+}
+
+func TestImportGenerationMediaAssetsRejectsInvalidSelectionBeforeWrites(t *testing.T) {
+	for _, invalid := range []string{"missing", "kind", "project", "scope", "conversation-kind"} {
+		for _, existing := range []bool{false, true} {
+			if !existing && (invalid == "scope" || invalid == "conversation-kind") {
+				continue
+			}
+			t.Run(fmt.Sprintf("%s/existing=%t", invalid, existing), func(t *testing.T) {
+				workspaceRoot := t.TempDir()
+				dbPath := filepath.Join(t.TempDir(), "settings.db")
+				seedGenerationTaskProject(t, dbPath, "project-alpha")
+				seedGenerationTaskProject(t, dbPath, "project-beta")
+				mediaRepo, err := newTestMediaAssetRepository(t, dbPath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				mediaAssets := media.NewMediaAssetsFromRepository(mediaRepo, filepath.Join(workspaceRoot, "library"), workspaceRoot, nil, nil)
+				generationTasks := newTestGenerationTaskService(t, dbPath, nil)
+				workflow := NewGenerationService(nil, generationTasks, mediaAssets)
+				valid := savePNGReferenceAsset(t, mediaAssets, 32, 18)
+				invalidID := "missing-asset"
+				wantStatus := http.StatusNotFound
+				if invalid == "kind" {
+					asset, err := mediaAssets.SaveReader(context.Background(), bytes.NewReader([]byte("video")), "clip.mp4", "video/mp4", "")
+					if err != nil {
+						t.Fatal(err)
+					}
+					invalidID = asset.ID
+					wantStatus = http.StatusBadRequest
+				} else if invalid == "project" {
+					var imageBytes bytes.Buffer
+					if err := png.Encode(&imageBytes, image.NewRGBA(image.Rect(0, 0, 2, 2))); err != nil {
+						t.Fatal(err)
+					}
+					asset, err := mediaAssets.SaveBase64("image", "image/png", base64.StdEncoding.EncodeToString(imageBytes.Bytes()), "", "project-beta")
+					if err != nil {
+						t.Fatal(err)
+					}
+					if asset.ProjectID != "project-beta" {
+						t.Fatalf("foreign asset project=%q", asset.ProjectID)
+					}
+					invalidID = asset.ID
+				}
+				if existing {
+					_, _, err := workflow.CreateGenerationConversation(CreateGenerationConversationRequest{
+						ID: "validation-session", ScopeID: "agent", Kind: "image", Title: "Original title",
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				requestKind, requestScope := "image", "agent"
+				if invalid == "scope" {
+					requestScope, wantStatus = "studio", http.StatusBadRequest
+				} else if invalid == "conversation-kind" {
+					requestKind, wantStatus = "video", http.StatusBadRequest
+				}
+				_, status, err := workflow.ImportGenerationMediaAssets(ImportGenerationMediaAssetsRequest{
+					Kind: requestKind, ConversationID: "validation-session", ScopeID: requestScope,
+					ConversationTitle: "Rejected title", ProjectID: "project-alpha",
+					AssetIDs: []string{valid.ID, invalidID},
+				})
+				if err == nil || status != wantStatus {
+					t.Fatalf("status=%d err=%v, want rejected selection status%d", status, err, wantStatus)
+				}
+				tasks, err := generationTasks.List()
+				if err != nil || len(tasks) != 0 {
+					t.Fatalf("tasks=%+v err=%v, want no partial history", tasks, err)
+				}
+				conversation, ok, err := generationTasks.GetConversation("validation-session")
+				if err != nil || ok != existing || (existing && (conversation.Title != "Original title" || conversation.Kind != "image" || conversation.ScopeID != "agent")) {
+					t.Fatalf("conversation=%+v found=%t err=%v, want unchanged conversation", conversation, ok, err)
+				}
+			})
+		}
+	}
+}
+
+func TestImportGenerationMediaAssetsCreatesNamedSessionWithoutExplicitScope(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "settings.db")
+	workspaceRoot := t.TempDir()
+	mediaRepo, err := newTestMediaAssetRepository(t, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mediaAssets := media.NewMediaAssetsFromRepository(mediaRepo, filepath.Join(workspaceRoot, "library"), workspaceRoot, nil, nil)
+	generationTasks := newTestGenerationTaskService(t, dbPath, nil)
+	workflow := NewGenerationService(nil, generationTasks, mediaAssets)
+	asset := savePNGReferenceAsset(t, mediaAssets, 32, 18)
+	response, status, err := workflow.ImportGenerationMediaAssets(ImportGenerationMediaAssetsRequest{
+		Kind: "image", ConversationID: "explicit-session", ConversationTitle: "Explicit session", AssetIDs: []string{asset.ID},
+	})
+	if err != nil || status != http.StatusOK || len(response.Tasks) != 1 {
+		t.Fatalf("response=%+v status=%d err=%v", response, status, err)
+	}
+	if response.Tasks[0].ConversationID != "explicit-session" {
+		t.Fatalf("session=%q, want explicit-session", response.Tasks[0].ConversationID)
+	}
+	conversation, ok, err := generationTasks.GetConversation("explicit-session")
+	if err != nil || !ok || conversation.ScopeID != defaultGenerationConversationScopeID {
+		t.Fatalf("conversation=%+v found=%t err=%v", conversation, ok, err)
 	}
 }
 
@@ -749,6 +854,66 @@ func TestListGenerationTasksTreatsUnknownSessionAsScope(t *testing.T) {
 	}
 	if got := generationTaskIDs(response.Tasks); !sameStringSet(got, []string{"generation-section-a"}) {
 		t.Fatalf("session section-a tasks = %v, want only generation-section-a", got)
+	}
+}
+
+func TestListGenerationTasksInfersNamedConversationKind(t *testing.T) {
+	for _, kind := range []string{"image", "video", "audio", "text"} {
+		t.Run(kind, func(t *testing.T) {
+			repo, err := newTestGenerationTaskRepository(t, filepath.Join(t.TempDir(), "workspace.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			store := NewGenerationTaskServiceFromRepository(repo, nil, nil)
+			workflow := NewGenerationService(nil, store, nil)
+			for _, scope := range []string{"own", "other"} {
+				if err := store.UpsertConversation(GenerationConversationRecord{ID: scope, ScopeID: scope, Kind: kind, Title: scope}); err != nil {
+					t.Fatal(err)
+				}
+				if err := store.Upsert(GenerationTaskRecord{ID: scope, ConversationID: scope, Kind: kind, Status: "completed", Prompt: "local fixture"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before, err := store.List()
+			if err != nil {
+				t.Fatal(err)
+			}
+			conversation, _, err := store.GetConversation("own")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, requested := range []string{"", "  ", kind} {
+				response, err := workflow.ListGenerationTasks(GenerationTaskListQuery{ConversationID: "own", Kind: requested})
+				if err != nil {
+					t.Fatalf("optional kind %q failed: %v", requested, err)
+				}
+				if len(response.Tasks) != 1 || response.Tasks[0].ID != "own" || response.Tasks[0].Kind != kind {
+					t.Fatalf("history kind/isolation changed: %+v", response.Tasks)
+				}
+			}
+			mismatchedKind := "image"
+			if kind == mismatchedKind {
+				mismatchedKind = "video"
+			}
+			for _, query := range []GenerationTaskListQuery{
+				{ConversationID: "own", Kind: "unsupported"},
+				{Kind: "unsupported"},
+				{ConversationID: "own", Kind: mismatchedKind},
+				{ConversationID: "own", ScopeID: "other", Kind: kind},
+			} {
+				if _, err := workflow.ListGenerationTasks(query); !errors.Is(err, ErrInvalidGenerationTaskQuery) {
+					t.Fatalf("invalid history query %+v returned %v", query, err)
+				}
+			}
+			after, err := store.List()
+			if err != nil || !reflect.DeepEqual(before, after) {
+				t.Fatalf("history reads changed task records: %v", err)
+			}
+			afterConversation, _, err := store.GetConversation("own")
+			if err != nil || !reflect.DeepEqual(conversation, afterConversation) {
+				t.Fatalf("history reads changed conversation: %v", err)
+			}
+		})
 	}
 }
 

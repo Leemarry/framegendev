@@ -19,6 +19,7 @@ import {
 } from "@/domains/workspace/api/library-folders";
 import { AssetLibrary } from "./AssetLibrary";
 import { getWorkspaceDocuments } from "@/domains/workspace/api/workspace";
+import { getSelectedGenerationAssets } from "@/domains/generation/api/generation";
 
 vi.mock("@/components/AudioPlayer", () => ({ AudioPlayer: () => null }));
 vi.mock("@/components/VideoPlayer", () => ({ VideoPlayer: () => null }));
@@ -112,6 +113,58 @@ const asset = (id: string, filename: string, createdAt: string): MediaAsset => (
 });
 
 describe("project material library page", () => {
+	it("filters saved tags separately from full-text search and clears without writes", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				{ ...asset("tagged", "A.png", "2026-10-15T10:00:00Z"), tags: ["Night scene"] },
+				{ ...asset("untagged", "Night.png", "2026-10-15T10:00:00Z"), tags: [], note: "Night" },
+			],
+		});
+		mount();
+		await screen.findByRole("button", { name: "预览 Night.png" });
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+			target: { value: " NIGHT " },
+		});
+		expect(screen.getByRole("button", { name: "预览 A.png" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "预览 Night.png" })).not.toBeInTheDocument();
+		fireEvent.change(screen.getByRole("textbox", { name: "搜索素材" }), {
+			target: { value: "Night.png" },
+		});
+		expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
+		fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+			target: { value: "" },
+		});
+		expect(screen.getByRole("button", { name: "预览 Night.png" })).toBeInTheDocument();
+		expect(updateMediaAssetFields).not.toHaveBeenCalled();
+	});
+
+	it.each(["media", "documents", "folders"])(
+		"blocks cached asset actions after a %s refresh failure and recovers on retry",
+		async (failure) => {
+			const saved = { assets: [asset("asset-a", "kept.png", "2026-10-15T10:00:00Z")] };
+			vi.mocked(getMediaAssets).mockResolvedValue(saved);
+			mount();
+			fireEvent.click(await screen.findByRole("button", { name: "预览 kept.png" }));
+			expect(await screen.findByRole("button", { name: "编辑元数据" })).toBeEnabled();
+			const request =
+				failure === "media"
+					? getMediaAssets
+					: failure === "documents"
+						? getWorkspaceDocuments
+						: getLibraryFolders;
+			vi.mocked(request).mockRejectedValueOnce(new Error("aggregate read unavailable"));
+			fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+			expect(await screen.findByText(/素材库加载失败：aggregate read unavailable/)).toBeVisible();
+			expect(screen.queryByRole("button", { name: "编辑元数据" })).not.toBeInTheDocument();
+			expect(screen.queryByRole("button", { name: "删除" })).not.toBeInTheDocument();
+			expect(screen.queryByRole("button", { name: "预览 kept.png" })).not.toBeInTheDocument();
+			fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+			expect(await screen.findByRole("button", { name: "预览 kept.png" })).toBeVisible();
+			expect(screen.queryByText(/素材库加载失败/)).not.toBeInTheDocument();
+		},
+	);
+
 	it("shows the real root empty state and returns to the original document", async () => {
 		mount({
 			assetReturnTo: "/projects?projectId=project-a&documentId=doc-a",
@@ -200,6 +253,186 @@ const folder = (id: string, name: string, parentId = ""): AssetLibraryFolder => 
 });
 
 describe("material folder workflows", () => {
+	it.each(["?projectId=project-a", "?scope=all"])(
+		"loads usage only on demand and recovers failed filtering in %s",
+		async (scope) => {
+			const assets = [
+				{
+					...asset("used", "used.png", "2026-10-16T00:00:00Z"),
+					usage: { selected: true, candidate: false, reference: false },
+				},
+				{
+					...asset("free", "free.png", "2026-10-16T00:00:00Z"),
+					usage: { selected: false, candidate: false, reference: false },
+				},
+			];
+			vi.mocked(getMediaAssets).mockResolvedValue({ assets });
+			mount(undefined, scope);
+			await screen.findByRole("button", { name: "预览 free.png" });
+			expect(
+				vi.mocked(getMediaAssets).mock.calls.every(([filters]) => !filters?.includeUsage),
+			).toBe(true);
+			fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "使用状态" }), { key: "Enter" });
+			fireEvent.keyDown(await screen.findByRole("option", { name: "已选用" }), { key: "Enter" });
+			await screen.findByRole("button", { name: "预览 used.png" });
+			expect(screen.queryByRole("button", { name: "预览 free.png" })).not.toBeInTheDocument();
+			expect(getMediaAssets).toHaveBeenLastCalledWith({
+				projectId: scope.includes("project-a") ? "project-a" : undefined,
+				includeUsage: true,
+			});
+			fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+				target: { value: "free" },
+			});
+			expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
+			fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+				target: { value: "" },
+			});
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "使用状态" }), { key: "Enter" });
+			fireEvent.keyDown(await screen.findByRole("option", { name: "未使用" }), { key: "Enter" });
+			expect(screen.getByRole("button", { name: "预览 free.png" })).toBeInTheDocument();
+			fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+			vi.mocked(getMediaAssets).mockRejectedValueOnce(new Error("usage unavailable"));
+			fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+			expect(await screen.findByText(/素材库加载失败：usage unavailable/)).toBeVisible();
+			expect(screen.queryByRole("button", { name: "预览 free.png" })).not.toBeInTheDocument();
+			fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+			await screen.findByRole("button", { name: "预览 free.png" });
+			fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "使用状态" }), { key: "Enter" });
+			fireEvent.keyDown(await screen.findByRole("option", { name: "全部素材" }), { key: "Enter" });
+			await screen.findByRole("button", { name: "预览 used.png" });
+			expect(screen.getByRole("button", { name: "预览 free.png" })).toBeInTheDocument();
+			expect(updateMediaAssetFields).not.toHaveBeenCalled();
+		},
+	);
+	it.each(["?projectId=project-a", "?scope=all"])(
+		"filters recorded provenance independently of resource records in %s",
+		async (scope) => {
+			vi.mocked(getMediaAssets).mockResolvedValue({
+				assets: [
+					{ ...asset("local", "local.png", "2026-10-16T00:00:00Z"), source: "upload" },
+					{ ...asset("generated", "generated.png", "2026-10-16T00:00:00Z"), source: "generation" },
+					asset("unknown", "unknown.png", "2026-10-16T00:00:00Z"),
+				],
+			});
+			mount(undefined, scope);
+			await screen.findByRole("button", { name: "预览 local.png" });
+			fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "来源" }), { key: "Enter" });
+			expect(screen.getByRole("option", { name: "浏览器采集（待接入）" })).toHaveAttribute(
+				"aria-disabled",
+				"true",
+			);
+			fireEvent.keyDown(await screen.findByRole("option", { name: "本地导入" }), { key: "Enter" });
+			expect(screen.getByRole("button", { name: "预览 local.png" })).toBeInTheDocument();
+			expect(screen.queryByRole("button", { name: "预览 generated.png" })).not.toBeInTheDocument();
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "资源记录" }), { key: "Enter" });
+			fireEvent.keyDown(await screen.findByRole("option", { name: "已选资源" }), { key: "Enter" });
+			expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
+			expect(updateMediaAssetFields).not.toHaveBeenCalled();
+		},
+	);
+
+	it("applies the displayed source filter to global physical media", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [{ ...asset("global", "global.png", "2026-10-16T00:00:00Z"), projectId: "" }],
+		});
+		mount(undefined, "?scope=all");
+		await screen.findByRole("button", { name: "预览 global.png" });
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "资源记录" }), { key: "Enter" });
+		fireEvent.keyDown(await screen.findByRole("option", { name: "已选资源" }), { key: "Enter" });
+		expect(screen.queryByRole("button", { name: "预览 global.png" })).not.toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "资源记录" }), { key: "Enter" });
+		fireEvent.keyDown(await screen.findByRole("option", { name: "媒体素材" }), { key: "Enter" });
+		expect(screen.getByRole("button", { name: "预览 global.png" })).toBeInTheDocument();
+		expect(getMediaAssets).toHaveBeenCalledWith({ projectId: undefined });
+		expect(getSelectedGenerationAssets).not.toHaveBeenCalled();
+		expect(updateMediaAssetFields).not.toHaveBeenCalled();
+	});
+
+	it("browses all scoped assets and returns to directory mode on folder navigation", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [folder("child", "Child")] });
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				asset("root", "root.png", "2026-10-16T00:00:00Z"),
+				{ ...asset("nested", "nested.png", "2026-10-16T00:00:00Z"), folderId: "child" },
+			],
+		});
+		mount();
+		await screen.findByRole("button", { name: "预览 root.png" });
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "浏览范围" }), { key: "Enter" });
+		fireEvent.keyDown(await screen.findByRole("option", { name: "全部素材" }), { key: "Enter" });
+		expect(screen.getByRole("button", { name: "预览 nested.png" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "打开文件夹 Child" })).not.toBeInTheDocument();
+		expect(screen.getByRole("checkbox", { name: "包含子文件夹" })).toBeDisabled();
+		fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+			target: { value: "nested" },
+		});
+		expect(screen.queryByRole("button", { name: "预览 root.png" })).not.toBeInTheDocument();
+		expect(getMediaAssets).toHaveBeenCalledWith({ projectId: "project-a" });
+		fireEvent.keyDown(screen.getByRole("textbox", { name: "筛选标签" }), { key: "Escape" });
+		fireEvent.click(screen.getByRole("button", { name: "Child" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "预览 root.png" })).not.toBeInTheDocument(),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		expect(screen.getByRole("combobox", { name: "浏览范围" })).toHaveTextContent("目录浏览");
+		expect(updateMediaAssetFields).not.toHaveBeenCalled();
+	});
+
+	it("includes nested assets from the root only when enabled", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [folder("child", "Child")] });
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [{ ...asset("nested", "nested.png", "2026-10-16T00:00:00Z"), folderId: "child" }],
+		});
+		mount();
+		await screen.findByRole("button", { name: "打开文件夹 Child" });
+		expect(screen.queryByRole("button", { name: "预览 nested.png" })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.click(screen.getByRole("checkbox", { name: "包含子文件夹" }));
+		expect(screen.getByRole("button", { name: "预览 nested.png" })).toBeInTheDocument();
+	});
+
+	it("includes descendants on request while excluding siblings and foreign scope", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({
+			folders: [
+				folder("parent", "Parent"),
+				folder("child", "Child", "parent"),
+				folder("deep", "Deep", "child"),
+				folder("sibling", "Sibling"),
+			],
+		});
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				{ ...asset("direct", "direct.png", "2026-10-16T00:00:00Z"), folderId: "parent" },
+				{ ...asset("nested", "nested.png", "2026-10-16T00:00:00Z"), folderId: "child" },
+				{ ...asset("deep", "deep.png", "2026-10-16T00:00:00Z"), folderId: "deep" },
+				{ ...asset("sibling", "sibling.png", "2026-10-16T00:00:00Z"), folderId: "sibling" },
+				{
+					...asset("foreign", "foreign.png", "2026-10-16T00:00:00Z"),
+					projectId: "",
+					folderId: "child",
+				},
+			],
+		});
+		mount(undefined, "?projectId=project-a&folderId=parent");
+		await screen.findByRole("button", { name: "预览 direct.png" });
+		expect(screen.queryByRole("button", { name: "预览 nested.png" })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.click(screen.getByRole("checkbox", { name: "包含子文件夹" }));
+		expect(screen.getByRole("button", { name: "预览 nested.png" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "预览 deep.png" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "预览 sibling.png" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "预览 foreign.png" })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("checkbox", { name: "包含子文件夹" }));
+		expect(screen.queryByRole("button", { name: "预览 deep.png" })).not.toBeInTheDocument();
+		expect(updateMediaAssetFields).not.toHaveBeenCalled();
+	});
+
 	beforeEach(() => {
 		for (const method of [
 			"hasPointerCapture",

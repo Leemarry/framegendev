@@ -18,3 +18,11 @@ installation roots. Do not archive/mark the parent complete based on browser and
 JSON checks. Next NLE action: reopen isolated `m41-after-restart` draft in that
 client and compare playback/text/audio; preserve failures and fix this item before
 declaring compatibility. TASK-042/178 are not implemented by this work.
+
+2026-10-16 session1 environment recheck: no Jianying/CapCut uninstall entry under
+HKCU/HKLM (including WOW6432Node), matching Start Menu shortcut, PATH executable,
+AppX package or running process. Common Program Files/LocalAppData roots and
+D:/JianyingPro / E:/JianyingPro do not exist. No client was installed/launched;
+native reopen remains unrun. Restore by providing the intended installed client,
+then open only the existing isolated m41-after-restart draft. This read-only
+environment audit does not replace native playback/text/audio acceptance.

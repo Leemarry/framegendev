@@ -250,6 +250,47 @@ describe("GenerationWorkspace image spec control", () => {
 		cleanup();
 	});
 
+	it.each(["isLoadingHistory", "isRefreshingHistory", "historyError"])(
+		"hides cached history actions while %s and recovers without clearing entries",
+		(flag) => {
+			const mutateTasks = vi.fn(async () => undefined);
+			const entries = [{ id: "cached-task", kind: "image", content: "Cached local import" }];
+			const state = {
+				...workspaceDefaults,
+				generationEntries: entries,
+				mutateTasks,
+				[flag]: flag === "historyError" ? new Error("offline") : true,
+			};
+			vi.mocked(useGenerationWorkspace).mockReturnValue(
+				state as unknown as ReturnType<typeof useGenerationWorkspace>,
+			);
+			const view = renderWorkspace();
+			expect(screen.queryByTestId("generation-chat-panel")).toBeNull();
+			const refresh = screen.getByRole("button", { name: "刷新生成历史" });
+			if (flag === "historyError") {
+				expect(screen.getByRole("alert")).toHaveTextContent("生成历史加载失败，请重试。");
+				fireEvent.click(refresh);
+				expect(mutateTasks).toHaveBeenCalledTimes(1);
+			} else {
+				expect(refresh).toBeDisabled();
+				expect(screen.getByRole("status")).toHaveTextContent("正在加载生成历史");
+			}
+			vi.mocked(useGenerationWorkspace).mockReturnValue({
+				...state,
+				[flag]: false,
+			} as unknown as ReturnType<typeof useGenerationWorkspace>);
+			view.rerender(
+				<MemoryRouter>
+					<GenerationWorkspace initialKind="image" />
+				</MemoryRouter>,
+			);
+			expect(screen.getByTestId("generation-chat-panel")).toBeVisible();
+			expect(entries).toEqual([
+				{ id: "cached-task", kind: "image", content: "Cached local import" },
+			]);
+		},
+	);
+
 	it("shows image spec control in the studio composer and keeps secondary params behind other", () => {
 		vi.mocked(useGenerationWorkspace).mockReturnValue(
 			workspaceDefaults as unknown as ReturnType<typeof useGenerationWorkspace>,

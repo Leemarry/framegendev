@@ -1062,3 +1062,821 @@ Accepted history diff/restore slice; main c2261df plus session2 verified setting
 ### Next Steps
 
 - TASK-050 comment context and failure protection; whole070 views/resources remain open.
+
+
+## Session 34: TASK-050 local comment safety and main integration
+<!-- trellis-session: v=2 fp=b442e41902ae9818 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-050 local comment safety and main integration
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+Accepted local comment lifecycle/offline recovery/restart/context safety; integrated both sessions, main270 tests and actual390px save/reload passed. Real Agent success remains pending.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f6eb85d` | fix(documents): retain failed comment edits and pin agent context |
+| `6ad83ca` | fix(documents): retain failed comment edits and pin agent context |
+| `580838e` | fix(projects): open the project folder directly from settings |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 35: TASK-070 direct storyboard timeline and integrated NLE entry
+<!-- trellis-session: v=2 fp=e4411a6139164c46 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 direct storyboard timeline and integrated NLE entry
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+Accepted read-only storyboard timeline mode, actual switch/restart/body/version/history preservation, dirty guard/read retry/NLE cancel. Main376 tests, frontend gates and actual integrated entry pass; resources/native Jianying remain open.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `194b2e6` | feat(documents): open storyboard timelines without implicit document writes |
+| `2f171e4` | feat(documents): open storyboard timelines without implicit document writes |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 36: Asset aggregate accepted and update retry integrated
+<!-- trellis-session: v=2 fp=9676b8722e98c32b -->
+
+**Date**: 2026-10-16
+**Task**: Asset aggregate accepted and update retry integrated
+**Branch**: `codex/parity-s1`
+
+### Summary
+
+TASK034 local folders and TASK030 local aggregate accepted with refresh error/cached actions fix; actual import metadata moves references and restart preserve hash/body/version/history. Integrated main 68 files448 tests, frontend gates/Electron/embedded build and actual smoke pass. TASK030 official detail/filter and real adoption remain open. Next TASK181 prior-window draft discovery blocks native-window acceptance.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6cc7b90` | fix(assets): verify aggregate refresh before enabling cached actions |
+| `03cd506` | fix(assets): verify aggregate refresh before enabling cached actions |
+| `1ec42e9` | fix(settings): recover update metadata and download failures |
+| `986ad37` | test(workspace): align sidebar fixtures with asset library routing |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 37: S1 recovery blocker and audio cache integration
+<!-- trellis-session: v=2 fp=7163467a55a9fc46 -->
+
+**Date**: 2026-10-16
+**Task**: S1 recovery blocker and audio cache integration
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Integrated audio history hydration guard; main95files641tests and frontend/Electron/Windows build pass; executable31456 updated with exact old document records preserved. Prior-window UI b7c3d79 remains source-only pending restart denied by automatic approval. No archive for incomplete181/080; native Jianying unavailable.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a747a54` | fix(generation): retain audio messages when rehydrating history |
+| `9d7468b` | docs(parity): retain prior-window recovery acceptance blocker |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 38: TASK-080 local history import validation integrated
+<!-- trellis-session: v=2 fp=1bff549fe12964c1 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-080 local history import validation integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Integrated full-selection validation, request deduplication and explicit session compatibility. Full Windows check/race and separate build passed after preserving failed attempts and restoring CRLF bytes. Main real HTTP and backend restart retained complete history and old documents. Archived only backend child; TASK-080 overall remains pending. User allowed original Edge restart; TASK-181 acceptance resumed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `90b07c9` | fix(generation): validate all media before importing history |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 39: Accept prior-window recovery in integrated production bundle
+<!-- trellis-session: v=2 fp=ac68f0c255be93fd -->
+
+**Date**: 2026-10-16
+**Task**: Accept prior-window recovery in integrated production bundle
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK-181 retained-profile restart and integrated recovery accepted; fixed layout/passive loading race; session2 native windows remain pending.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7ea7f4e` | feat(documents): stage prior-window recovery pending restart acceptance |
+| `f2517ad` | test(documents): verify recovery after retained-profile restart |
+| `e363a3c` | fix(documents): preserve ready state after layout hydration |
+
+### Testing
+
+- [OK] Main 97 files 641 tests; lint; full705-fileformat with exact CRLF restoration; build; Electron compile; Windows build and tagged embedded executable pass.
+- [OK] Actual source restart/download/failure/missing document/mergev4; main390px preview/cancel/stage/reload; source bytes and full server body/history unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Continue TASK-080 audio persisted-history reopening without external generation; TASK150/native040/041 remain pending.
+
+
+## Session 40: Accept browser recovery of persisted audio failures
+<!-- trellis-session: v=2 fp=43c1f8c092ab7ac8 -->
+
+**Date**: 2026-10-16
+**Task**: Accept browser recovery of persisted audio failures
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK080 narrow audio cache recovery accepted using explicitly labeled canceled/error fixtures; no generation requests; overall080 and150 pending.
+
+### Main Changes
+
+- Retained source/main timeouts from exhausted HTTP1.1 SSE connections; closing only own old tabs restored loading; limitation remains.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a747a54` | fix(generation): retain audio messages when rehydrating history |
+| `b776423` | test(generation): verify persisted audio failures in browser |
+
+### Testing
+
+- [OK] Actual source cold-tab390px/error expansion and main production reload; loaded other projects exclude fixtures; full old documents/imported tasks unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Investigate TASK030 adoption source project boundary with local imported history before implementation.
+
+
+## Session 41: Accept project task ownership before adoption
+<!-- trellis-session: v=2 fp=72af0d85f6917868 -->
+
+**Date**: 2026-10-16
+**Task**: Accept project task ownership before adoption
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK030 task-source project boundary accepted in source and integrated main; direct-media scope and overall workflow remain open.
+
+### Main Changes
+
+- Retained initial blocked combined fixture command, proxy/offline gate failures and collection mismatch caused by additional fixture; stable-ID original records unchanged.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dd34016` | fix(generation): reject foreign task sources before adoption writes |
+
+### Testing
+
+- [OK] Source full Windows check with race and standalone build; main focused race,97files641frontend tests, embedded build; real404 zero writes and valid adopt/unadopt references/restart.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Check direct-media ownership separately; keep session2 native windows, native040/041 and150 pending.
+
+
+## Session 42: TASK-030 direct media adoption boundaries and integration
+<!-- trellis-session: v=2 fp=2d9648d735dcfd77 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-030 direct media adoption boundaries and integration
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Validated media ownership before writes and consistent cancellation; source full Windows gates, actual same/global adoption and restart, main production390px and235files1552tests passed. Retained initial failures and pending global path projection.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `087932e` | fix(generation): validate media ownership before adoption writes |
+| `a7e5827` | test(workspace): align pack navigation with inert screen contract |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 43: TASK-030 configured media paths accepted in main
+<!-- trellis-session: v=2 fp=641fa6499a6e33ef -->
+
+**Date**: 2026-10-16
+**Task**: TASK-030 configured media paths accepted in main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Configured media roots now propagate to history/adoption; source and main restart/hash/non-write acceptance passed.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7c4a3c1` | fix(generation): project media downloads through configured roots |
+| `bcb2c6e` | fix(generation): project media downloads through configured roots |
+
+### Testing
+
+- [OK] Full Windows check/race, frontend gates and 57 related tests; main focused race/build and actual production restart passed.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-070 remaining history/source/read views; native dialog and real generation remain unverified.
+
+
+## Session 44: TASK-070 historical full views accepted in main
+<!-- trellis-session: v=2 fp=3a6ca6340f923e4c -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 historical full views accepted in main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Read-only complete historical Markdown and exact source accepted; official highlighted diff and comparison controls remain gaps.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d730d2a` | feat(documents): inspect historical snapshots as reading or exact source |
+| `3b88dab` | feat(documents): inspect historical snapshots as reading or exact source |
+
+### Testing
+
+- [OK] Source 47 files 266 tests; main 50 files 309 tests, frontend gates/Electron/embedded build; actual source/main restart and full records unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-070 version comparison/swap; track cross-project cold document-link canonicalization separately without editing session2-owned navigation.
+
+
+## Session 45: TASK-070 synchronized historical selection accepted
+<!-- trellis-session: v=2 fp=c8883e6fe567ee79 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 synchronized historical selection accepted
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Official dropdown verified; decorative arrow correction recorded. Main50files310tests, frontend gates, Electron and embedded build passed. Actual source/main selection, exact source, cancel/reload/restart preserve complete records; highlighted diff and resources remain.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `49f9a35` | feat(documents): synchronize historical version selection |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 46: TASK-070 safe resource summaries integrated
+<!-- trellis-session: v=2 fp=a60a6acac5c687ef -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 safe resource summaries integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Existing panel reconnected with H2/identity/timestamp/dirty/read-failure guards. Source278 and main321tests, frontend gates, Electron and embedded build passed. Actual open/close/offline/draft recovery/reload/restart preserve full records; official rich resource actions and highlighted diff remain unaccepted.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bd6d803` | feat(documents): reconnect safe storyboard resource summary |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 47: TASK-070 readable historical differences integrated
+<!-- trellis-session: v=2 fp=0a13b649b1c5affe -->
+
+**Date**: 2026-10-16
+**Task**: TASK-070 readable historical differences integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Bounded normal-font line reading/source presentation accepted; short-screen duplicate sidebar hidden, actual source/main restart retained complete records. Main51files323tests and frontend/Electron/embedded build passed. Word-level and Markdown transformation remain unverified;070/150 incomplete.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c80be16` | feat(documents): add readable historical diff presentation |
+| `28f2240` | fix(documents): preserve history reading room on short screens |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-080 project/global history and local usage verification; session2 remains617a80d.
+
+
+## Session 48: TASK-080 scoped history read failures integrated
+<!-- trellis-session: v=2 fp=e0743ed20ab6c14e -->
+
+**Date**: 2026-10-16
+**Task**: TASK-080 scoped history read failures integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Shared project/global history read states and retry accepted with real local import, failure/recovery and complete record persistence across source/main backend restarts. Main103files711tests and frontend/Electron/embedded build passed. No provider request. Separate local-import billing overcount found.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b266bc7` | fix(generation): expose failed history reads and scoped retry |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK-080 exclude internal local imports from provider usage; repository-only contract and actual zero-usage UI/API check.
+
+
+## Session 49: TASK-080 local import usage integration
+<!-- trellis-session: v=2 fp=3e2dc2795f78c6ec -->
+
+**Date**: 2026-10-16
+**Task**: TASK-080 local import usage integration
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Source cbb5aaf cherry-picked to main 910f3fb; excluded media-library local imports before billing aggregation while retaining zero-token provider calls. Canonical Windows check/race/build, isolated source/main APIs, four grouping controls, failure recovery, real history, document/task persistence, main restart and production browser checks passed. Remaining: MediaGenerationWorkspace history, real provider generation/adoption, native Jianying and TASK-150.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `910f3fb` | fix(billing): exclude local media imports from provider usage |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 50: Independent media history read state integrated
+<!-- trellis-session: v=2 fp=a6dd9c8839aa7572 -->
+
+**Date**: 2026-10-16
+**Task**: Independent media history read state integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK-080 independent section/episode media history now hides stale actions while reads fail, preserves editable prompts and uses the existing retry. Source/main 53 files 400 tests, lint/canonical format/build/Electron/embedded Windows build pass; actual failure/recovery/cancel/reload/backend restart preserve complete records. Existing narrow modal title is the next independent item. External generation/native Jianying and TASK150 remain open.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `28cbee2` | fix(generation): protect independent history reads and prompt drafts |
+| `346f4f7` | fix(generation): protect independent history reads and prompt drafts |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 51: Generation modal narrow header integrated
+<!-- trellis-session: v=2 fp=97f61ab2fb2bf4aa -->
+
+**Date**: 2026-10-16
+**Task**: Generation modal narrow header integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK030/080 responsive modal title fix accepted in source/main. Actual355/390CSS narrow and short-screen titles, nested history/library/cancel/reopen and preview Escape pass; complete records unchanged. Source/main27 tests and frontend/embedded build gates pass. Next local import/adoption/resource-panel combination acceptance; external generation/native reopening remain pending.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3e330de` | fix(documents): keep generation modal titles readable on narrow screens |
+| `3216d97` | fix(documents): keep generation modal titles readable on narrow screens |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 52: TASK030/150 local adoption round trip integrated
+<!-- trellis-session: v=2 fp=be53f14fd63178de -->
+
+**Date**: 2026-10-16
+**Task**: TASK030/150 local adoption round trip integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Fixed imported provenance, failed deselection rollback and write-free reopen. Source/main real local adoption, failure recovery, full record/hash and restart accepted; main 237 files 1586 tests and frontend/build gates pass. Initial coordinate-created empty storyboard baseline failure retained; separate confirmed project passed. External generation, Agent and native Jianying remain unaccepted.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8187d88` | fix(generation): preserve local adoption provenance and round trips |
+| `a1b079d` | fix(generation): preserve local adoption provenance and round trips |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 53: TASK030 real image dimensions integrated
+<!-- trellis-session: v=2 fp=53ee6f39d034e391 -->
+
+**Date**: 2026-10-16
+**Task**: TASK030 real image dimensions integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Actual image dimensions import/backfill/detail accepted in source and embedded main; original hashes and complete records retained; later source adoption mismatch documented.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8dc674f` | feat(media): persist and display actual local image dimensions |
+
+### Testing
+
+- [OK] Source full Windows check/race/build; main media race/build, frontend gates and actual failure/retry/restart/390px pass.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Inspect remaining TASK030 filters; retain native Jianying and external generation blockers.
+
+
+## Session 54: TASK030 dedicated tag filtering integrated
+<!-- trellis-session: v=2 fp=c21647bd0531f150 -->
+
+**Date**: 2026-10-16
+**Task**: TASK030 dedicated tag filtering integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Dedicated saved-tag filter accepted in source and embedded main; actual save/failure/retry/restart and complete records/hash checks pass.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b6aa54e` | feat(media): filter asset library by saved tags |
+
+### Testing
+
+- [OK] Main full 237 files 1591 tests; lint, full708 format, build, Electron and embedded Windows build pass.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Inspect official browse scope and usage-state options in isolated desktop; remaining TASK030/150 gaps retained.
+
+
+## Session 55: TASK030 descendant folder browsing integrated
+<!-- trellis-session: v=2 fp=a9b27fc1b6e76053 -->
+
+**Date**: 2026-10-16
+**Task**: TASK030 descendant folder browsing integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Include-subfolders accepted in source and embedded main; independent browser daemon established; official filter options captured.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4068f39` | feat(media): include descendant folder assets in library filters |
+
+### Testing
+
+- [OK] 3files50tests, frontend gates, embedded Windows build and real nested/failure/restart/full records/four image hashes pass.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Implement independently verifiable directory/all browsing using existing scoped data; keep favorite/trash and usage-state gaps.
+
+
+## Session 56: TASK030 directory and all browsing integrated
+<!-- trellis-session: v=2 fp=a52c4c667adedd07 -->
+
+**Date**: 2026-10-16
+**Task**: TASK030 directory and all browsing integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Scoped directory/all view accepted in source/main production with real nested files, failure/retry/restart and unchanged full records.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c1de8a9` | feat(media): switch between directory and all asset browsing |
+
+### Testing
+
+- [OK] 3files51tests, frontend gates and embedded Windows build pass; earlier full237files1591tests retained with exact revision.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Fix confirmed global source filter no-op; retain pagination and other remaining parity gaps.
+
+
+## Session 57: Global library source filter acceptance
+<!-- trellis-session: v=2 fp=ae85bf163e14ac31 -->
+
+**Date**: 2026-10-16
+**Task**: Global library source filter acceptance
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Source and integrated production filter/retry/reopen workflows pass; complete records and hashes preserved.
+
+### Main Changes
+
+- Apply visible source filter globally without fetching project adoptions.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b514f6b` | fix(media): apply source filter in global library |
+
+### Testing
+
+- [OK] Source/main 52 tests, lint/full708 format/build/Electron, embedded Windows build, actual 390x480 and page/backend restart pass.
+- [OK] Preserve AX-transition and premature fixed-wait failures; browser process restart and external/native checks remain unrun.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK150 local production combination acceptance using existing local imports/adoption/NLE/export.
+
+
+## Session 58: Local production combination and real export
+<!-- trellis-session: v=2 fp=2396c33d011da3ed -->
+
+**Date**: 2026-10-16
+**Task**: Local production combination and real export
+**Branch**: `codex/nle-export`
+
+### Summary
+
+UI screenplay/storyboard, local video/audio import, adoption/history, NLE and real export accepted in integrated main.
+
+### Main Changes
+
+- Recorded dedicated project, exact content/history/selection/episode snapshots and durable screenshots.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3f19c92` | test(parity): verify local production through real NLE export |
+
+### Testing
+
+- [OK] 237 files / 1595 tests pass; actual failed save retry, one-frame playback, 1.700s export, cancel/conflict, narrow/page/backend reopen and full records/file hashes pass.
+- [OK] Native client and external generation/Agent remain unrun; isolated Edge restart again rejected by policy.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Official provenance source filter through existing fields; six options confirmed by actual isolated app.
+
+
+## Session 59: Accept recorded media provenance in integrated main
+<!-- trellis-session: v=2 fp=aa1e7fb4805a119c -->
+
+**Date**: 2026-10-16
+**Task**: Accept recorded media provenance in integrated main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Source/main63tests and frontend gates pass; actual source intersections, failures,390x480,page/backend reopen and complete fixture/hash preservation pass. Browser capture pending; Edge process restart blocked by automatic policy. Next silent200-item truncation.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7fe1f6b` | feat(media): filter library by recorded provenance |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 60: Accept complete material list beyond 200 in main
+<!-- trellis-session: v=2 fp=b9acacb67c2dce22 -->
+
+**Date**: 2026-10-16
+**Task**: Accept complete material list beyond 200 in main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Source full native Windows check including race and build pass; main media/repository race, frontend gates and embedded build pass. Both actual201-file scans retain oldest search/preview, failure/retry/cancel,reopen and full records201hashes; protected production combination unchanged. O(N)pagination limits remain. Next history kind error status.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dff25bd` | fix(media): retain complete visible library beyond 200 items |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 61: Accept named history kind in main production
+<!-- trellis-session: v=2 fp=4fe5d814f0a43e6e -->
+
+**Date**: 2026-10-16
+**Task**: Accept named history kind in main production
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Main real two-session video history, optional200/mismatch400, blocked read/retry/reload/backend restart; full history/media/docs/hash plus201 files and local production combination preserved. Source complete Windows gates and main focused race/frontend/embedded gates passed. Narrow toolbox layout remains failed; no external sends/native reopen. Session2 unchanged617a80d.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9eec53e` | fix(generation): resolve optional history kind and client errors |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 62: TASK-030 usage integrated; browser acceptance blocked
+<!-- trellis-session: v=2 fp=1c0459be1a158a40 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-030 usage integrated; browser acceptance blocked
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Recorded read-only usage projection and integrated runnable main; actual browser acceptance remains blocked.
+
+### Main Changes
+
+- Optional includeUsage contract, scoped selected/candidate/reference flags; import lineage excluded.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `652cfc7` | feat(media): filter recorded asset usage within library scope |
+
+### Testing
+
+- [OK] Source full native Windows check/full race and build passed; main66frontend tests, lint708format/build/Electron, media/repository/app race and embedded build passed.
+- [OK] Source/main four real PNG categories and backend restart preserve complete records/hashes; main201files, dual video histories and production combination protected.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Keep task in_progress until owned Edge9240 restored; actual menus/screenshots/narrow/page checks not run. Next independent080 project+session query intersection.
+
+
+## Session 63: TASK-080 explicit project/session intersection accepted in main
+<!-- trellis-session: v=2 fp=76b817284cdcf299 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-080 explicit project/session intersection accepted in main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Preserve explicit session identity within project history before pagination; main runtime and restart accepted.
+
+### Main Changes
+
+- Source b69d507 integrated d4d1710. Project-only UI aggregate retained; malformed project filter cannot broaden session.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d4d1710` | fix(generation): intersect explicit history session with project |
+
+### Testing
+
+- [OK] Two pre-fix regressions retained; final native Windows check/full race and build exit0; main generation/handler/repository race and embedded build pass.
+- [OK] Source/main actual two-route HTTP optional-kind/pagination/wrong-kind400/unknown/foreign/empty-cleaned project and backend restart pass; original complete dual histories, usage,201file hashes and production combination unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK030 usage UI awaits owned Edge9240 restoration after policy rejection; no native Jianying/provider/Agent or overall150 completion claimed.

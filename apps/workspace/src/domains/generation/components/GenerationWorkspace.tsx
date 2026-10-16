@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { FileText, Loader2, RefreshCw } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -601,32 +601,61 @@ export const GenerationWorkspace: React.FC<GenerationWorkspaceProps> = ({
 
 	const visibleGenerationEntries =
 		focusActiveEntry && ws.activeEntry ? [ws.activeEntry] : ws.generationEntries;
+	const readingHistory = ws.isLoadingHistory || ws.isRefreshingHistory;
+	const historyUnavailable = readingHistory || Boolean(ws.historyError);
 
 	return (
 		<div className="flex h-full min-h-0 flex-col overflow-hidden bg-ide-editor text-ide-editor-foreground">
 			<main className="flex min-h-0 min-w-0 flex-1 flex-col">
-				<GenerationChatPanel
-					entries={visibleGenerationEntries}
-					canSaveText={resultActions.canSaveText}
-					savedKeys={resultActions.savedKeys}
-					savingKeys={resultActions.savingKeys}
-					selectedGeneratedAssetKey={selectedGeneratedAssetKey}
-					onCopyPrompt={resultActions.copyPrompt}
-					onCopyResult={(entry) =>
-						void resultActions.copyText(entry.content, "没有可复制的 AI 返回")
-					}
-					onRefreshVideo={(message) => ws.refreshVideo(message)}
-					onSaveAsset={resultActions.saveAsset}
-					onSaveText={resultActions.saveText}
-					onSelectEntry={ws.setActiveEntryId}
-					onSelectGeneratedAsset={onSelectGeneratedAsset}
-				/>
+				<div className="flex shrink-0 items-center justify-end gap-2 border-b border-border px-3 py-1">
+					{readingHistory ? (
+						<span role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+							<Loader2 className="size-3.5 animate-spin" />
+							正在加载生成历史
+						</span>
+					) : ws.historyError ? (
+						<p role="alert" className="min-w-0 text-xs text-destructive">
+							生成历史加载失败，请重试。
+						</p>
+					) : null}
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						aria-label="刷新生成历史"
+						title="刷新生成历史"
+						disabled={readingHistory || ws.needsConversation}
+						onClick={() => void ws.mutateTasks()}
+					>
+						<RefreshCw className="size-3.5" />
+					</Button>
+				</div>
+				{!historyUnavailable ? (
+					<GenerationChatPanel
+						entries={visibleGenerationEntries}
+						canSaveText={resultActions.canSaveText}
+						savedKeys={resultActions.savedKeys}
+						savingKeys={resultActions.savingKeys}
+						selectedGeneratedAssetKey={selectedGeneratedAssetKey}
+						onCopyPrompt={resultActions.copyPrompt}
+						onCopyResult={(entry) =>
+							void resultActions.copyText(entry.content, "没有可复制的 AI 返回")
+						}
+						onRefreshVideo={(message) => ws.refreshVideo(message)}
+						onSaveAsset={resultActions.saveAsset}
+						onSaveText={resultActions.saveText}
+						onSelectEntry={ws.setActiveEntryId}
+						onSelectGeneratedAsset={onSelectGeneratedAsset}
+					/>
+				) : (
+					<div className="min-h-0 flex-1" />
+				)}
 				{generationComposer}
 			</main>
 
 			<ReferenceSelectionDialog
 				disabled={!canSelectReferenceAssets}
-				entries={ws.generationEntries}
+				entries={historyUnavailable ? [] : ws.generationEntries}
 				inputId={`${ws.uploadIdPrefix}-reference-dialog-upload`}
 				isUploading={ws.isUploadingAsset}
 				maxReferences={maxReferenceUrlsForRoute(ws.selectedRoute)}

@@ -1,0 +1,84 @@
+# TASK030/150 Local Adoption Round Trip
+
+## Source
+
+Real local image import and section selection exposed three defects: adopted
+imports were recorded as generated; failed deselection raced legacy document
+sync and lost its rollback; reopening an already adopted image wrote the same
+selection again and changed updatedAt. Reuse existing imported provenance,
+reserved media-library task IDs, selection overrides, and a caller flag for keys
+already read from persisted selected-resource records. No backend/API/dependency
+change. Explicit legacy document keys retain their sync path.
+
+Actual isolated fixture project-a5cd155de4ec484a / doc-s1-media-history /
+section_s1_media_history uses real image asset-61a3ab3f7f00a1a0. Initial selection
+failure saved no record; normal recovery selected it. Missing display-details
+initially defeated provenance detection; the actual reserved ID fix succeeds.
+Blocked deselection now sends exactly one selected=false request and restores
+the checked state. Unblocked deselect/reselect succeeds. Close/resources/reopen,
+page reload and actual backend restart retain imported provenance and identities.
+Resource panel is a text summary, not an image timeline. No provider request.
+
+Complete original documents/body/version/history/import tasks remain identical.
+Post-fix selected records/resolved episode and actual media hash remain identical
+after reload/reopen/restart. Original failed selected-post baseline retained;
+separate fixed snapshot records the corrected run. Protected history snapshots,
+scope history and independent media-editor fixtures all remain unchanged.
+Evidence in .cache/parity/task-150-local-adoption (screenshots and JSON).
+
+Regression tests failed first for generated provenance and double writes on
+failed deselection. A legacy test fixture initially lacked the required media ID;
+corrected fixture retains the old-history no-task behavior. Final73files503tests,
+lint, full708-file canonical LF format, build and Electron compile pass. Existing
+jsdom pause/large chunk warnings retained. HMR dependency-array-size warning
+occurred while editing; full reload used for final acceptance. Expected ACP and
+bundled account503 remain. Browser hover/early-control lookups sometimes failed;
+DOM hover at actual text bounds and subsequent actual click succeeded. Source
+backend Windows gates reused unchanged from accepted local-import-usage.
+
+## Integration
+
+Source8187d88 cherry-picked cleanly as main a1b079d. Main73files503tests and full
+237files1586tests pass, plus lint, full708-file canonical LF format, build,
+Electron compile and embedded Windows workspace_dist build. First format command
+referenced a missing cache script; rerun with the verified absolute path passed.
+First full-test command put maxWorkers through pnpm's parser and failed before
+running tests; correct exec vitest command passed. One combined documentation
+patch failed atomically on a heading mismatch, corrected without partial edits.
+
+Main31456 runs mediago-server-adoption.exe. Initial dedicated project1434529e89bb1a23
+passed actual failed selection/recovery/deselection rollback and zero-write
+close/reopen checks. During restart validation a coordinate click accidentally
+created an empty storyboard doc-1792118301456-len2phu5v7o. Captured Network events
+show POST /workspace/documents with that ID/title/empty content. Complete project
+documents baseline then failed (extra document and updatedAt metadata), retained
+without restoration/deletion. Original body/version/history unchanged. This run
+is not counted as complete unchanged-record restart acceptance.
+
+Repeated in separate project04aabdf084db43fa using AX-verified DOM click fallback
+after the coordinate failure. Actual local asset1207ae4b580f1a0d, both failed-write
+directions/recovery, resource summary, close/reopen/page reload and actual backend
+restart pass. Complete original project documents including all metadata/version,
+history/import tasks, post-adoption selected records/resolved episode and media
+hash remain identical. Screenshot confirmed390CSS width/600height, page390,
+480x640 real image loaded. Both original failed fixture and confirmed fixture
+remain; evidence under .cache/parity/task-150-local-adoption[-confirmed]. Browser
+screenshot timeouts recovered by bringing only the owned test tab to the front.
+Protected prior history/scope/media-editor baselines remain unchanged.
+
+TASK030/080/150 overall remain incomplete; external generation, Agent and native
+Jianying reopening are not covered. Session2 remains617a80d; no newer verified
+commits. No backend source changed, existing Windows check/race reused.
+
+## Later Source Fixture Mismatch
+
+The same coordinate-click sequence also created empty screenplay
+doc-1792118320610-0rgv57vd5osr in original source project-a5cd155de4ec484a at02:38:40,
+after its earlier successful acceptance. Later complete-project comparison fails
+on this extra document and project/document metadata; original document body,
+version and history remain unchanged. Preserve the original snapshot and failed
+state without deleting/restoring anything. The earlier source run passed before
+this action; it does not establish unchanged current complete-project records.
+Subsequent independent dimensions fixture and main confirmed adoption fixture
+have separate identities and cannot erase this mismatch. Use AX-verified DOM
+click fallback on owned tabs after the demonstrated coordinate failures.

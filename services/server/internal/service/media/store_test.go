@@ -4,19 +4,89 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/service/shared"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
+
+func TestListRetainsOlderThan200MediaAndVisibility(t *testing.T) {
+	root := t.TempDir()
+	repos, err := repository.OpenWorkspaceRepositories(filepath.Join(root, "workspace.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	testutil.CloseDB(t, repos.DB)
+	requireMediaTestProject(t, repos.Workspace, "alpha")
+	requireMediaTestProject(t, repos.Workspace, "beta")
+	store := NewMediaAssetsFromRepository(repos.MediaAssets, filepath.Join(root, "library"), root, repos.Workspace, nil)
+	for _, scope := range []string{"", "alpha", "beta"} {
+		for index := range 201 {
+			updated := time.Date(2026, 10, 16, 0, index, 0, 0, time.UTC)
+			model := domain.AssetModel{
+				ID: fmt.Sprintf("asset-%s-%03d", scope, index), ProjectID: domain.StringPtr(scope),
+				Kind: MediaKindText, Filename: fmt.Sprintf("%s-%03d.txt", scope, index),
+				MIMEType: "text/plain", Source: MediaSourceImported, TagsJSON: `[]`,
+				CreatedAt: updated, UpdatedAt: updated,
+			}
+			if err := repos.MediaAssets.CreateMediaAsset(model); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	before, err := repos.MediaAssets.ListAllMediaAssets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name, scope string
+		want        int
+	}{
+		{name: "studio", scope: "", want: 201},
+		{name: "project with global", scope: "alpha", want: 402},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			assets, err := store.List(test.scope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(assets) != test.want {
+				t.Fatalf("List(%q) returned %d, want complete %d", test.scope, len(assets), test.want)
+			}
+			for index, asset := range assets {
+				if asset.ProjectID != "" && asset.ProjectID != test.scope {
+					t.Fatalf("foreign project media leaked: %+v", asset)
+				}
+				if index > 0 && assets[index-1].UpdatedAt < asset.UpdatedAt {
+					t.Fatal("media update ordering changed")
+				}
+			}
+			oldest := FilterMediaAssets(assets, MediaKindText, "-000.txt")
+			wantOldest := test.want / 201
+			if len(oldest) != wantOldest {
+				t.Fatalf("oldest search returned %d, want %d", len(oldest), wantOldest)
+			}
+			if again, err := store.List(test.scope); err != nil || !reflect.DeepEqual(again, assets) {
+				t.Fatalf("repeat listing changed complete records: %v", err)
+			}
+		})
+	}
+	after, err := repos.MediaAssets.ListAllMediaAssets()
+	if err != nil || !reflect.DeepEqual(before, after) {
+		t.Fatalf("listing changed stored records: %v", err)
+	}
+}
 
 func TestNewMediaAssetsDefaultDBPathUsesWorkspaceAppDB(t *testing.T) {
 	homeDir := t.TempDir()

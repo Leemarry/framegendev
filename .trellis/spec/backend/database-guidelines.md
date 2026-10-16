@@ -13,6 +13,20 @@ SQLite; follow their helpers rather than require an unrelated Docker DB.
 New persistence needs save/reopen coverage and legacy migration checks where
 applicable. Never inspect, migrate or clean production `workspace-v2`.
 
+BillingRepository.ListUsageBuckets excludes the internal media-library provider
+before grouping: local image/video imports retain completed history records but
+are not provider calls or billable usage. Do not filter all zero-token tasks:
+real image/video provider routes may charge per call. Keep the same predicate for
+global/project/kind/range summaries; reads must not alter retained task records.
+
+Generation media download paths are read projections, not stored relocation data.
+App wiring supplies GenerationTaskPaths with its WorkspaceRoot and MediaDir to
+GenerationTaskService. All task and selected-asset projections must forward these
+roots; global library paths honor the custom MediaDir, legacy .mediago-drama paths
+use WorkspaceRoot, and project paths retain their explicit project directory.
+Do not silently substitute the OS default root when app configuration is known.
+Keep file bytes, media IDs and task/selection timestamps unchanged during reads.
+
 ## Library display metadata (TASK-031)
 
 ### Scope / Trigger
@@ -52,6 +66,11 @@ Good: project metadata survives restart and note-only changes preserve tags.
 Base: legacy rows have []/empty/0. Bad: global PUT targeting project media returns404.
 Project lists currently include global assets for compatibility; writes must use
 the media's actual projectId, never its current viewing project's ID.
+List responses are complete visible metadata snapshots: the assets[] contract has
+no cursor or partial marker. Do not cap the repository query before search/type
+filtering, which silently hides older assets. Preserve global-only studio and
+project+global compatibility scope. Complete loading remains O(N); future bounded
+pagination must update the response and every caller rather than silently truncate.
 
 ### Required Tests
 

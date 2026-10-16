@@ -61,11 +61,13 @@ import {
 	type AssetLibraryItem,
 	type AssetLibraryKind,
 	type AssetLibraryKindFilter,
+	type AssetLibraryProvenanceFilter,
 	type AssetLibraryRatingFilter,
 	type AssetLibraryResourceFilter,
 	type AssetLibraryResourceType,
 	type AssetLibrarySource,
 	type AssetLibrarySourceFilter,
+	type AssetLibraryUsageFilter,
 	type AssetLibrarySort,
 	buildAssetLibraryItems,
 	filterAssetLibraryItems,
@@ -116,6 +118,19 @@ const projectSourceOptions: Array<{ label: string; value: AssetLibrarySourceFilt
 	{ label: "已选资源", value: "selected" },
 ];
 
+const provenanceOptions: Array<{
+	label: string;
+	value: AssetLibraryProvenanceFilter;
+	disabled?: boolean;
+}> = [
+	{ label: "全部素材", value: "all" },
+	{ label: "本地导入", value: "local" },
+	{ label: "浏览器采集（待接入）", value: "browser", disabled: true },
+	{ label: "生成结果", value: "generated" },
+	{ label: "其他来源", value: "other" },
+	{ label: "来源未记录", value: "unrecorded" },
+];
+
 const ratingOptions: Array<{ label: string; value: AssetLibraryRatingFilter }> = [
 	{ label: "全部", value: "all" },
 	{ label: "已评分", value: "rated" },
@@ -137,6 +152,14 @@ const resourceOptions: Array<{ label: string; value: AssetLibraryResourceFilter 
 ];
 
 const globalProjectValue = "__global__";
+
+const usageOptions: Array<{ label: string; value: AssetLibraryUsageFilter }> = [
+	{ label: "全部素材", value: "all" },
+	{ label: "已选用", value: "selected" },
+	{ label: "候选", value: "candidate" },
+	{ label: "用作参考", value: "reference" },
+	{ label: "未使用", value: "unused" },
+];
 
 export const AssetLibraryButton: React.FC<{ variant?: "icon" | "navigation"; label?: string }> = ({
 	variant = "icon",
@@ -215,10 +238,17 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [kindFilter, setKindFilter] = useState<AssetLibraryKindFilter>("all");
 	const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
 	const [query, setQuery] = useState("");
+	const [tagFilter, setTagFilter] = useState("");
+	const [includeSubfolders, setIncludeSubfolders] = useState(false);
+	const [browseScope, setBrowseScope] = useState<"directory" | "all">("directory");
 	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
+	const [usageFilter, setUsageFilter] = useState<AssetLibraryUsageFilter>("all");
+	const [provenanceFilter, setProvenanceFilter] = useState<AssetLibraryProvenanceFilter>("all");
 	const [uploading, setUploading] = useState<"media" | null>(null);
+	const [refreshing, setRefreshing] = useState(false);
+	const [refreshError, setRefreshError] = useState<unknown>(null);
 	const isPage = presentation === "page";
 	const [sort, setSort] = useState<AssetLibrarySort>(isPage ? "createdDesc" : "updatedDesc");
 	const [thumbnailSize, setThumbnailSize] = useState(190);
@@ -229,7 +259,12 @@ export const AssetLibraryWorkspace: React.FC<{
 		open ? projectsKey : null,
 		() => getProjects(),
 	);
-	const mediaQueryKey = open ? [mediaAssetsKey, mediaProjectId] : null;
+	const includeUsage = usageFilter !== "all";
+	const mediaQueryKey = open
+		? includeUsage
+			? [mediaAssetsKey, mediaProjectId, "usage"]
+			: [mediaAssetsKey, mediaProjectId]
+		: null;
 	const documentsQueryKey =
 		open && selectedProjectId ? workspaceDocumentsKey(selectedProjectId) : null;
 	const selectedQueryKey =
@@ -239,7 +274,12 @@ export const AssetLibraryWorkspace: React.FC<{
 		error: mediaError,
 		isLoading: isMediaLoading,
 		mutate: mutateMediaAssets,
-	} = useSWR(mediaQueryKey, () => getMediaAssets({ projectId: selectedProjectId || undefined }));
+	} = useSWR(mediaQueryKey, () =>
+		getMediaAssets({
+			projectId: selectedProjectId || undefined,
+			...(includeUsage ? { includeUsage: true } : {}),
+		}),
+	);
 	const {
 		data: selectedData,
 		error: selectedError,
@@ -277,20 +317,36 @@ export const AssetLibraryWorkspace: React.FC<{
 		[documentsData?.documents, mediaData?.assets, projectMode, selectedData?.assets],
 	);
 	const folderId = folderControls?.folderId || "";
+	const visibleFolderIds = useMemo(() => {
+		const ids = new Set([folderId]);
+		if (includeSubfolders && folderControls) {
+			for (const folder of folderControls.folders) {
+				if (
+					!folderId ||
+					libraryFolderPath(folderControls.folders, folder.id).some(
+						(entry) => entry.id === folderId,
+					)
+				)
+					ids.add(folder.id);
+			}
+		}
+		return ids;
+	}, [folderControls, folderId, includeSubfolders]);
 	const folderItems = useMemo(
 		() =>
-			folderControls
+			folderControls && browseScope === "directory"
 				? items.filter((item) => {
 						const asset = item.mediaAsset;
 						if (!asset || (asset.projectId || "") !== selectedProjectId) return !folderId;
-						return (asset.folderId || "") === folderId;
+						return visibleFolderIds.has(asset.folderId || "");
 					})
 				: items,
-		[folderControls, folderId, items, selectedProjectId],
+		[browseScope, folderControls, folderId, items, selectedProjectId, visibleFolderIds],
 	);
 	const folderPath = libraryFolderPath(folderControls?.folders ?? [], folderId);
 	const childFolders = (folderControls?.folders ?? []).filter(
 		(folder) =>
+			browseScope === "directory" &&
 			folder.parentId === folderId &&
 			(!query || folder.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())),
 	);
@@ -302,22 +358,42 @@ export const AssetLibraryWorkspace: React.FC<{
 			filterAssetLibraryItems(folderItems, {
 				kind: kindFilter,
 				query,
+				provenance: provenanceFilter,
 				rating: ratingFilter,
 				resourceType: projectMode ? resourceFilter : "all",
-				source: projectMode ? sourceFilter : "all",
+				source: sourceFilter,
 				sort,
+				tag: tagFilter,
+				usage: usageFilter,
 			}),
-		[folderItems, kindFilter, projectMode, query, ratingFilter, resourceFilter, sourceFilter, sort],
-	);
-	const activeItem = useMemo(
-		() => filteredItems.find((item) => item.key === activeKey) ?? filteredItems[0] ?? null,
-		[activeKey, filteredItems],
+		[
+			folderItems,
+			kindFilter,
+			projectMode,
+			query,
+			ratingFilter,
+			resourceFilter,
+			sourceFilter,
+			provenanceFilter,
+			sort,
+			tagFilter,
+			usageFilter,
+		],
 	);
 	const isLoading =
+		refreshing ||
 		isMediaLoading ||
 		folderControls?.loading ||
 		(projectMode && (isSelectedLoading || isDocumentsLoading));
-	const error = mediaError ?? selectedError ?? documentsError ?? folderControls?.error;
+	const error =
+		refreshError ?? mediaError ?? selectedError ?? documentsError ?? folderControls?.error;
+	const activeItem = useMemo(
+		() =>
+			isLoading || error
+				? null
+				: (filteredItems.find((item) => item.key === activeKey) ?? filteredItems[0] ?? null),
+		[activeKey, error, filteredItems, isLoading],
+	);
 
 	useEffect(() => {
 		if (!open) return;
@@ -327,10 +403,20 @@ export const AssetLibraryWorkspace: React.FC<{
 	useEffect(() => {
 		if (!open) return;
 		setSourceFilter("all");
+		setUsageFilter("all");
+		setProvenanceFilter("all");
 		setResourceFilter("all");
 		setRatingFilter("all");
+		setTagFilter("");
+		setIncludeSubfolders(false);
+		setBrowseScope("directory");
 		setActiveKey("");
+		setRefreshError(null);
 	}, [open, selectedProjectId]);
+
+	useEffect(() => {
+		setBrowseScope("directory");
+	}, [folderId]);
 
 	useEffect(() => {
 		if (!activeItem) {
@@ -534,24 +620,39 @@ export const AssetLibraryWorkspace: React.FC<{
 		</Button>
 	);
 	const refresh = async () => {
+		if (refreshing) return;
+		setRefreshing(true);
 		try {
 			const result = await scanMediaAssets(mediaProjectId || undefined);
-			await Promise.all([
-				mutateMediaAssets(),
+			const [media, selected, documents] = await Promise.all([
+				getMediaAssets({ projectId: mediaProjectId || undefined }),
+				projectMode ? getSelectedGenerationAssets(selectedProjectId) : undefined,
+				projectMode ? getWorkspaceDocuments(selectedProjectId) : undefined,
 				...(folderControls ? [folderControls.onRefresh()] : []),
-				...(projectMode ? [mutateSelectedAssets(), mutateDocuments()] : []),
 			]);
+			await Promise.all([
+				mutateMediaAssets(media, { revalidate: false }),
+				...(selected ? [mutateSelectedAssets(selected, { revalidate: false })] : []),
+				...(documents ? [mutateDocuments(documents, { revalidate: false })] : []),
+			]);
+			setRefreshError(null);
 			toast.success("素材已刷新", {
 				description: `新增 ${result.added}，更新 ${result.updated}，共扫描 ${result.scanned}`,
 			});
 		} catch (err) {
+			setRefreshError(err);
 			toast.error("刷新失败", { description: errorMessage(err, "素材列表刷新失败。") });
+		} finally {
+			setRefreshing(false);
 		}
 	};
 	const hasActiveAssetFilter = Boolean(
 		query ||
+		tagFilter.trim() ||
 		kindFilter !== "all" ||
+		provenanceFilter !== "all" ||
 		sourceFilter !== "all" ||
+		usageFilter !== "all" ||
 		resourceFilter !== "all" ||
 		ratingFilter !== "all",
 	);
@@ -685,7 +786,34 @@ export const AssetLibraryWorkspace: React.FC<{
 								<SlidersHorizontal className="size-4" />
 							</Button>
 						</PopoverTrigger>
-						<PopoverContent className="grid w-64 gap-2" align="end">
+						<PopoverContent
+							className="grid max-h-[var(--radix-popover-content-available-height)] w-64 gap-2 overflow-y-auto"
+							align="end"
+							collisionPadding={16}
+						>
+							{folderControls ? (
+								<AssetLibrarySelect
+									label="浏览范围"
+									value={browseScope}
+									options={[
+										{ label: "目录浏览", value: "directory" },
+										{ label: "全部素材", value: "all" },
+									]}
+									onValueChange={(value) => setBrowseScope(value === "all" ? "all" : "directory")}
+								/>
+							) : null}
+							{folderControls ? (
+								<label className="flex items-center gap-2 text-xs text-muted-foreground">
+									<input
+										type="checkbox"
+										className="accent-primary"
+										checked={includeSubfolders}
+										disabled={browseScope !== "directory"}
+										onChange={(event) => setIncludeSubfolders(event.target.checked)}
+									/>
+									包含子文件夹
+								</label>
+							) : null}
 							<AssetLibrarySelect
 								label="类型"
 								value={kindFilter}
@@ -693,7 +821,21 @@ export const AssetLibraryWorkspace: React.FC<{
 								onValueChange={(value) => setKindFilter(value as AssetLibraryKindFilter)}
 							/>
 							<AssetLibrarySelect
+								label="使用状态"
+								value={usageFilter}
+								options={usageOptions}
+								onValueChange={(value) => setUsageFilter(value as AssetLibraryUsageFilter)}
+							/>
+							<AssetLibrarySelect
 								label="来源"
+								value={provenanceFilter}
+								options={provenanceOptions}
+								onValueChange={(value) =>
+									setProvenanceFilter(value as AssetLibraryProvenanceFilter)
+								}
+							/>
+							<AssetLibrarySelect
+								label="资源记录"
 								value={sourceFilter}
 								options={projectSourceOptions}
 								onValueChange={(value) => setSourceFilter(value as AssetLibrarySourceFilter)}
@@ -710,6 +852,14 @@ export const AssetLibraryWorkspace: React.FC<{
 								options={ratingOptions}
 								onValueChange={(value) => setRatingFilter(value as AssetLibraryRatingFilter)}
 							/>
+							<label className="grid gap-1 text-xs text-muted-foreground">
+								<span>标签</span>
+								<Input
+									aria-label="筛选标签"
+									value={tagFilter}
+									onChange={(event) => setTagFilter(event.target.value)}
+								/>
+							</label>
 						</PopoverContent>
 					</Popover>
 					<input
@@ -769,7 +919,7 @@ export const AssetLibraryWorkspace: React.FC<{
 					{projectMode ? (
 						<>
 							<AssetLibrarySelect
-								label="来源"
+								label="资源记录"
 								value={sourceFilter}
 								options={projectSourceOptions}
 								onValueChange={(value) => setSourceFilter(value as AssetLibrarySourceFilter)}
@@ -960,8 +1110,11 @@ export const AssetLibraryWorkspace: React.FC<{
 			</div>
 			{isPage ? (
 				<footer className="asset-library-status">
-					已加载 {childFolders.length} 个文件夹，{filteredItems.length} 个文件
-					{query ? `（共 ${folderItems.length} 个素材）` : ""}
+					{isLoading
+						? "正在加载素材"
+						: error
+							? "素材加载失败"
+							: `已加载 ${childFolders.length} 个文件夹，${filteredItems.length} 个文件${query ? `（共 ${folderItems.length} 个素材）` : ""}`}
 				</footer>
 			) : null}
 		</>
@@ -1267,6 +1420,15 @@ const AssetLibraryPreview: React.FC<{
 				<p>更新：{formatDateTime(item.updatedAt)}</p>
 				<p>创建：{formatDateTime(item.createdAt)}</p>
 				{item.mimeType ? <p className="break-all">MIME：{item.mimeType}</p> : null}
+				{(item.kind === "image" || item.kind === "video") &&
+				Number.isFinite(item.mediaAsset?.width) &&
+				Number.isFinite(item.mediaAsset?.height) &&
+				(item.mediaAsset?.width ?? 0) > 0 &&
+				(item.mediaAsset?.height ?? 0) > 0 ? (
+					<p>
+						尺寸：{item.mediaAsset?.width} x {item.mediaAsset?.height} px
+					</p>
+				) : null}
 				{item.mediaAsset?.source ? (
 					<p>来源：{mediaAssetSourceLabel(item.mediaAsset.source)}</p>
 				) : null}
@@ -1456,7 +1618,7 @@ const AssetLibrarySelect: React.FC<{
 	label: string;
 	loading?: boolean;
 	onValueChange: (value: string) => void;
-	options: Array<{ label: string; value: string }>;
+	options: Array<{ label: string; value: string; disabled?: boolean }>;
 	value: string;
 }> = ({ label, loading, onValueChange, options, value }) => (
 	<Select value={value} onValueChange={onValueChange}>
@@ -1470,7 +1632,7 @@ const AssetLibrarySelect: React.FC<{
 		</SelectTrigger>
 		<SelectContent align="start">
 			{options.map((option) => (
-				<SelectItem key={option.value} value={option.value}>
+				<SelectItem key={option.value} value={option.value} disabled={option.disabled}>
 					{option.label}
 				</SelectItem>
 			))}

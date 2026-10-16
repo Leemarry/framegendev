@@ -84,9 +84,6 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 	const assets = useDocumentsStore((state) => state.assets);
 	const activeDocumentId = useDocumentsStore((state) => state.activeDocumentId);
 	const projectId = useDocumentsStore((state) => state.projectId);
-	const convertDocumentToWorkbenchDraft = useDocumentsStore(
-		(state) => state.convertDocumentToWorkbenchDraft,
-	);
 	const selectClip = useEpisodeStore((state) => state.selectClip);
 	const setCurrentTime = useEpisodeStore((state) => state.setCurrentTime);
 	const setEpisode = useEpisodeStore((state) => state.setEpisode);
@@ -106,11 +103,17 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 	const lastPreviewErrorKey = useRef("");
 	const activeWorkbench = workbench ?? "timeline";
 	const isCanvasWorkbench = activeWorkbench === "canvas";
-	const activeDocument =
-		findDocumentById(documents, documentId) ?? selectDocumentById(documents, activeDocumentId);
+	const activeDocument = documentId
+		? findDocumentById(documents, documentId)
+		: selectDocumentById(documents, activeDocumentId);
 	const episodeDocumentId = activeDocument?.id ?? "";
 	const mediaAssetProjectId = projectId?.trim() ?? "";
-	const { data: resolvedEpisodeState, mutate: mutateEpisodeState } = useSWR(
+	const {
+		data: resolvedEpisodeState,
+		error: resolvedEpisodeError,
+		isValidating: isEpisodeValidating,
+		mutate: mutateEpisodeState,
+	} = useSWR(
 		episodeDocumentId ? workspaceResolvedEpisodeKey(episodeDocumentId, projectId) : null,
 		() => getWorkspaceResolvedEpisode(episodeDocumentId, projectId),
 	);
@@ -160,7 +163,11 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 			enabled: Boolean(episodeDocumentId),
 			filters: selectedStoryboardVideoFilters,
 		});
-	const resolvedEpisode = resolvedEpisodeState?.episode ?? null;
+	const resolvedEpisode =
+		resolvedEpisodeState?.documentId === episodeDocumentId &&
+		resolvedEpisodeState.projectId === projectId
+			? resolvedEpisodeState.episode
+			: null;
 	const selectedGenerationAssets =
 		selectedGenerationAssetsData?.assets ?? emptySelectedGenerationAssets;
 
@@ -599,12 +606,13 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 		setPreviewPlaybackActive(false);
 	}, [resolvedEpisode, setEpisode]);
 
+	useEffect(() => () => pause(), [pause]);
 	useEffect(() => {
-		if (!episodeDocumentId) return;
-		convertDocumentToWorkbenchDraft(episodeDocumentId);
-	}, [convertDocumentToWorkbenchDraft, episodeDocumentId]);
+		if (episodeDocumentId) void mutateEpisodeState();
+	}, [activeDocument?.updatedAt, episodeDocumentId, mutateEpisodeState]);
 
 	useEffect(() => {
+		if (!resolvedEpisode || resolvedEpisodeError || isEpisodeValidating) return;
 		if (
 			latestStoryboardVideoTaskByClipId.size === 0 &&
 			selectedStoryboardVideoByClipId.size === 0
@@ -645,6 +653,9 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 		mutateEpisodeState,
 		mutateMediaAssets,
 		projectId,
+		resolvedEpisode,
+		resolvedEpisodeError,
+		isEpisodeValidating,
 		selectedStoryboardVideoByClipId,
 		setEpisode,
 		toast,
@@ -676,6 +687,31 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 		onOpenChange: setVideoGenerationOpen,
 		onOpenReferenceGeneration: openReferenceSectionGeneration,
 	});
+
+	if (
+		resolvedEpisodeError ||
+		isEpisodeValidating ||
+		!resolvedEpisode ||
+		episode.id !== resolvedEpisode.id
+	) {
+		return (
+			<div className="grid h-full min-h-0 place-items-center p-4">
+				{resolvedEpisodeError ? (
+					<div role="alert" className="space-y-3 text-center text-sm">
+						<p className="text-error-foreground">时间轴读取失败，请重试。</p>
+						<Button variant="outline" size="sm" onClick={() => void mutateEpisodeState()}>
+							重试
+						</Button>
+					</div>
+				) : (
+					<p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+						<Loader2 className="size-4 animate-spin" />
+						正在读取时间轴
+					</p>
+				)}
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex h-full min-h-0 flex-col bg-ide-editor text-ide-editor-foreground">

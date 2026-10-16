@@ -97,7 +97,7 @@ func TestMediaAssetRepositoryLifecycle(t *testing.T) {
 		t.Fatalf("FindMediaAssetByContentHashAndScope(other) error = %v, want ErrRecordNotFound", err)
 	}
 
-	assets, err := repo.ListMediaAssets(10, "alpha")
+	assets, err := repo.ListMediaAssets("alpha")
 	if err != nil {
 		t.Fatalf("ListMediaAssets() error = %v", err)
 	}
@@ -184,7 +184,7 @@ func TestMediaAssetRepositoryListMediaAssetsFiltersByProject(t *testing.T) {
 		}
 	}
 
-	studioAssets, err := repo.ListMediaAssets(10, "")
+	studioAssets, err := repo.ListMediaAssets("")
 	if err != nil {
 		t.Fatalf("ListMediaAssets(studio) error = %v", err)
 	}
@@ -192,7 +192,7 @@ func TestMediaAssetRepositoryListMediaAssetsFiltersByProject(t *testing.T) {
 		t.Fatalf("studio asset IDs = %#v, want global only", got)
 	}
 
-	alphaAssets, err := repo.ListMediaAssets(10, "alpha")
+	alphaAssets, err := repo.ListMediaAssets("alpha")
 	if err != nil {
 		t.Fatalf("ListMediaAssets(alpha) error = %v", err)
 	}

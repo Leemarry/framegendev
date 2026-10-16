@@ -167,6 +167,21 @@ describe("AssetLibraryButton", () => {
 		cleanup();
 	});
 
+	it.each([
+		[480, 640, "尺寸：480 x 640 px"],
+		[0, 640, null],
+		[480, undefined, null],
+	])("shows only known asset dimensions %s x %s", async (width, height, dimensions) => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [mediaAsset({ width, height })],
+		});
+		renderAssetLibraryButton("/");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "全局素材库" });
+		if (dimensions) expect(await screen.findByText(dimensions)).toBeTruthy();
+		else expect(screen.queryByText(/^尺寸：/)).toBeNull();
+	});
+
 	it("opens the global asset library outside a project", async () => {
 		vi.mocked(getMediaAssets).mockResolvedValue({
 			assets: [mediaAsset({ filename: "global-still.png", id: "global-media" })],
@@ -178,7 +193,7 @@ describe("AssetLibraryButton", () => {
 
 		expect(await screen.findByRole("dialog", { name: "全局素材库" })).toBeTruthy();
 		expect((await screen.findAllByText("global-still.png")).length).toBeGreaterThan(0);
-		expect(screen.queryByRole("combobox", { name: "来源" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("combobox", { name: "资源记录" })).not.toBeInTheDocument();
 		expect(getMediaAssets).toHaveBeenCalledWith({ projectId: undefined });
 		expect(getWorkspaceDocuments).not.toHaveBeenCalled();
 		expect(getSelectedGenerationAssets).not.toHaveBeenCalled();
@@ -211,7 +226,7 @@ describe("AssetLibraryButton", () => {
 
 		expect(await screen.findByRole("dialog", { name: "项目素材库" })).toBeTruthy();
 		expect((await screen.findAllByText("hero-media.png")).length).toBeGreaterThan(0);
-		expect(screen.getByRole("combobox", { name: "来源" })).toBeTruthy();
+		expect(screen.getByRole("combobox", { name: "资源记录" })).toBeTruthy();
 		expect(screen.getAllByText("角色").length).toBeGreaterThan(0);
 		expect(
 			screen.getByPlaceholderText("搜索素材").parentElement?.parentElement?.className,

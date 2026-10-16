@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MarkdownDocument } from "@/domains/documents/stores";
 import { useDocumentsStore } from "@/domains/documents/stores";
@@ -186,7 +187,10 @@ describe("ProjectSidebarPanel", () => {
 
 	it("exposes project navigation and the shared user menu", () => {
 		const projectSidebar = renderProjectSidebar(true);
-		expect(screen.getByRole("button", { name: "打开素材库" })).toHaveTextContent("项目素材库");
+		expect(screen.getByRole("link", { name: "打开项目素材库" })).toHaveAttribute(
+			"href",
+			"/assets?projectId=project-a",
+		);
 		expect(screen.getByRole("button", { name: "打开生成历史" })).toHaveTextContent("项目生成历史");
 		expect(screen.getByRole("button", { name: "项目设置" })).toBeTruthy();
 		expect(screen.getByRole("button", { name: "本地用户菜单" })).toBeTruthy();
@@ -195,7 +199,10 @@ describe("ProjectSidebarPanel", () => {
 		const onOpenSettings = vi.fn();
 		const onOpenProjects = vi.fn();
 		renderProjectsSidebar({ onOpenSettings, onOpenProjects });
-		expect(screen.getByRole("button", { name: "打开素材库" })).toHaveTextContent("素材库");
+		expect(screen.getByRole("link", { name: "打开全局素材库" })).toHaveAttribute(
+			"href",
+			"/assets?scope=all",
+		);
 		expect(screen.getByRole("button", { name: "打开生成历史" })).toHaveTextContent("生成历史");
 		fireEvent.click(screen.getByRole("button", { name: "项目管理" }));
 		expect(onOpenProjects).toHaveBeenCalledOnce();
@@ -263,8 +270,9 @@ describe("ProjectSidebarPanel", () => {
 const renderProjectSidebar = (
 	showActiveSelection: boolean,
 	overrides: Partial<React.ComponentProps<typeof ProjectSidebarPanel>> = {},
-) =>
-	render(
+) => {
+	window.history.replaceState(null, "", "/projects?projectId=project-a");
+	return render(
 		<ProjectSidebarPanel
 			displayProject={project}
 			documentsProjectId={project.id}
@@ -285,12 +293,15 @@ const renderProjectSidebar = (
 			onOpenSettings={vi.fn()}
 			{...overrides}
 		/>,
+		{ wrapper: MemoryRouter },
 	);
+};
 
 const renderProjectsSidebar = (
 	overrides: Partial<React.ComponentProps<typeof ProjectsSidebarPanel>> = {},
-) =>
-	render(
+) => {
+	window.history.replaceState(null, "", "/");
+	return render(
 		<ProjectsSidebarPanel
 			onOpenSkills={vi.fn()}
 			isCreating={false}
@@ -306,7 +317,9 @@ const renderProjectsSidebar = (
 			onOpenSettings={vi.fn()}
 			{...overrides}
 		/>,
+		{ wrapper: MemoryRouter },
 	);
+};
 
 const documentItemClassName = (name = "第一集") =>
 	(screen.getByRole("button", { name }).parentElement as HTMLElement).className;

@@ -34,6 +34,26 @@ func TestMediaReferencesIncludesDocumentsThroughAPI(t *testing.T) {
 	request(http.MethodPost, base+"/workspace/documents", string(payload), 200)
 	request(http.MethodPost, base+"/generation/selected-assets", `{"mediaAssetId":"`+asset.ID+`","resourceType":"scene","resourceTitle":"Selected scene"}`, 200)
 	before := request(http.MethodGet, base+"/workspace/documents", "", 200)
+	for _, path := range []string{"/api/v1/media-assets", base + "/media-assets"} {
+		var envelope struct {
+			Data servicemedia.MediaAssetsResponse `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(request(http.MethodGet, path+"?includeUsage=true", "", 200)), &envelope); err != nil {
+			t.Fatal(err)
+		}
+		if len(envelope.Data.Assets) != 1 || envelope.Data.Assets[0].Usage == nil ||
+			!envelope.Data.Assets[0].Usage.Selected || !envelope.Data.Assets[0].Usage.Reference || envelope.Data.Assets[0].Usage.Candidate {
+			t.Fatalf("wrong real selection/document usage: %+v", envelope.Data.Assets)
+		}
+		envelope.Data = servicemedia.MediaAssetsResponse{}
+		if err := json.Unmarshal([]byte(request(http.MethodGet, path, "", 200)), &envelope); err != nil {
+			t.Fatal(err)
+		}
+		if envelope.Data.Assets[0].Usage != nil {
+			t.Fatal("default response gained usage")
+		}
+		request(http.MethodGet, path+"?includeUsage=invalid", "", 400)
+	}
 	for _, path := range []string{"/api/v1/media-assets/" + asset.ID + "/references", base + "/media-assets/" + asset.ID + "/references"} {
 		var envelope struct {
 			Data servicemedia.MediaAssetReferencesResponse `json:"data"`

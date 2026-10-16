@@ -9,10 +9,29 @@ merge uses the version displayed to the user and may receive another409.
 Per-window/project recovery restores dirty drafts as paused conflicts, including
 documents deleted remotely. Reload-server first archives local JSON. Local
 recovery depends on the retained browser profile/storage; expose storage errors.
+Fresh window IDs discover other-window dirty drafts read-only within the project.
+Keep each source key/document separate, exclude backups and malformed records,
+and never delete or overwrite the source when previewing, downloading or staging.
+Explicit staging re-reads the server and checks project/dirty state again after
+the await, then persists a current-window dirty paused conflict (server may be
+null for a deleted document). Staging itself must not send a save. A retained
+profile restart, actual JSON download, cancellation, failure/retry and complete
+body/version/history comparisons are required beyond component tests.
 Never count unchanged visible text as persistence proof: compare complete body,
 version and retained history after reload and backend restart. Legacy complete
 workspace mutations supply expectedVersions for all loaded document IDs; service
 checks the full ID/version map under its existing lock before replacement.
+
+## Comment Operations (TASK-050)
+
+Failed apply/undo writes retain the latest local body/comments and operation log,
+restore the known base version and pause through existing conflict recovery.
+Never replace later typing/another document with a stale workspace rollback.
+Captured project guards make late failures after navigation a no-op.
+Comment-triggered Agent dispatch carries explicit project/document/open comments;
+validate loaded context. Remote termination alone never resolves a comment.
+Use explicit document resolution operations or manual resolution. Any local test
+runtime inference must use captured identity and unchanged submitted comment body.
 
 ## Document History Restore (TASK-070)
 
@@ -28,6 +47,26 @@ request so the panel error is visible. A successful restore creates a new versio
 keeps previous history, and restores empty tags as well as body/title/category.
 Legacy callers omitting the optional version remain compatible and unprotected.
 
+Historical full reading/source previews use the existing diff response's immutable
+snapshots, not the live document store. Reading uses the existing document schema
+with editable=false and no onUpdate/save/editor-registry integration; source shows
+the exact escaped Markdown, preserving whitespace. Key preview instances by
+project/document/hash and verify response identity. Hide cached content during
+revalidation/failure and disable restore/navigation until reads recover. Switching
+views never changes the selected restore target or frozen reviewed version.
+Full snapshot reading is distinct from official diff-highlighted reading.
+The diff presentation selector defaults to reading (normal font with semantic
+line highlights) and can show exact source in monospace. Both presentations use
+the server's existing lines, alignment and change anchors; preserve literal text,
+whitespace, selected hash and frozen restore base. This is escaped line rendering,
+not a second rich editor or a client diff engine. Full snapshot reading remains
+available separately. Word-level/Markdown-transform parity needs further evidence.
+The history dropdown and sidebar share selectedHash; current comparison stays
+fixed to the latest history hash. Disable selection on history load/revalidation
+failure. Display exact Git hash identity instead of inferring document version
+numbers from the capped history list. Official ArrowLeftRight is a decorative
+comparison indicator, not a version-swap command (actual0.1.17 DOM inspection).
+
 NLE manual edits live in local immutable history until explicit episode PUT succeeds.
 Failed writes retain the draft; discard requires confirmation. Saved episodes use
 optional `editVersion: 1`; backend resolved reads preserve the complete manual
@@ -36,6 +75,24 @@ Generation reconciliation must not overwrite a manual edit or an open NLE draft.
 Use 30fps frame-aligned seconds; clip edit volume/opacity zero are valid values.
 
 ## NLE Audio And Caption Contract
+
+Storyboard resource summaries use URL resourcePanel=open in the documents domain;
+preserve all other query parameters and route state. Keep WritingEditor mounted
+across open/close; resources and comments are mutually exclusive. Reuse the
+resolved-episode read, checking project/document and available documentUpdatedAt.
+Hide cached groups during revalidation/failure or dirty/conflicted drafts, expose
+retry, and revalidate after saved document updatedAt changes. Use existing H2
+section detection before showing groups: the episode API's generic Markdown
+fallback is useful for timeline previews but is not an authored storyboard group.
+Panel visibility and reads must never save documents or episodes.
+
+Storyboard document view uses URL `documentMode=document|timeline`, preserving
+project/document/query and route state. Keep the writing editor mounted while
+hidden; disable timeline for dirty/conflicted drafts. Merely opening a timeline
+must not PATCH a workbenchDraft marker: resolved episode reads derive from the
+document. Match response project/document before displaying controls; loading,
+revalidation and failure hide stale/sample controls and expose retry. Revalidate
+after document updatedAt changes and pause playback on timeline unmount.
 
 ### Scope
 
@@ -130,6 +187,26 @@ and passes projectId/historyScopeId/projectHistory to the existing workspace.
 Global history variants keep their original behavior. Project skill packs reflect
 the real global API; without a project-scoped contract, do not show working project
 toggles. Read-only global status and explicit pending integration are required.
+
+GenerationWorkspace's task-history read state comes from its existing SWR key.
+Loading/revalidation/error hides chat-history actions and history reference
+entries, while keeping cached tasks and persisted local messages intact. Show an
+explicit status and refresh/retry using the same bound task mutator; never claim
+successful synchronization merely because mutate resolved with retained data.
+Conversation navigation and media-editor history are separate surfaces.
+MediaGenerationWorkspace uses the same read-state contract for its independent
+section/episode history: unmount stale history actions and reference entries,
+keep the editable prompt, and pause count/selection reconciliation while reads
+are unavailable. A failed read is not a successful empty history or zero count.
+
+MediaGenerationWorkspace recognizes local import history by its reserved
+media-library- / legacy media-library: task ID prefix, without requiring display
+details. Persist its adoption as imported; retain explicit edited provenance.
+Explicit selection overrides take precedence over legacy document selection
+sync, including failed deselection rollback. DocumentSectionGenerator marks keys
+read from selected-resource records with selectedAssetKeysPersisted; opening such
+history must not re-save adoption or change its timestamps. Explicit legacy
+document keys still use the existing sync path.
 
 AssetLibrary owns folderId in URL and folders in scope-keyed SWR. Folder navigation
 preserves projectId and route state; settings returns preserve the exact folder URL.

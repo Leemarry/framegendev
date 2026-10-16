@@ -173,6 +173,7 @@ vi.mock("@/domains/generation/components/MediaGenerationInputPanel", () => ({
 
 		return (
 			<div data-testid="generation-input-panel">
+				{React.isValidElement(promptEditor) && promptEditor.type === "input" ? promptEditor : null}
 				<div data-testid="document-prompt-editor-class" data-class={promptEditorClassName} />
 				<div data-testid="reference-button-label">{referenceButtonLabel}</div>
 				{error ? <div role="alert">{error}</div> : null}
@@ -383,12 +384,16 @@ const workspaceDefaults = {
 	hasConfiguredRoutesForKind: true,
 	importMediaAssetsToHistory: vi.fn(),
 	isImportingMediaAssets: false,
+	isLoadingHistory: false,
+	isRefreshingHistory: false,
 	isSubmitting: false,
 	isUploadingAsset: false,
 	kind: "image",
 	mediaAssets: [mediaAsset],
 	mutateMediaAssets: vi.fn(),
 	mutateTasks: vi.fn(),
+	needsConversation: false,
+	historyError: null,
 	orderedGenerationEntries: [imageEntry, secondImageEntry],
 	fullPrompt: "完整提示词",
 	prompt: "旧提示词",
@@ -1097,6 +1102,52 @@ describe("MediaGenerationWorkspace", () => {
 		expect(generationApiMocks.updateSelectedGenerationAsset).not.toHaveBeenCalled();
 	});
 
+	it.each([
+		["with display details", importedMaterialEntry],
+		["without display details", { ...importedMaterialEntry, requestDetails: undefined }],
+		[
+			"from legacy history",
+			{
+				...importedMaterialEntry,
+				id: "media-library:legacy",
+				assets: importedMaterialEntry.assets?.map((asset) => ({
+					...asset,
+					assetId: "local-media",
+				})),
+			},
+		],
+	])("persists local material selection with imported provenance %s", async (_, entry) => {
+		vi.mocked(useGenerationWorkspace).mockReturnValue({
+			...workspaceDefaults,
+			activeEntryId: entry.id,
+			orderedGenerationEntries: [entry],
+		} as unknown as ReturnType<typeof useGenerationWorkspace>);
+		render(
+			<MediaGenerationWorkspace
+				historyScopeId="history-a"
+				initialPrompt=""
+				kind="image"
+				projectId="project-a"
+				selectedAssetResourceId="section-a"
+				selectedAssetSourceDocumentId="doc-a"
+				taskType="storyboard"
+				viewMode="history"
+			/>,
+		);
+		fireEvent.click(screen.getByRole("checkbox", { name: "选入结果" }));
+		await waitFor(() =>
+			expect(generationApiMocks.updateSelectedGenerationAsset).toHaveBeenCalledWith(
+				"project-a",
+				expect.objectContaining({
+					sourceType: "imported",
+					selected: true,
+					resourceId: "section-a",
+					sourceDocumentId: "doc-a",
+				}),
+			),
+		);
+	});
+
 	it("persists selected generated image with the document title", async () => {
 		const selectedEntry: GenerationEntry = {
 			...imageEntry,
@@ -1295,6 +1346,64 @@ describe("MediaGenerationWorkspace", () => {
 		});
 		expect(screen.queryByRole("checkbox", { name: "取消选入结果" })).toBeNull();
 		expect(toastMocks.error).toHaveBeenCalledWith("backend unavailable");
+	});
+
+	it("restores persisted selection after failed deselection without resyncing stale document keys", async () => {
+		const asset = {
+			kind: "image" as const,
+			assetId: "local-media",
+			url: "/api/v1/media-assets/local-media/content",
+		};
+		vi.mocked(useGenerationWorkspace).mockReturnValue({
+			...workspaceDefaults,
+			activeEntryId: importedMaterialEntry.id,
+			orderedGenerationEntries: [{ ...importedMaterialEntry, assets: [asset] }],
+		} as unknown as ReturnType<typeof useGenerationWorkspace>);
+		render(
+			<MediaGenerationWorkspace
+				historyScopeId="history-a"
+				initialPrompt=""
+				kind="image"
+				projectId="project-a"
+				selectedAssetKeys={["image:/api/v1/media-assets/local-media/content"]}
+				selectedAssetResourceId="section-a"
+				taskType="storyboard"
+				viewMode="history"
+			/>,
+		);
+		await waitFor(() =>
+			expect(generationApiMocks.updateSelectedGenerationAsset).toHaveBeenCalledOnce(),
+		);
+		generationApiMocks.updateSelectedGenerationAsset.mockClear();
+		generationApiMocks.updateSelectedGenerationAsset.mockRejectedValueOnce(new Error("offline"));
+		fireEvent.click(screen.getByRole("checkbox", { name: "取消选入结果" }));
+		await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith("offline"));
+		expect(generationApiMocks.updateSelectedGenerationAsset).toHaveBeenCalledOnce();
+		expect(
+			screen.getByRole("checkbox", { name: "取消选入结果" }).getAttribute("aria-checked"),
+		).toBe("true");
+	});
+
+	it("opens persisted selected resource keys without writing them again", () => {
+		vi.mocked(useGenerationWorkspace).mockReturnValue({
+			...workspaceDefaults,
+			activeEntryId: importedMaterialEntry.id,
+			orderedGenerationEntries: [importedMaterialEntry],
+		} as unknown as ReturnType<typeof useGenerationWorkspace>);
+		render(
+			<MediaGenerationWorkspace
+				historyScopeId="history-a"
+				initialPrompt=""
+				kind="image"
+				projectId="project-a"
+				selectedAssetKeys={["image:/api/v1/media-assets/local-media/content"]}
+				selectedAssetKeysPersisted
+				selectedAssetResourceId="section-a"
+				taskType="storyboard"
+				viewMode="history"
+			/>,
+		);
+		expect(generationApiMocks.updateSelectedGenerationAsset).not.toHaveBeenCalled();
 	});
 
 	it("ignores an older failed selection save after a newer toggle", async () => {
@@ -1839,6 +1948,95 @@ describe("MediaGenerationWorkspace", () => {
 		expect(workspaceDefaults.importMediaAssetsToHistory).not.toHaveBeenCalled();
 		expect(onToggleAsset).not.toHaveBeenCalled();
 		expect(onMaterialLibraryImportOpenChange).toHaveBeenCalledWith(false);
+	});
+
+	it.each(["loading", "refreshing", "error"])(
+		"preserves the editable prompt through history %s and recovery",
+		(state) => {
+			const mutateTasks = vi.fn();
+			const onHistoryCountChange = vi.fn();
+			let historyState = {
+				historyError: state === "error" ? new Error("offline") : null,
+				isLoadingHistory: state === "loading",
+				isRefreshingHistory: state === "refreshing",
+			};
+			vi.mocked(useGenerationWorkspace).mockImplementation(() => {
+				const [prompt, setPrompt] = useState("未保存提示词");
+				return {
+					...workspaceDefaults,
+					...historyState,
+					mutateTasks,
+					prompt,
+					setPrompt,
+				} as unknown as ReturnType<typeof useGenerationWorkspace>;
+			});
+			const workspace = () => (
+				<MediaGenerationWorkspace
+					historyScopeId="history-a"
+					initialPrompt="未保存提示词"
+					kind="image"
+					viewMode="history"
+					onHistoryCountChange={onHistoryCountChange}
+					renderPromptEditor={({ value, onChange }) => (
+						<input
+							aria-label="测试提示词"
+							value={value}
+							onChange={(event) => onChange(event.target.value)}
+						/>
+					)}
+				/>
+			);
+			const { rerender } = render(workspace());
+			const refresh = screen.getByRole("button", { name: "刷新生成历史" });
+			expect(refresh).toHaveProperty("disabled", state !== "error");
+			expect(screen.queryByRole("button", { name: "使用此提示词" })).toBeNull();
+			expect(screen.queryByText("暂无生成历史。")).toBeNull();
+			expect(onHistoryCountChange).not.toHaveBeenCalled();
+			fireEvent.change(screen.getByRole("textbox", { name: "测试提示词" }), {
+				target: { value: "失败期间继续编辑" },
+			});
+			if (state === "error") {
+				fireEvent.click(refresh);
+				expect(mutateTasks).toHaveBeenCalledTimes(1);
+			}
+			historyState = { historyError: null, isLoadingHistory: false, isRefreshingHistory: false };
+			rerender(workspace());
+			expect(screen.getByRole("textbox", { name: "测试提示词" })).toHaveValue("失败期间继续编辑");
+			expect(screen.getAllByRole("button", { name: "使用此提示词" }).length).toBeGreaterThan(0);
+			expect(onHistoryCountChange).toHaveBeenLastCalledWith(
+				workspaceDefaults.orderedGenerationEntries.length,
+			);
+		},
+	);
+
+	it("hides cached history actions while the history read fails and retries the same task", () => {
+		const mutateTasks = vi.fn();
+		const setPrompt = vi.fn();
+		vi.mocked(useGenerationWorkspace).mockReturnValue({
+			...workspaceDefaults,
+			historyError: new Error("offline"),
+			mutateTasks,
+			prompt: "未保存提示词",
+			setPrompt,
+		} as unknown as ReturnType<typeof useGenerationWorkspace>);
+
+		render(
+			<MediaGenerationWorkspace
+				historyScopeId="history-a"
+				initialPrompt="未保存提示词"
+				kind="image"
+				viewMode="history"
+			/>,
+		);
+
+		expect(screen.getByRole("alert")).toHaveTextContent("生成历史加载失败，请重试。");
+		expect(screen.getByRole("button", { name: "刷新生成历史" })).toBeEnabled();
+		expect(screen.queryByRole("button", { name: "使用此提示词" })).toBeNull();
+		expect(screen.queryByText("暂无生成历史。")).toBeNull();
+		expect(setPrompt).not.toHaveBeenCalledWith("旧提示词");
+
+		fireEvent.click(screen.getByRole("button", { name: "刷新生成历史" }));
+		expect(mutateTasks).toHaveBeenCalledTimes(1);
 	});
 
 	it("copies the active history prompt into the editor only when explicitly requested", () => {

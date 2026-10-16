@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	mediaAssetListLimit     = 200
 	MaxMediaAssetUploadSize = 200 << 20
 	MediaKindImage          = shared.AssetKindImage
 	MediaKindVideo          = shared.AssetKindVideo
@@ -57,6 +56,8 @@ type MediaAssets struct {
 }
 
 type MediaAsset struct {
+	Usage *domain.MediaAssetUsage `json:"usage,omitempty"`
+
 	ID                string   `json:"id"`
 	Kind              string   `json:"kind"`
 	Filename          string   `json:"filename"`
@@ -276,14 +277,14 @@ func (store *MediaAssets) List(projectID string) ([]MediaAsset, error) {
 	}
 
 	store.mu.RLock()
-	models, err := store.repo.ListMediaAssets(mediaAssetListLimit, projectID)
+	models, err := store.repo.ListMediaAssets(projectID)
 	store.mu.RUnlock()
 	if err != nil {
 		return nil, err
 	}
 
 	assets := store.mediaAssetRecordsFromModels(models)
-	return store.backfillListedVideoMetadata(assets)
+	return store.backfillListedMetadata(assets)
 }
 
 func (store *MediaAssets) Get(id string) (MediaAsset, bool, error) {
@@ -805,6 +806,8 @@ func (store *MediaAssets) saveBytesWithKind(data []byte, kind string, filename s
 	}
 	if kind == MediaKindVideo {
 		asset = store.enrichVideoMetadata(asset, now)
+	} else if kind == MediaKindImage {
+		asset = enrichImageMetadata(asset)
 	}
 
 	store.mu.Lock()
@@ -966,16 +969,25 @@ func FilterMediaAssets(assets []MediaAsset, kind string, query string) []MediaAs
 	return filtered
 }
 
-func (store *MediaAssets) backfillListedVideoMetadata(assets []MediaAsset) ([]MediaAsset, error) {
+func (store *MediaAssets) backfillListedMetadata(assets []MediaAsset) ([]MediaAsset, error) {
 	for index := range assets {
 		asset := assets[index]
-		if !store.shouldAttemptVideoMetadataBackfill(asset) {
+		if !store.shouldAttemptMetadataBackfill(asset) {
 			continue
 		}
 
-		updated := store.enrichVideoMetadata(asset, timestamp.NowRFC3339Nano())
+		var updated MediaAsset
+		if asset.Kind == MediaKindImage {
+			updated = enrichImageMetadata(asset)
+		} else {
+			updated = store.enrichVideoMetadata(asset, timestamp.NowRFC3339Nano())
+		}
+		updates := store.mediaAssetMetadataUpdates(updated)
+		if asset.Kind == MediaKindImage {
+			updates["updated_at"] = domain.TimeFromString(asset.UpdatedAt)
+		}
 		store.mu.Lock()
-		err := store.repo.UpdateMediaAssetMetadata(updated.ID, store.mediaAssetMetadataUpdates(updated))
+		err := store.repo.UpdateMediaAssetMetadata(updated.ID, updates)
 		store.mu.Unlock()
 		if err != nil {
 			return nil, err
@@ -985,8 +997,9 @@ func (store *MediaAssets) backfillListedVideoMetadata(assets []MediaAsset) ([]Me
 	return assets, nil
 }
 
-func (store *MediaAssets) shouldAttemptVideoMetadataBackfill(asset MediaAsset) bool {
-	if !store.needsVideoMetadataBackfill(asset) {
+func (store *MediaAssets) shouldAttemptMetadataBackfill(asset MediaAsset) bool {
+	needsImageDimensions := asset.Kind == MediaKindImage && strings.TrimSpace(asset.FilePath) != "" && (asset.Width <= 0 || asset.Height <= 0)
+	if !needsImageDimensions && !store.needsVideoMetadataBackfill(asset) {
 		return false
 	}
 

@@ -128,6 +128,19 @@ describe("DocumentSectionGenerator", () => {
 		expect(capturedWorkspaceProps?.selectedAssetResourceId).toBe("section_current");
 		expect(capturedWorkspaceProps?.selectedAssetSourceDocumentId).toBe("story-doc");
 		expect(capturedWorkspaceProps?.selectedAssetTitle).toBe("第 01 组");
+		expect(capturedWorkspaceProps?.selectedAssetKeysPersisted).toBe(false);
+	});
+
+	it("marks API-derived selection as already persisted", () => {
+		render(
+			<DocumentSectionGenerator
+				section={section}
+				onGenerationComplete={vi.fn()}
+				onGenerationError={vi.fn()}
+				onGenerationStart={vi.fn()}
+			/>,
+		);
+		expect(capturedWorkspaceProps?.selectedAssetKeysPersisted).toBe(true);
 	});
 
 	it("opens audio generation with section asset selection", () => {

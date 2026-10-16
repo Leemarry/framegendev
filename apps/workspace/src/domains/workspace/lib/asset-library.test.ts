@@ -19,6 +19,106 @@ import {
 } from "./asset-library";
 
 describe("asset-library", () => {
+	it("filters recorded usage, excludes unknown status and intersects other filters", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [
+				mediaAsset({ id: "used", usage: { selected: true, candidate: true, reference: false } }),
+				mediaAsset({
+					id: "reference",
+					usage: { selected: false, candidate: false, reference: true },
+				}),
+				mediaAsset({
+					id: "unused",
+					usage: { selected: false, candidate: false, reference: false },
+				}),
+				mediaAsset({ id: "unknown" }),
+			],
+		});
+		expect(filterAssetLibraryItems(items, { usage: "selected" }).map((item) => item.id)).toEqual([
+			"used",
+		]);
+		expect(filterAssetLibraryItems(items, { usage: "candidate" }).map((item) => item.id)).toEqual([
+			"used",
+		]);
+		expect(filterAssetLibraryItems(items, { usage: "reference" }).map((item) => item.id)).toEqual([
+			"reference",
+		]);
+		expect(filterAssetLibraryItems(items, { usage: "unused" }).map((item) => item.id)).toEqual([
+			"unused",
+		]);
+		expect(filterAssetLibraryItems(items, { usage: "selected", query: "unused" })).toHaveLength(0);
+		expect(filterAssetLibraryItems(items, { usage: "all" })).toHaveLength(4);
+	});
+	it.each([
+		["upload", "local"],
+		[" imported ", "local"],
+		["generation", "generated"],
+		["TOOLBOX", "generated"],
+		["preview", "other"],
+		["future-source", "other"],
+		["", "unrecorded"],
+	] as const)("filters recorded physical source %s as %s", (source, provenance) => {
+		const items = buildAssetLibraryItems({ mediaAssets: [mediaAsset({ source })] });
+		expect(filterAssetLibraryItems(items, { provenance })).toHaveLength(1);
+		expect(
+			filterAssetLibraryItems(items, {
+				provenance: provenance === "local" ? "generated" : "local",
+			}),
+		).toHaveLength(0);
+	});
+
+	it("uses recorded adoption provenance only when physical source is missing", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [mediaAsset({ source: "upload" })],
+			selectedAssets: [
+				selectedAsset({ sourceType: "generated" }),
+				selectedAsset({ id: "imported", url: "/imported", sourceType: "imported" }),
+				selectedAsset({ id: "edited", url: "/edited", sourceType: "edited" }),
+				selectedAsset({ id: "unknown", url: "/unknown" }),
+			],
+		});
+		expect(filterAssetLibraryItems(items, { provenance: "local" }).map((item) => item.id)).toEqual([
+			"imported",
+			"media-a",
+		]);
+		expect(
+			filterAssetLibraryItems(items, { provenance: "generated" }).map((item) => item.id),
+		).toEqual(["edited"]);
+		expect(
+			filterAssetLibraryItems(items, { provenance: "unrecorded" }).map((item) => item.id),
+		).toEqual(["unknown"]);
+	});
+
+	it("keeps conflicting adoption origins in other instead of guessing", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [mediaAsset()],
+			selectedAssets: [
+				selectedAsset({ id: "local", sourceType: "imported" }),
+				selectedAsset({ id: "generated", sourceType: "generated" }),
+			],
+		});
+		expect(filterAssetLibraryItems(items, { provenance: "other" })).toHaveLength(1);
+		expect(filterAssetLibraryItems(items, { provenance: "local" })).toHaveLength(0);
+		expect(filterAssetLibraryItems(items, { provenance: "generated" })).toHaveLength(0);
+	});
+
+	it("filters saved tags independently and intersects other filters", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [
+				mediaAsset({ id: "tagged", filename: "A.png", tags: ["Night scene"], rating: 5 }),
+				mediaAsset({ id: "text-only", filename: "Night.png", tags: [], note: "Night scene" }),
+				mediaAsset({ id: "unknown", filename: "B.png", tags: undefined }),
+			],
+		});
+		expect(filterAssetLibraryItems(items, { tag: " NIGHT " }).map((item) => item.id)).toEqual([
+			"tagged",
+		]);
+		expect(filterAssetLibraryItems(items, { tag: "night", query: "B.png" })).toHaveLength(0);
+		expect(filterAssetLibraryItems(items, { tag: "night", kind: "audio" })).toHaveLength(0);
+		expect(filterAssetLibraryItems(items, { tag: "night", rating: "5" })).toHaveLength(1);
+		expect(filterAssetLibraryItems(items, { tag: "   " })).toHaveLength(3);
+	});
+
 	it("merges selected generated assets into matching media assets", () => {
 		const items = buildAssetLibraryItems({
 			mediaAssets: [

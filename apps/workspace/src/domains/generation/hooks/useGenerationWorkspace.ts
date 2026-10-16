@@ -200,7 +200,13 @@ export const useGenerationWorkspace = ({
 		resolvedPreferenceScopeId ? generationPreferencesQueryKey(resolvedPreferenceScopeId) : null,
 		() => getGenerationPreferences(resolvedPreferenceScopeId),
 	);
-	const { data: taskData, mutate: mutateTasks } = useSWR(
+	const {
+		data: taskData,
+		error: historyError,
+		isLoading: isLoadingHistory,
+		isValidating: isRefreshingHistory,
+		mutate: mutateTasks,
+	} = useSWR(
 		needsConversation
 			? null
 			: generationTasksQueryKey(conversationId, initialKind, taskScopeId, taskProjectId),
@@ -523,6 +529,9 @@ export const useGenerationWorkspace = ({
 		hasLiveCatalog,
 		hasSettledGenerationPreferences,
 		hasSettledPromptInsertItems,
+		historyError,
+		isLoadingHistory,
+		isRefreshingHistory,
 		isSubmitting,
 		isImportingMediaAssets,
 		isUploadingAsset,

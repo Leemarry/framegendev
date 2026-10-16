@@ -1,91 +1,118 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import useSWR from "swr";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useDocumentsStore } from "@/domains/documents/stores";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { StoryboardTimelinePanel } from "./StoryboardTimelinePanel";
+import type { MarkdownDocument } from "@/domains/documents/stores";
 
-vi.mock("swr", () => ({
-	default: vi.fn(() => ({ data: undefined, isLoading: false })),
-}));
-
-vi.mock("@/domains/workspace/api/workspace", () => ({
-	getWorkspaceResolvedEpisode: vi.fn(),
-	workspaceResolvedEpisodeKey: (documentId: string, projectId?: string | null) => [
-		"workspace-resolved-episode",
-		projectId ?? "",
-		documentId,
-	],
-}));
-
-describe("StoryboardTimelinePanel", () => {
-	beforeEach(() => {
-		vi.mocked(useSWR).mockReset();
-		vi.mocked(useSWR).mockReturnValue({ data: undefined, isLoading: false } as never);
-		useDocumentsStore.getState().prepareWorkspaceLoad("reset");
-		useDocumentsStore.getState().hydrateWorkspaceDocuments({
-			documents: [],
-			projectId: "project-a",
-			workspaceDir: "/workspace/project-a",
-		});
-	});
-
-	it("defers resolved storyboard timeline loading until the panel is expanded", () => {
-		vi.mocked(useSWR).mockImplementation((key: unknown) => {
-			if (Array.isArray(key) && key[0] === "workspace-resolved-episode") {
-				return {
-					data: {
-						documentId: "doc-a",
-						episode: {
-							aspectRatio: "16:9",
-							duration: 5,
-							id: "episode-doc-a",
-							sections: [{ id: "section-1", title: "开场落水", start: 0, end: 5, summary: "画面" }],
-							title: "第一章 分镜脚本",
-							tracks: [
-								{
-									id: "track-video",
-									type: "video",
-									label: "视频",
-									clips: [
-										{
-											id: "video-1",
-											title: "画面",
-											start: 0,
-											end: 5,
-											content: "推镜",
-											status: "draft",
-										},
-									],
-								},
-								{ id: "track-voiceover", type: "voiceover", label: "旁白", clips: [] },
-								{ id: "track-caption", type: "caption", label: "字幕", clips: [] },
-							],
-						},
-						projectId: "project-a",
-						workspaceDir: "/workspace/project-a",
+vi.mock("swr", () => ({ default: vi.fn() }));
+const mutate = vi.fn();
+const document: MarkdownDocument = {
+	id: "doc-a",
+	title: "Shots",
+	content: "## Group\nBody",
+	category: "storyboard",
+	parentId: null,
+	sortOrder: 0,
+	updatedAt: "2026-10-16",
+	version: 3,
+	isDirty: false,
+	comments: [],
+	workbenchDraft: null,
+};
+const data = {
+	documentId: "doc-a",
+	documentUpdatedAt: document.updatedAt,
+	projectId: "project-a",
+	workspaceDir: "/isolated",
+	episode: {
+		id: "episode-doc-a",
+		title: "Shots",
+		aspectRatio: "16:9",
+		duration: 5,
+		sections: [{ id: "section-1", title: "Saved group", start: 0, end: 5, summary: "Visual" }],
+		tracks: [
+			{
+				id: "video",
+				type: "video",
+				label: "视频",
+				clips: [
+					{
+						id: "clip",
+						title: "Visual",
+						start: 0,
+						end: 5,
+						content: "Saved camera",
+						status: "draft",
 					},
-					isLoading: false,
-				} as never;
-			}
-			return { data: undefined, isLoading: false } as never;
-		});
+				],
+			},
+		],
+	},
+};
+beforeEach(() => {
+	mutate.mockReset();
+	vi.mocked(useSWR).mockReturnValue({
+		data,
+		isLoading: false,
+		isValidating: false,
+		mutate,
+	} as never);
+});
+afterEach(cleanup);
+const show = (value = document) =>
+	render(<StoryboardTimelinePanel document={value} projectId="project-a" onClose={vi.fn()} />);
 
-		render(
-			<StoryboardTimelinePanel
-				documentId="doc-a"
-				documentTitle="第一章 分镜脚本"
-				documentContent={"# 第一章\n\n".repeat(500)}
-			/>,
-		);
+it("reads existing resolved groups and revalidates after saved document changes without writes", () => {
+	const view = show();
+	expect(screen.getByText("Saved group")).toBeVisible();
+	expect(screen.getByText("Saved camera")).toBeVisible();
+	const calls = mutate.mock.calls.length;
+	view.rerender(
+		<StoryboardTimelinePanel
+			document={{ ...document, updatedAt: "2026-10-17" }}
+			projectId="project-a"
+			onClose={vi.fn()}
+		/>,
+	);
+	expect(mutate.mock.calls.length).toBeGreaterThan(calls);
+});
 
-		expect(useSWR).toHaveBeenCalledWith(null, expect.any(Function));
+it.each([
+	{ isLoading: true },
+	{ isValidating: true },
+	{ error: new Error("offline") },
+	{ data: { ...data, projectId: "foreign" } },
+	{ data: { ...data, documentId: "foreign" } },
+	{ data: { ...data, documentUpdatedAt: "older" } },
+])("hides cached groups when a read is unsafe %j", (patch) => {
+	vi.mocked(useSWR).mockReturnValue({
+		data,
+		isLoading: false,
+		isValidating: false,
+		mutate,
+		...patch,
+	} as never);
+	show();
+	expect(screen.queryByText("Saved group")).toBeNull();
+	if (!("isLoading" in patch) && !("isValidating" in patch)) {
+		fireEvent.click(screen.getByRole("button", { name: "重试读取分镜资源" }));
+		expect(mutate).toHaveBeenCalled();
+	}
+});
 
-		fireEvent.click(screen.getByRole("button", { name: "展开分镜同步面板" }));
+it.each([{ isDirty: true }, { saveConflict: { server: null } }])(
+	"suppresses saved groups for unsafe drafts %j",
+	(patch) => {
+		show({ ...document, ...patch });
+		expect(screen.queryByText("Saved group")).toBeNull();
+		expect(screen.getByRole("status")).toHaveTextContent("请先保存正文并处理文档冲突");
+		expect(useSWR).toHaveBeenLastCalledWith(null, expect.any(Function));
+	},
+);
 
-		expect(useSWR).toHaveBeenLastCalledWith(
-			["workspace-resolved-episode", "project-a", "doc-a"],
-			expect.any(Function),
-		);
-		expect(screen.getByText("开场落水")).toBeTruthy();
-	});
+it("does not present the generic episode fallback as an H2 storyboard group", () => {
+	show({ ...document, content: "Plain document without any groups.\n" });
+	expect(screen.queryByText("Saved group")).toBeNull();
+	expect(screen.getByText("还没有识别到二级标题分镜组。")).toBeVisible();
+	expect(useSWR).toHaveBeenLastCalledWith(null, expect.any(Function));
 });

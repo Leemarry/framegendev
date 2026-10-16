@@ -1,0 +1,28 @@
+{
+  "id": "history-reading-diff",
+  "name": "history-reading-diff",
+  "title": "TASK-070 readable historical differences",
+  "description": "Add the observed normal-text reading presentation to the existing immutable line diff while preserving source inspection and full snapshot reading.",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-16",
+  "completedAt": "2026-10-16",
+  "branch": "codex/parity-s1",
+  "base_branch": "codex/nle-export",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "ledger_id": "TASK-070"
+  }
+}

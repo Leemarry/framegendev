@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	coregeneration "github.com/mediago-dev/mediago-drama/packages/core/pkg/generation"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/service/media"
 )
 
 const (
@@ -38,17 +40,13 @@ func (workflow *GenerationService) ImportGenerationMediaAssets(payload ImportGen
 	hasScopeFilter := strings.TrimSpace(payload.ScopeID) != ""
 	payload.ScopeID = NormalizeGenerationConversationScopeID(payload.ScopeID)
 	payload.ProjectID = GenerationProjectIDForRequest(payload.ProjectID, "")
-	if strings.TrimSpace(payload.ConversationTitle) != "" &&
+	createConversation := strings.TrimSpace(payload.ConversationTitle) != "" &&
 		payload.ConversationID != "" &&
-		strings.TrimSpace(payload.ScopeID) != "" {
-		_, status, err := workflow.CreateGenerationConversation(CreateGenerationConversationRequest{
-			ID:      payload.ConversationID,
-			ScopeID: payload.ScopeID,
-			Kind:    kind,
-			Title:   payload.ConversationTitle,
-		})
-		if err != nil {
-			return GenerationTasksResponse{}, status, err
+		strings.TrimSpace(payload.ScopeID) != ""
+	if createConversation {
+		payload.ConversationID = domain.CleanProjectID(payload.ConversationID)
+		if payload.ConversationID == "" {
+			return GenerationTasksResponse{}, http.StatusBadRequest, fmt.Errorf("generation conversation id is invalid")
 		}
 	}
 
@@ -56,17 +54,26 @@ func (workflow *GenerationService) ImportGenerationMediaAssets(payload ImportGen
 		payload.ConversationID,
 		payload.ScopeID,
 		kind,
-		hasScopeFilter,
+		hasScopeFilter || createConversation,
 	)
 	if err != nil {
-		return GenerationTasksResponse{}, status, err
+		if status != http.StatusNotFound || !createConversation {
+			return GenerationTasksResponse{}, status, err
+		}
+		conversation = GenerationConversationRecord{ID: payload.ConversationID, ScopeID: payload.ScopeID, Kind: kind}
 	}
 	if payload.ProjectID == "" {
 		payload.ProjectID = GenerationProjectIDFromScopeID(conversation.ScopeID)
 	}
 
-	tasks := make([]GenerationTaskRecord, 0, len(assetIDs))
+	// Reject the entire selection before changing conversations or importing any task.
+	assets := make([]media.MediaAsset, 0, len(assetIDs))
+	seen := make(map[string]struct{}, len(assetIDs))
 	for _, assetID := range assetIDs {
+		if _, exists := seen[assetID]; exists {
+			continue
+		}
+		seen[assetID] = struct{}{}
 		asset, ok, err := workflow.mediaAssets.Get(assetID)
 		if err != nil {
 			return GenerationTasksResponse{}, http.StatusInternalServerError, err
@@ -77,7 +84,19 @@ func (workflow *GenerationService) ImportGenerationMediaAssets(payload ImportGen
 		if asset.Kind != kind {
 			return GenerationTasksResponse{}, http.StatusBadRequest, fmt.Errorf("media asset %q is not a %s", assetID, kind)
 		}
+		assets = append(assets, asset)
+	}
+	if createConversation {
+		_, status, err := workflow.CreateGenerationConversation(CreateGenerationConversationRequest{
+			ID: payload.ConversationID, ScopeID: payload.ScopeID, Kind: kind, Title: payload.ConversationTitle,
+		})
+		if err != nil {
+			return GenerationTasksResponse{}, status, err
+		}
+	}
 
+	tasks := make([]GenerationTaskRecord, 0, len(assets))
+	for _, asset := range assets {
 		taskID, err := workflow.generationTasks.idGenerator("media-library")
 		if err != nil {
 			return GenerationTasksResponse{}, http.StatusInternalServerError, err

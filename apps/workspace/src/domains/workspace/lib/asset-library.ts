@@ -8,6 +8,14 @@ export type AssetLibrarySource = "media" | "selected";
 export type AssetLibraryResourceType = AgentResourceType | "screenplay" | "reference";
 export type AssetLibraryKindFilter = "all" | AssetLibraryKind;
 export type AssetLibrarySourceFilter = "all" | AssetLibrarySource;
+export type AssetLibraryUsageFilter = "all" | "selected" | "candidate" | "reference" | "unused";
+export type AssetLibraryProvenanceFilter =
+	| "all"
+	| "local"
+	| "browser"
+	| "generated"
+	| "other"
+	| "unrecorded";
 export type AssetLibraryResourceFilter = "all" | AssetLibraryResourceType;
 export type AssetLibrarySort =
 	| "updatedDesc"
@@ -41,12 +49,15 @@ export interface BuildAssetLibraryItemsInput {
 }
 
 export interface FilterAssetLibraryItemsOptions {
+	usage?: AssetLibraryUsageFilter;
 	kind?: AssetLibraryKindFilter;
+	provenance?: AssetLibraryProvenanceFilter;
 	query?: string;
 	rating?: AssetLibraryRatingFilter;
 	resourceType?: AssetLibraryResourceFilter;
 	sort?: AssetLibrarySort;
 	source?: AssetLibrarySourceFilter;
+	tag?: string;
 }
 
 const mediaContentURLPattern =
@@ -128,22 +139,42 @@ export const filterAssetLibraryItems = (
 	items: AssetLibraryItem[],
 	{
 		kind = "all",
+		provenance = "all",
 		query = "",
 		rating = "all",
 		resourceType = "all",
 		sort = "updatedDesc",
 		source = "all",
+		tag = "",
+		usage = "all",
 	}: FilterAssetLibraryItemsOptions = {},
 ) => {
 	const normalizedQuery = query.trim().toLowerCase();
+	const normalizedTag = tag.trim().toLowerCase();
 	const minRating = rating === "all" || rating === "rated" ? 0 : Number(rating);
 	const filtered = items.filter((item) => {
+		if (usage !== "all") {
+			const known =
+				item.mediaAsset?.usage ??
+				(!item.mediaAsset && item.selectedAssets.length > 0
+					? { selected: true, candidate: false, reference: false }
+					: undefined);
+			if (!known) return false;
+			if (usage === "unused" ? known.selected || known.candidate || known.reference : !known[usage])
+				return false;
+		}
 		if (kind !== "all" && item.kind !== kind) return false;
+		if (provenance !== "all" && assetLibraryItemProvenance(item) !== provenance) return false;
 		if (source !== "all" && !assetLibraryItemMatchesSource(item, source)) return false;
 		if (resourceType !== "all" && !item.selectedResourceTypes.includes(resourceType)) return false;
 		const itemRating = item.mediaAsset?.rating ?? 0;
 		if (rating === "rated" && itemRating <= 0) return false;
 		if (minRating > 0 && itemRating < minRating) return false;
+		if (
+			normalizedTag &&
+			!item.mediaAsset?.tags?.some((value) => value.toLowerCase().includes(normalizedTag))
+		)
+			return false;
 		if (!normalizedQuery) return true;
 		return [
 			item.title,
@@ -161,6 +192,31 @@ export const filterAssetLibraryItems = (
 	});
 
 	return filtered.sort((left, right) => compareAssetLibraryItems(left, right, sort));
+};
+
+const assetLibraryItemProvenance = (
+	item: AssetLibraryItem,
+): Exclude<AssetLibraryProvenanceFilter, "all" | "browser"> => {
+	const physicalSource = item.mediaAsset?.source?.trim();
+	const sources = physicalSource
+		? [physicalSource]
+		: item.selectedAssets.flatMap((asset) => (asset.sourceType?.trim() ? [asset.sourceType] : []));
+	if (sources.length === 0) return "unrecorded";
+	const groups = new Set(
+		sources.map((value) => {
+			const source = value.trim().toLowerCase();
+			if (source === "upload" || source === "uploaded" || source === "imported") return "local";
+			if (
+				source === "generation" ||
+				source === "generated" ||
+				source === "toolbox" ||
+				source === "edited"
+			)
+				return "generated";
+			return "other";
+		}),
+	);
+	return groups.size === 1 ? ([...groups][0] ?? "unrecorded") : "other";
 };
 
 const assetLibraryItemMatchesSource = (

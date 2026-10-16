@@ -17,3 +17,57 @@ propagate cancellation and test changed not-found/status behavior.
 Never report success for failed external work. Update existing Swagger handler
 annotations with API changes; do not assume a template `api/openapi.yaml`
 is the current contract source.
+
+## Local History Import (TASK-080)
+
+Task history GET kind is optional. For an existing named conversation, omitted
+kind uses its stored kind; legacy unnamed scope retains its existing default-image
+fallback. Explicit mismatched or unsupported kind wraps ErrInvalidGenerationTaskQuery
+and both list handlers map it to400. Repository failures remain safe500; never
+classify all errors as client errors. These reads and rejected filters must not
+upsert conversations/tasks. An explicit session and projectId intersect before
+limit/offset through repository options; projectId alone retains project-wide
+aggregation. Both GET route variants honor this intersection and named kind
+validation. Preserve legacy session-as-scope fallback and existing batch behavior.
+When a supplied project ID cleans to empty, retain the empty-value predicate;
+never treat it as an omitted filter and broaden an explicit session query.
+
+`ImportGenerationMediaAssets` handles
+`POST /generation/sessions/:sessionId/media-assets/import` with assetIds/kind,
+optional projectId/scopeId/conversationTitle. Resolve existing conversation
+scope/kind and validate every trimmed, unique asset ID before writing any
+conversation or task. Missing/cross-project assets return404; wrong asset or
+conversation kind/scope returns400. These validation failures leave all tasks
+and the existing conversation unchanged, and create no empty conversation.
+Valid imports preserve selection order and use provider `media-library` with
+zero external usage. Explicit named creation without scope retains its ID and
+defaults to studio; do not fall back to a different default-session ID.
+
+Regression coverage in generation_runtime_test.go includes mixed valid/missing,
+wrong-kind, foreign-project, existing/new conversation, scope/kind mismatch,
+duplicate IDs and explicit creation without scope. Actual HTTP failure/success,
+scope/project/type queries and restart records must also be checked. Database
+write failures remain500; this contract does not promise a batch transaction or
+cross-request idempotence. Wrong: validate and Upsert each item in the same loop.
+Correct: validate the full selection, then use existing conversation/task writes.
+
+## History Task Adoption (TASK-030)
+
+Media sources are also checked inside GenerationTaskService before select/deselect
+writes. Resolve mediaAssetId or the local content URL, and check task-derived media
+before updating its history. Missing/foreign media returns404 without replacing a
+resource or changing task/selection records; same-project and projectless global
+media remain usable. Metadata hydration is not authorization. Repository failures
+remain500. This does not promise isolation against concurrent media deletion.
+Enrich the direct-media title consistently for both select and deselect; otherwise
+an omitted title hashes to different selection IDs and silently fails to cancel.
+
+Project selected-asset writes must validate a resolved task's project before
+changing source task assets, selected rows or resource replacements. Both select
+and deselect accept same-project/projectless global tasks, reject another project's
+task with404, and retain the existing missing-task direct-media fallback. Resolve
+taskId/sourceTaskId aliases consistently. Check ownership under the existing task
+service mutex before writes; a workflow status check after mutation is too late.
+Regression compares the complete source task and both projects' selections.
+This task-source check does not establish direct-media ownership or DB-failure
+transaction guarantees; those remain separate boundaries.

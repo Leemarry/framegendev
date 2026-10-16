@@ -266,7 +266,10 @@ function isChatMessage(value: unknown): value is ChatMessage {
 	return (
 		typeof message.id === "string" &&
 		(message.role === "user" || message.role === "assistant") &&
-		(message.kind === "image" || message.kind === "video" || message.kind === "text") &&
+		(message.kind === "image" ||
+			message.kind === "video" ||
+			message.kind === "text" ||
+			message.kind === "audio") &&
 		typeof message.content === "string"
 	);
 }

@@ -1,0 +1,28 @@
+{
+  "id": "local-adoption-roundtrip",
+  "name": "local-adoption-roundtrip",
+  "title": "Local imported image adoption and resource round trip",
+  "description": "TASK030/150: verify existing real local import -> section result selection -> resource summary -> cancel/reload/restart flow without provider calls; repair only evidenced session1 production-logic gaps.",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "amireux",
+  "assignee": "amireux",
+  "createdAt": "2026-10-16",
+  "completedAt": "2026-10-16",
+  "branch": "codex/parity-s1",
+  "base_branch": "codex/nle-export",
+  "worktree_path": "E:/AI/framegendev-wt/session-1",
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-14-official-0-1-17-parity",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "ledger_id": "TASK-150"
+  }
+}

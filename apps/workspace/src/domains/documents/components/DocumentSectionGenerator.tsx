@@ -241,6 +241,7 @@ export const DocumentSectionGenerator: React.FC<DocumentSectionGeneratorProps> =
 					/>
 				)}
 				selectedAssetKeys={resolvedSelectedAssetKeys}
+				selectedAssetKeysPersisted={selectedAssetKeys === undefined}
 				selectedAssetResourceId={activeSection.blockId}
 				selectedAssetSourceDocumentId={activeSection.documentId}
 				selectedAssetTitle={activeSection.headingText}

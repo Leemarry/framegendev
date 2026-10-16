@@ -65,3 +65,42 @@ revalidates media, selected resources and documents used for association filters
 Page controls must not render Radix Dialog Title/Description without a Root.
 Scope IDE surface overrides to .asset-library-page; do not alter editor tokens
 globally to match the library reference.
+
+Page usage filtering requests includeUsage only for a specific usage filter,
+using a distinct SWR media key. Unknown usage never matches unused. Adopted-only
+items can match selected using actual adoption rows; physical files require the
+server projection. All restores the original request/key; scope/open resets the
+local choice. Keep existing loading/error/retry and intersect folder/tag/source
+filters. Import lineage is not generation reference usage. Official menu choices
+are confirmed; local relationship semantics do not prove official nonempty rules.
+
+The page's dedicated tag filter matches only saved media tags (trimmed,
+case-insensitive substring) and intersects existing folder/search/type/rating
+filters. Full-text search still includes notes and filenames. Filter text is local
+view state, cleared on scope/open changes; filtering must never save metadata.
+Keep unknown tags nonmatching and failure states free of cached actions. Verify
+saved tags separately from filter preference persistence after reload/restart.
+
+Include-subfolders is local page state using the existing cycle-safe folder path;
+retain direct-folder defaults and reject foreign scope before descendant matching.
+Keep immediate child navigation. Filter popup height follows Radix available
+height with scrolling and collision padding so all controls remain reachable at
+390x480; inspect both the top checkbox and bottom tag field after scrolling.
+
+Directory/all browse mode uses the same scoped API data; all ignores folder
+placement and hides folder cards while keeping the current upload destination.
+Opening a folder resets directory mode. Disable include-subfolders in all mode
+without losing its choice; scope/open resets both local preferences. Do not
+requery global assets to implement an all-folders view within a project.
+
+Apply the visible source filter in both global and project library views. Its
+existing media/selected values describe physical assets versus adoption records,
+not provider provenance. Global mode never fetches project adoption records;
+selected-only therefore has an empty result instead of leaking other projects.
+
+Page provenance is separate from media/selected resource records. Use recorded
+physical media source first; only absent physical source falls back to adoption
+sourceType. Upload/import types are local, generation/toolbox/edited generated,
+unknown nonempty or conflicting fallback groups other, absent records unrecorded.
+Never infer source from filenames. Browser capture remains disabled pending a
+producer contract. Provenance intersects existing filters and never writes data.

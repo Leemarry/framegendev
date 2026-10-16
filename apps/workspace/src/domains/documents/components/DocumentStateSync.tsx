@@ -39,7 +39,7 @@ export const DocumentStateSync: React.FC<DocumentStateSyncProps> = ({ projectId 
 			currentState.prepareWorkspaceLoad("正在加载项目工作区");
 			return;
 		}
-		if (isLoading) {
+		if (isLoading && !currentState.workspaceDir) {
 			currentState.markWorkspaceSyncStatus("syncing", "正在加载项目工作区");
 		}
 	}, [isLoading, projectId]);

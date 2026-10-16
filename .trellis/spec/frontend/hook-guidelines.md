@@ -15,12 +15,21 @@ Its `get<T>()` returns an `ApiResponse<T>` envelope; domain fetchers return
 after successful writes. `CodexAccessPanel.tsx` uses `useSWRConfig` for shared invalidation.
 
 Clean up polling, streams, listeners and timers; handle stale responses.
+An explicit multi-source refresh must await the actual API reads before reporting
+success. SWR bound `mutate()` revalidation can retain cached data after a rejected
+fetch; it is not a successful-read acknowledgement. The asset library fetches its
+sources, then populates the existing keys with `revalidate: false`. Loading or
+failed aggregate reads suppress cached preview and keyboard mutation targets.
 Native NLE media graphs must survive React StrictMode effect reconnection: a media
 element can have only one MediaElementSourceNode, even after its context closes.
 Reuse the graph for the same element and defer final cleanup across reconnection.
 Browser codec support is runtime-specific; decode errors remain visible and test
 H.264 playback in a codec-capable runtime rather than relying on a poster.
 Login cancellation must stop polling and preserve truthful status.
+Workspace loading effects must not mark an already hydrated workspace as syncing:
+layout hydration or SSE may finish before a passive effect carrying isLoading.
+Use the loaded workspace identity/path as the readiness guard; keep dirty and
+conflict state intact. DocumentStateSync.test.tsx covers this effect ordering.
 Do not call hooks conditionally, issue requests in render, or duplicate Axios
 authentication/error handling.
 

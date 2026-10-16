@@ -27,11 +27,11 @@ func NewMediaAssetRepositoryFromDB(db *gorm.DB) *MediaAssetRepository {
 	return &MediaAssetRepository{db: db}
 }
 
-// ListMediaAssets returns recently updated media assets visible to a project.
-func (repo *MediaAssetRepository) ListMediaAssets(limit int, projectID string) ([]domain.AssetModel, error) {
+// ListMediaAssets returns all visible media assets ordered by update time.
+func (repo *MediaAssetRepository) ListMediaAssets(projectID string) ([]domain.AssetModel, error) {
 	projectID = domain.CleanProjectID(projectID)
 	models := []domain.AssetModel{}
-	query := repo.db.Order("updated_at DESC").Limit(limit)
+	query := repo.db.Order("updated_at DESC")
 	if projectID == "" {
 		query = query.Where("project_id IS NULL")
 	} else {

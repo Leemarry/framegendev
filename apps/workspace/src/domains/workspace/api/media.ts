@@ -3,6 +3,7 @@ import httpClient from "@/shared/lib/http";
 export type MediaAssetKind = "image" | "video" | "audio" | "text";
 
 export interface MediaAsset {
+	usage?: { selected: boolean; candidate: boolean; reference: boolean };
 	id: string;
 	kind: MediaAssetKind;
 	filename: string;
@@ -77,6 +78,7 @@ export const getMediaAssetReferences = async (assetId: string, projectId?: strin
 };
 
 export interface MediaAssetFilters {
+	includeUsage?: boolean;
 	kind?: "all" | MediaAssetKind;
 	projectId?: string;
 	q?: string;
@@ -85,6 +87,7 @@ export interface MediaAssetFilters {
 export const getMediaAssets = async (filters: MediaAssetFilters = {}) => {
 	const response = await httpClient.get<MediaAssetsResponse>(mediaAssetsPath(filters.projectId), {
 		params: {
+			includeUsage: filters.includeUsage,
 			kind: filters.kind,
 			q: filters.q,
 		},

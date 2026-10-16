@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -27,10 +28,30 @@ func NewMediaAssets(service *service.MediaAssets) MediaAssets {
 // @Produce json
 // @Param kind query string false "Media kind"
 // @Param q query string false "Search text"
+// @Param includeUsage query boolean false "Include recorded usage in the current scope"
 // @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/media-assets [get]
 func (handler MediaAssets) HandleMediaAssets(context *gin.Context) {
+	includeUsage := false
+	if value, supplied := context.GetQuery("includeUsage"); supplied {
+		var err error
+		includeUsage, err = strconv.ParseBool(value)
+		if err != nil {
+			httpresponse.Error(context, http.StatusBadRequest, "invalid includeUsage")
+			return
+		}
+	}
+	if includeUsage {
+		assets, err := handler.service.ListWithUsage(context.Request.Context(), optionalProjectID(context))
+		if err != nil {
+			httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
+			return
+		}
+		httpresponse.OK(context, service.MediaAssetsResponse{Assets: service.FilterMediaAssets(assets, context.Query("kind"), context.Query("q"))})
+		return
+	}
 	assets, err := handler.service.List(optionalProjectID(context))
 	if err != nil {
 		httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
@@ -49,6 +70,7 @@ func (handler MediaAssets) HandleMediaAssets(context *gin.Context) {
 // @Param projectId path string true "Project ID"
 // @Param kind query string false "Media kind"
 // @Param q query string false "Search text"
+// @Param includeUsage query boolean false "Include recorded usage in the current project"
 // @Success 200 {object} SwaggerEnvelope
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope

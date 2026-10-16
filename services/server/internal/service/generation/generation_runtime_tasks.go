@@ -2,6 +2,7 @@ package generation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -292,10 +293,16 @@ func (workflow *GenerationService) generationRequestForTask(
 	return request, nil
 }
 
+// ErrInvalidGenerationTaskQuery identifies invalid task history filters.
+var ErrInvalidGenerationTaskQuery = errors.New("invalid generation task query")
+
 // ListGenerationTasks lists generation tasks for HTTP handlers.
 func (workflow *GenerationService) ListGenerationTasks(query GenerationTaskListQuery) (generationTasksResponse, error) {
 	batchID := strings.TrimSpace(query.BatchID)
 	kind := strings.TrimSpace(query.Kind)
+	if kind != "" && !isSupportedGenerationConversationKind(kind) {
+		return generationTasksResponse{}, fmt.Errorf("%w: unsupported generation kind", ErrInvalidGenerationTaskQuery)
+	}
 	conversationID := strings.TrimSpace(query.ConversationID)
 	projectID := strings.TrimSpace(query.ProjectID)
 	hasScopeFilter := strings.TrimSpace(query.ScopeID) != ""
@@ -326,17 +333,29 @@ func (workflow *GenerationService) ListGenerationTasks(query GenerationTaskListQ
 			end = min(start+query.Limit, end)
 		}
 		return generationTasksResponse{Tasks: GenerationTasksForClient(filtered[start:end])}, nil
-	} else if projectID != "" {
+	} else if projectID != "" && conversationID == "" {
 		tasks, err := workflow.generationTasks.ListByProject(kind, projectID, listOptions)
 		if err != nil {
 			return generationTasksResponse{}, err
 		}
 		return generationTasksResponse{Tasks: GenerationTasksForClient(tasks)}, nil
 	} else if conversationID != "" {
+		if kind == "" {
+			stored, found, err := workflow.generationTasks.GetConversation(conversationID)
+			if err != nil {
+				return generationTasksResponse{}, err
+			}
+			if found {
+				kind = stored.Kind
+			}
+		}
 		conversation, status, err := workflow.resolveGenerationConversationWithScopeFilter(conversationID, scopeID, kind, hasScopeFilter)
 		if err != nil {
 			if status == http.StatusNotFound {
 				return generationTasksResponse{Tasks: []GenerationTaskRecord{}}, nil
+			}
+			if status == http.StatusBadRequest {
+				return generationTasksResponse{}, fmt.Errorf("%w: %w", ErrInvalidGenerationTaskQuery, err)
 			}
 			return generationTasksResponse{}, err
 		}
@@ -354,6 +373,7 @@ func (workflow *GenerationService) ListGenerationTasks(query GenerationTaskListQ
 		return generationTasksResponse{Tasks: GenerationTasksForClient(tasks)}, nil
 	}
 
+	listOptions.ProjectID = projectID
 	tasks, err := workflow.generationTasks.ListByConversation(kind, conversationID, includeLegacyDefault, listOptions)
 	if err != nil {
 		return generationTasksResponse{}, err
@@ -393,8 +413,12 @@ func (workflow *GenerationService) UpdateSelectedGenerationAsset(projectID strin
 	if request.Selected != nil {
 		selected = *request.Selected
 	}
+	workflow.hydrateSelectedAssetRequestFromMedia(&request, projectID)
 	if !selected {
 		deleted, err := workflow.generationTasks.DeleteSelectedAssetByRequest(projectID, request)
+		if errors.Is(err, errSelectedAssetTaskProject) || errors.Is(err, errSelectedAssetMediaProject) {
+			return UpdateSelectedGenerationAssetResponse{}, http.StatusNotFound, err
+		}
 		if err != nil {
 			return UpdateSelectedGenerationAssetResponse{}, http.StatusInternalServerError, err
 		}
@@ -403,11 +427,13 @@ func (workflow *GenerationService) UpdateSelectedGenerationAsset(projectID strin
 	if selectedGenerationResourceType(request.ResourceType) == "" {
 		return UpdateSelectedGenerationAssetResponse{}, http.StatusBadRequest, fmt.Errorf("resourceType is required")
 	}
-	workflow.hydrateSelectedAssetRequestFromMedia(&request, projectID)
 	if err := workflow.hydrateSelectedAssetRequestFromVoicePreview(&request, projectID); err != nil {
 		return UpdateSelectedGenerationAssetResponse{}, http.StatusInternalServerError, err
 	}
 	asset, ok, err := workflow.generationTasks.UpsertSelectedAsset(projectID, request)
+	if errors.Is(err, errSelectedAssetTaskProject) || errors.Is(err, errSelectedAssetMediaProject) {
+		return UpdateSelectedGenerationAssetResponse{}, http.StatusNotFound, err
+	}
 	if err != nil {
 		return UpdateSelectedGenerationAssetResponse{}, http.StatusInternalServerError, err
 	}
