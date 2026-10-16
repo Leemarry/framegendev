@@ -18,9 +18,10 @@
 - [OK] `pnpm -C apps/workspace build`
 - [OK] 改动前端文件 `oxfmt --check`，`git diff --check`
 - [OK] 仓库旧 SQLite 行迁移、重开、显式收藏持久化/清除测试；服务层 wrong-scope 与无写入测试
+- [OK] 隔离浏览器 `http://127.0.0.1:31580/assets?scope=all`：详情面板显示已收藏；点击“取消收藏素材”后后端 `favorite` 从 `true` 变为 `false`（PUT 200），切换“收藏”筛选后结果为 0；再以隔离 API 恢复测试素材为收藏状态。
 
 ## 未完成/限制
 
-- 未进行真实浏览器/Electron 收藏菜单与重启截图验收，TASK-030 总项保持开发中，不归档。
+- 未进行独立 Electron 重启截图；浏览器交互已验收，父级 TASK-030 仍保持开发中，不归档。
 - 一次 `go test ./...` 暴露既有 `internal/service/generation/TestHistoryProjectAndSessionIntersection/project_aggregation` 顺序不稳定（单独 `-run ... -count=1` 通过）；失败与本项无关联，保留记录。
 - 未修改或重生成主目录未提交的 `pnpm-lock.yaml`。
