@@ -58,6 +58,27 @@ func (store *Service) ListProjectsByStatus(status string) (workspaceProjectsResp
 	return store.listProjectsByStatus(status)
 }
 
+// ListRegisteredProjectStorageRoots returns project paths without repairing project layouts.
+func (store *Service) ListRegisteredProjectStorageRoots() ([]ProjectStorageRoot, error) {
+	if store.initErr != nil {
+		return nil, store.initErr
+	}
+	models, err := store.workspace.ListProjectsByStatus(repository.ProjectStatusAll)
+	if err != nil {
+		return nil, fmt.Errorf("reading registered project storage roots: %w", err)
+	}
+	projects := WorkspaceProjectRecordsFromModels(models)
+	roots := make([]ProjectStorageRoot, 0, len(projects))
+	for _, project := range projects {
+		path := project.ProjectDir
+		if project.Status == repository.ProjectStatusTrashed && strings.TrimSpace(project.TrashProjectDir) != "" {
+			path = project.TrashProjectDir
+		}
+		roots = append(roots, ProjectStorageRoot{ID: project.ID, Path: path, Status: project.Status})
+	}
+	return roots, nil
+}
+
 func (store *Service) createProject(id string, request createWorkspaceProjectRequest) (workspaceProjectRecord, error) {
 	if store.initErr != nil {
 		return workspaceProjectRecord{}, store.initErr

@@ -100,6 +100,8 @@ func (store *MediaAssets) extractVideoPoster(asset MediaAsset, durationSeconds f
 	if err != nil {
 		return "", err
 	}
+	releasePosterLease := shared.AcquireMediaPosterUse(posterPath)
+	defer releasePosterLease()
 	seek := posterSeekTime(durationSeconds)
 	ctx, cancel := context.WithTimeout(context.Background(), mediaMetadataTimeout)
 	defer cancel()

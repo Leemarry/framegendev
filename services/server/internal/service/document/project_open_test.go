@@ -70,3 +70,22 @@ func TestProjectDirectoryPreviewCancellationDoesNotReadOrWrite(t *testing.T) {
 		t.Fatalf("error = %v, want context.Canceled", err)
 	}
 }
+
+func TestListRegisteredProjectStorageRootsDoesNotRepairProjectLayout(t *testing.T) {
+	store := requireDocumentStore(t)
+	projectDir := requireTestProject(t, store, "storage-project")
+	workDir := filepath.Join(projectDir, "work")
+	if err := os.RemoveAll(workDir); err != nil {
+		t.Fatal(err)
+	}
+	roots, err := store.ListRegisteredProjectStorageRoots()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(roots) != 1 || roots[0].ID != "storage-project" || roots[0].Path != projectDir {
+		t.Fatalf("storage roots = %#v", roots)
+	}
+	if _, err := os.Stat(workDir); !os.IsNotExist(err) {
+		t.Fatalf("read-only project root lookup recreated project work directory: %v", err)
+	}
+}

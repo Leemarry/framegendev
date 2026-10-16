@@ -227,6 +227,11 @@ func (store *WorkspaceStateService) ListProjectsByStatus(status string) (workspa
 	return store.StateService().Documents.ListProjectsByStatus(status)
 }
 
+// ListRegisteredProjectStorageRoots reads project paths without repairing their layouts.
+func (store *WorkspaceStateService) ListRegisteredProjectStorageRoots() ([]servicedocument.ProjectStorageRoot, error) {
+	return store.StateService().Documents.ListRegisteredProjectStorageRoots()
+}
+
 // CreateProject creates a workspace project.
 func (store *WorkspaceStateService) CreateProject(id string, request createWorkspaceProjectRequest) (workspaceProjectRecord, error) {
 	return store.createProject(id, request)

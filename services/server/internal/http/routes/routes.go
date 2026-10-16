@@ -14,6 +14,7 @@ type Handlers struct {
 	Settings              httphandlers.Settings
 	Capabilities          httphandlers.Capabilities
 	Billing               httphandlers.Billing
+	Storage               httphandlers.Storage
 	MediaAssets           httphandlers.MediaAssets
 	ProjectAssets         httphandlers.ProjectAssets
 	AgentBackends         httphandlers.AgentBackends
@@ -63,6 +64,9 @@ func registerCoreRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
 	apiRoutes.GET("/capabilities", handlers.Capabilities.HandleListCapabilities)
 	apiRoutes.GET("/billing/summary", handlers.Billing.HandleBillingSummary)
 	apiRoutes.GET("/projects", handlers.Projects.HandleListProjects)
+	apiRoutes.GET("/storage/statistics", handlers.Storage.HandleStatistics)
+	apiRoutes.POST("/storage/poster-cache/preview", handlers.Storage.HandlePosterPreview)
+	apiRoutes.POST("/storage/poster-cache/cleanup", handlers.Storage.HandlePosterCleanup)
 	apiRoutes.POST("/projects", handlers.Projects.HandleCreateProject)
 	apiRoutes.POST("/projects/open/preview", handlers.ProjectDirectories.HandlePreview)
 	apiRoutes.POST("/projects/open", handlers.ProjectDirectories.HandleOpen)

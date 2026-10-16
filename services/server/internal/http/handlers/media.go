@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	httpresponse "github.com/mediago-dev/mediago-drama/services/server/internal/http/response"
 	service "github.com/mediago-dev/mediago-drama/services/server/internal/service/media"
+	serviceshared "github.com/mediago-dev/mediago-drama/services/server/internal/service/shared"
 )
 
 // MediaAssets handles media asset HTTP routes.
@@ -269,6 +270,8 @@ func (handler MediaAssets) HandleMediaAssetPoster(context *gin.Context) {
 
 	context.Header("Content-Type", "image/jpeg")
 	context.Header("Content-Disposition", contentDispositionWithFilename("inline", asset.ID+"-poster.jpg"))
+	releasePosterLease := serviceshared.AcquireMediaPosterUse(filePath)
+	defer releasePosterLease()
 	http.ServeFile(context.Writer, context.Request, filePath)
 }
 

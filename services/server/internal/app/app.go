@@ -223,6 +223,7 @@ func NewHandlerWithConfig(staticFS fs.FS, config Config) http.Handler {
 		Settings:              settingsHandler,
 		Capabilities:          capabilityHandler,
 		Billing:               billingHandler,
+		Storage:               httphandlers.NewStorage(api.workspaceState),
 		MediaAssets:           mediaHandler,
 		ProjectAssets:         projectAssetHandler,
 		AgentBackends:         backendsHandler,

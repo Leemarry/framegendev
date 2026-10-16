@@ -1880,3 +1880,73 @@ Preserve explicit session identity within project history before pagination; mai
 ### Next Steps
 
 - TASK030 usage UI awaits owned Edge9240 restoration after policy rejection; no native Jianying/provider/Agent or overall150 completion claimed.
+
+
+## Session 64: TASK-062 项目包导入导出实现
+<!-- trellis-session: v=2 fp=c1ad77b969e87739 -->
+
+**Date**: 2026-10-17
+**Task**: TASK-062 项目包导入导出实现
+**Branch**: `codex/nle-export`
+
+### Summary
+
+实现本地版本化ZIP项目包、导入导出API与Projects操作，记录依赖阻塞和待验收项。
+
+### Main Changes
+
+- 实现ZIP预览、确定性导出、暂存导入与登记失败回滚；覆盖路径/schema/身份/大小/数量、冲突、取消和往返引用。
+- Projects接入项目包预览确认、导入、导出；任务结果、台账和当前交接更新，保持待验收。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3f374fb` | feat(projects): add versioned package transfer |
+
+### Testing
+
+- [OK] Go test ./..., go build ./..., go vet ./... passed; Projects tests 14/14, workspace lint, TypeScript and changed-file format passed.
+- [OK] Vite build blocked by installed TipTap version mismatch; golangci-lint download failed; Windows race unavailable without C compiler; full workspace format reports 85 existing files.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Repair workspace dependency installation from the intended lockfile, then perform isolated browser/Electron acceptance for native pickers and import/export/cancel/conflict/reopen.
+
+
+## Session 65: TASK-100 storage cleanup continuation
+<!-- trellis-session: v=2 fp=1a2be3b6a9c37358 -->
+
+**Date**: 2026-10-17
+**Task**: TASK-100 storage cleanup continuation
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Completed on-demand poster preview interaction and refreshed isolated checks; TASK-100 remains pending real browser/Electron acceptance.
+
+### Main Changes
+
+- Poster cache scanning now starts only after an explicit preview click; StoragePanel regressions cover mount, retry and cancellation.
+- Updated TASK-100 implementation/result and handoff records; retained the task in progress.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] StoragePanel 4/4, workspace lint, TypeScript build-check and changed TS formatting passed.
+- [OK] Go test ./..., go vet ./..., and go build ./... passed from services/server; Vite build remains blocked by installed Tiptap mismatch.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- After Chrome remote-debugging authorization and dependency repair, verify actual browser and Electron storage flows; do not archive before acceptance.

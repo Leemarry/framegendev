@@ -2,6 +2,12 @@
 
 更新：2026-10-17。只保留活跃事实，历史见 [快照](HISTORY-HANDOFF-2026-10-15.md)。续作入口 [README](README.md)。
 
+## 2026-10-17 TASK-100 存储管理
+
+- 分类统计、限定海报缓存预览/清理、逐文件结果及 StoragePanel 已实现；海报扫描仅在点击“预览清理”后启动，不因打开页面自动扫描。注册项目路径读取不会修复或创建项目布局，嵌套根和项目位于全局素材库内均避免重复计数。实现细节和检查见 `.trellis/tasks/10-17-storage-management/result.md`。
+- 隔离 API 实测：四个分类可读，workspace/外部项目缓存两张海报共7字节；清理后两张海报删除且项目源文件保留。Go 全量 test/vet/build、workspace lint、TypeScript阶段和定向UI测试通过。
+- TASK-100保持开发中，未归档：浏览器/Electron真实页面验收未完成。Vite/Tiptap与Electron updater存在已安装版本错配；本地 Chrome remote-debugging Allow 也在等用户点击。Go race/lint缺Windows C编译器/本地lint工具。恢复条件见result。
+
 ## 2026-10-17 TASK-062 项目包
 
 - 主目录 `codex/nle-export` 已实现自定义ZIP v1项目包：只读预览、确定性导出、暂存导入/登记回滚、身份/路径/大小/数量校验、取消与冲突保护，并接入Projects导入/导出和已有目录打开。往返保留文档原字节及 `work/` 到 `library/` 的Markdown相对引用；自动化覆盖冲突、取消、路径穿越、未知schema和身份不匹配。

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 63
-- **Last Active**: 2026-10-16
+- **Total Sessions**: 65
+- **Last Active**: 2026-10-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1882 | Active |
+| `journal-1.md` | ~1952 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,8 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 65 | 2026-10-17 | TASK-100 storage cleanup continuation | - | `codex/nle-export` |
+| 64 | 2026-10-17 | TASK-062 项目包导入导出实现 | `3f374fb` | `codex/nle-export` |
 | 63 | 2026-10-16 | TASK-080 explicit project/session intersection accepted in main | `d4d1710` | `codex/nle-export` |
 | 62 | 2026-10-16 | TASK-030 usage integrated; browser acceptance blocked | `652cfc7` | `codex/nle-export` |
 | 61 | 2026-10-16 | Accept named history kind in main production | `9eec53e` | `codex/nle-export` |

@@ -66,6 +66,8 @@ var defaultPromptPackPolicy = "marketplace"
 // @tag.description Generation notification list, read-state, and event stream APIs.
 // @tag.name Workspace
 // @tag.description Project document, folder, state, and history APIs.
+// @tag.name Storage
+// @tag.description Classified local storage usage and generated poster-cache cleanup APIs.
 // @tag.name Episodes
 // @tag.description Episode timeline state and preview APIs.
 // @tag.name Agent

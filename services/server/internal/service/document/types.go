@@ -62,6 +62,13 @@ type workspaceDocumentMetadataResponse = mediamcp.ListDocumentsOutput
 type workspaceProjectsResponse = mediamcp.ProjectList
 type workspaceProjectRecord = mediamcp.Project
 
+// ProjectStorageRoot is a registered project directory used by storage classification.
+type ProjectStorageRoot struct {
+	ID     string
+	Path   string
+	Status string
+}
+
 // WorkspaceProjectRecord is the public project response used by transfer handlers.
 type WorkspaceProjectRecord = mediamcp.Project
 type workspaceProjectModel = domain.WorkspaceProjectModel
