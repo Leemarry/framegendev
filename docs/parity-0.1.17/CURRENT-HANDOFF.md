@@ -45,6 +45,7 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 14. TASK-080共享历史读取bfd9912→b266bc7已验收：SWR加载/刷新/错误状态直达界面，失败不显示旧操作，同key显式重试；真实本地图片导入在源项目/全局恢复、另一项目/类型隔离，主3条导入失败隐藏/恢复、取消/刷新及源主后端重启完整文档历史任务零写。主103文件711测试/前端门/full708format/Electron/嵌入构建通过，见history-scope-acceptance归档。主31456运行mediago-server-history-ready.exe。未发送生成请求；MediaGenerationWorkspace独立历史、用量/生成采用及080/150整体仍待验收。此前billing把3条media-library本地导入计成调用，已由下一单项修正。
 15. TASK-080本地导入用量已验收：源`cbb5aaf`→主`910f3fb`，BillingRepository在聚合前排除内部`media-library`，保留真实零token供应商调用。真实源/主四分组、项目/类型/日期API及页面分组点击均显示零导入用量；完整Windows canonical check/race/build、主服务重启、文档/历史/任务完整记录和主页面恢复通过。结果见`.trellis/tasks/archive/2026-10/10-16-local-import-usage/result.md`。账单错误态无显式重试及移动端截断仍属会话2页面差距；MediaGenerationWorkspace独立历史、真实生成采用、040/041原生重开和150整体仍未完成。会话2仍`617a80d`。
+16. TASK-080独立媒体历史读取`28cbee2`→主`346f4f7`已验收：真实分镜图片本地导入在源主失败时隐藏旧历史/动作，重复重试/恢复保持未保存提示词；延迟读取禁用刷新，取消重开/页面刷新及源主后端重启完整文档历史任务零写。主53文件400测试、前端门/full708format/Electron/嵌入Windows构建通过。主31456运行`mediago-server-media-history.exe`，源31450/31451。浏览器用新建本地测试tab；独立Edge9240重开仍未验收，自动审批曾拒绝后台启动。390px短屏历史控件无溢出，既有生成弹窗标题被挤窄；下一单项修复该标题与操作排布。真实生成采用、原生剪映重开与080/150整体未完成；会话2仍`617a80d`。
 
 ## 已核实环境
 

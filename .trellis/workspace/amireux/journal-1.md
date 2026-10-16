@@ -1485,3 +1485,26 @@ Source cbb5aaf cherry-picked to main 910f3fb; excluded media-library local impor
 ### Status
 
 [OK] **Completed**
+
+
+## Session 50: Independent media history read state integrated
+<!-- trellis-session: v=2 fp=a6dd9c8839aa7572 -->
+
+**Date**: 2026-10-16
+**Task**: Independent media history read state integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+TASK-080 independent section/episode media history now hides stale actions while reads fail, preserves editable prompts and uses the existing retry. Source/main 53 files 400 tests, lint/canonical format/build/Electron/embedded Windows build pass; actual failure/recovery/cancel/reload/backend restart preserve complete records. Existing narrow modal title is the next independent item. External generation/native Jianying and TASK150 remain open.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `28cbee2` | fix(generation): protect independent history reads and prompt drafts |
+| `346f4f7` | fix(generation): protect independent history reads and prompt drafts |
+
+### Status
+
+[OK] **Completed**

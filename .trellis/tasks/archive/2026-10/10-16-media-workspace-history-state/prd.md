@@ -17,13 +17,13 @@ Align the independent media generation workspace with existing history loading/e
 
 ## Acceptance Criteria
 
-- [ ] Focused regression proves cached entries/actions disappear on history
+- [x] Focused regression proves cached entries/actions disappear on history
   error, prompt input remains, and the same mutator is used for retry.
-- [ ] Existing generation workspace tests, frontend lint/format/build pass.
-- [ ] Real isolated source/main failure, cancel/recovery or reload flow confirms
+- [x] Existing generation workspace tests, frontend lint/format/build pass.
+- [x] Real isolated source/main failure, cancel/recovery or reload flow confirms
   no stale history action is available and the prompt survives; successful reads
   restore the real history.
-- [ ] Architecture review confirms no backend/API/dependency/session2 changes;
+- [x] Architecture review confirms no backend/API/dependency/session2 changes;
   result and remaining limitations are recorded before commit.
 
 ## Notes

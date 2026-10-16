@@ -57,4 +57,23 @@ API, shared model, dependency, navigation, billing or session2 change.
 
 ## Main Integration
 
-Pending source commit and serial main acceptance. Do not archive until recorded.
+Source28cbee2 -> main346f4f7. Main lint, canonical full708-file format, build,
+Electron compile,53files400tests and workspace_dist Windows binary build pass.
+No backend source changed; the full Windows check/race/build accepted for the
+preceding local-import-usage item remains applicable to unchanged backend code.
+
+Main31456 runs mediago-server-media-history.exe in the existing isolated
+s1-integration workspace. Dedicated main project0812814f7443622f has a real local
+image import bound to doc-s1-media-history/section_s1_media_history. Actual
+cached-read blocking, repeated retry, recovery, exact prompt preservation,
+close/cancel and390CSS-pixel short-screen checks pass. Existing title truncation
+is visible; no page overflow. Actual main backend stop/start followed by page
+reload and reopening restores the real image and original document-derived
+prompt. Complete new fixture and prior documents/versions/history/immutable
+snapshot/task records remain unchanged.
+
+CDP mousemove/screenshot timeouts and hover disappearance also occurred on main.
+The final reopening used normal DOM hover/click on the existing block-menu
+button, then an AX-coordinate click on generate-image; no React/store internals
+or artificial generation data. Main screenshots are in its own task cache.
+Independent history read state is accepted; TASK080/150 overall remain open.
