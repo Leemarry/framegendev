@@ -253,6 +253,34 @@ const folder = (id: string, name: string, parentId = ""): AssetLibraryFolder => 
 });
 
 describe("material folder workflows", () => {
+	it.each(["?projectId=project-a", "?scope=all"])(
+		"filters recorded provenance independently of resource records in %s",
+		async (scope) => {
+			vi.mocked(getMediaAssets).mockResolvedValue({
+				assets: [
+					{ ...asset("local", "local.png", "2026-10-16T00:00:00Z"), source: "upload" },
+					{ ...asset("generated", "generated.png", "2026-10-16T00:00:00Z"), source: "generation" },
+					asset("unknown", "unknown.png", "2026-10-16T00:00:00Z"),
+				],
+			});
+			mount(undefined, scope);
+			await screen.findByRole("button", { name: "预览 local.png" });
+			fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "来源" }), { key: "Enter" });
+			expect(screen.getByRole("option", { name: "浏览器采集（待接入）" })).toHaveAttribute(
+				"aria-disabled",
+				"true",
+			);
+			fireEvent.keyDown(await screen.findByRole("option", { name: "本地导入" }), { key: "Enter" });
+			expect(screen.getByRole("button", { name: "预览 local.png" })).toBeInTheDocument();
+			expect(screen.queryByRole("button", { name: "预览 generated.png" })).not.toBeInTheDocument();
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "资源记录" }), { key: "Enter" });
+			fireEvent.keyDown(await screen.findByRole("option", { name: "已选资源" }), { key: "Enter" });
+			expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
+			expect(updateMediaAssetFields).not.toHaveBeenCalled();
+		},
+	);
+
 	it("applies the displayed source filter to global physical media", async () => {
 		vi.mocked(getMediaAssets).mockResolvedValue({
 			assets: [{ ...asset("global", "global.png", "2026-10-16T00:00:00Z"), projectId: "" }],
@@ -260,11 +288,11 @@ describe("material folder workflows", () => {
 		mount(undefined, "?scope=all");
 		await screen.findByRole("button", { name: "预览 global.png" });
 		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
-		fireEvent.keyDown(screen.getByRole("combobox", { name: "来源" }), { key: "Enter" });
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "资源记录" }), { key: "Enter" });
 		fireEvent.keyDown(await screen.findByRole("option", { name: "已选资源" }), { key: "Enter" });
 		expect(screen.queryByRole("button", { name: "预览 global.png" })).not.toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
-		fireEvent.keyDown(screen.getByRole("combobox", { name: "来源" }), { key: "Enter" });
+		fireEvent.keyDown(screen.getByRole("combobox", { name: "资源记录" }), { key: "Enter" });
 		fireEvent.keyDown(await screen.findByRole("option", { name: "媒体素材" }), { key: "Enter" });
 		expect(screen.getByRole("button", { name: "预览 global.png" })).toBeInTheDocument();
 		expect(getMediaAssets).toHaveBeenCalledWith({ projectId: undefined });

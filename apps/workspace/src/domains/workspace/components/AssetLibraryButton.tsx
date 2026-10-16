@@ -61,6 +61,7 @@ import {
 	type AssetLibraryItem,
 	type AssetLibraryKind,
 	type AssetLibraryKindFilter,
+	type AssetLibraryProvenanceFilter,
 	type AssetLibraryRatingFilter,
 	type AssetLibraryResourceFilter,
 	type AssetLibraryResourceType,
@@ -114,6 +115,19 @@ const projectSourceOptions: Array<{ label: string; value: AssetLibrarySourceFilt
 	{ label: "全部", value: "all" },
 	{ label: "媒体素材", value: "media" },
 	{ label: "已选资源", value: "selected" },
+];
+
+const provenanceOptions: Array<{
+	label: string;
+	value: AssetLibraryProvenanceFilter;
+	disabled?: boolean;
+}> = [
+	{ label: "全部素材", value: "all" },
+	{ label: "本地导入", value: "local" },
+	{ label: "浏览器采集（待接入）", value: "browser", disabled: true },
+	{ label: "生成结果", value: "generated" },
+	{ label: "其他来源", value: "other" },
+	{ label: "来源未记录", value: "unrecorded" },
 ];
 
 const ratingOptions: Array<{ label: string; value: AssetLibraryRatingFilter }> = [
@@ -221,6 +235,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
+	const [provenanceFilter, setProvenanceFilter] = useState<AssetLibraryProvenanceFilter>("all");
 	const [uploading, setUploading] = useState<"media" | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
 	const [refreshError, setRefreshError] = useState<unknown>(null);
@@ -323,6 +338,7 @@ export const AssetLibraryWorkspace: React.FC<{
 			filterAssetLibraryItems(folderItems, {
 				kind: kindFilter,
 				query,
+				provenance: provenanceFilter,
 				rating: ratingFilter,
 				resourceType: projectMode ? resourceFilter : "all",
 				source: sourceFilter,
@@ -337,6 +353,7 @@ export const AssetLibraryWorkspace: React.FC<{
 			ratingFilter,
 			resourceFilter,
 			sourceFilter,
+			provenanceFilter,
 			sort,
 			tagFilter,
 		],
@@ -364,6 +381,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	useEffect(() => {
 		if (!open) return;
 		setSourceFilter("all");
+		setProvenanceFilter("all");
 		setResourceFilter("all");
 		setRatingFilter("all");
 		setTagFilter("");
@@ -609,6 +627,7 @@ export const AssetLibraryWorkspace: React.FC<{
 		query ||
 		tagFilter.trim() ||
 		kindFilter !== "all" ||
+		provenanceFilter !== "all" ||
 		sourceFilter !== "all" ||
 		resourceFilter !== "all" ||
 		ratingFilter !== "all",
@@ -779,6 +798,14 @@ export const AssetLibraryWorkspace: React.FC<{
 							/>
 							<AssetLibrarySelect
 								label="来源"
+								value={provenanceFilter}
+								options={provenanceOptions}
+								onValueChange={(value) =>
+									setProvenanceFilter(value as AssetLibraryProvenanceFilter)
+								}
+							/>
+							<AssetLibrarySelect
+								label="资源记录"
 								value={sourceFilter}
 								options={projectSourceOptions}
 								onValueChange={(value) => setSourceFilter(value as AssetLibrarySourceFilter)}
@@ -862,7 +889,7 @@ export const AssetLibraryWorkspace: React.FC<{
 					{projectMode ? (
 						<>
 							<AssetLibrarySelect
-								label="来源"
+								label="资源记录"
 								value={sourceFilter}
 								options={projectSourceOptions}
 								onValueChange={(value) => setSourceFilter(value as AssetLibrarySourceFilter)}
@@ -1561,7 +1588,7 @@ const AssetLibrarySelect: React.FC<{
 	label: string;
 	loading?: boolean;
 	onValueChange: (value: string) => void;
-	options: Array<{ label: string; value: string }>;
+	options: Array<{ label: string; value: string; disabled?: boolean }>;
 	value: string;
 }> = ({ label, loading, onValueChange, options, value }) => (
 	<Select value={value} onValueChange={onValueChange}>
@@ -1575,7 +1602,7 @@ const AssetLibrarySelect: React.FC<{
 		</SelectTrigger>
 		<SelectContent align="start">
 			{options.map((option) => (
-				<SelectItem key={option.value} value={option.value}>
+				<SelectItem key={option.value} value={option.value} disabled={option.disabled}>
 					{option.label}
 				</SelectItem>
 			))}

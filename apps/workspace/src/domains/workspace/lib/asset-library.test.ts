@@ -19,6 +19,59 @@ import {
 } from "./asset-library";
 
 describe("asset-library", () => {
+	it.each([
+		["upload", "local"],
+		[" imported ", "local"],
+		["generation", "generated"],
+		["TOOLBOX", "generated"],
+		["preview", "other"],
+		["future-source", "other"],
+		["", "unrecorded"],
+	] as const)("filters recorded physical source %s as %s", (source, provenance) => {
+		const items = buildAssetLibraryItems({ mediaAssets: [mediaAsset({ source })] });
+		expect(filterAssetLibraryItems(items, { provenance })).toHaveLength(1);
+		expect(
+			filterAssetLibraryItems(items, {
+				provenance: provenance === "local" ? "generated" : "local",
+			}),
+		).toHaveLength(0);
+	});
+
+	it("uses recorded adoption provenance only when physical source is missing", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [mediaAsset({ source: "upload" })],
+			selectedAssets: [
+				selectedAsset({ sourceType: "generated" }),
+				selectedAsset({ id: "imported", url: "/imported", sourceType: "imported" }),
+				selectedAsset({ id: "edited", url: "/edited", sourceType: "edited" }),
+				selectedAsset({ id: "unknown", url: "/unknown" }),
+			],
+		});
+		expect(filterAssetLibraryItems(items, { provenance: "local" }).map((item) => item.id)).toEqual([
+			"imported",
+			"media-a",
+		]);
+		expect(
+			filterAssetLibraryItems(items, { provenance: "generated" }).map((item) => item.id),
+		).toEqual(["edited"]);
+		expect(
+			filterAssetLibraryItems(items, { provenance: "unrecorded" }).map((item) => item.id),
+		).toEqual(["unknown"]);
+	});
+
+	it("keeps conflicting adoption origins in other instead of guessing", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [mediaAsset()],
+			selectedAssets: [
+				selectedAsset({ id: "local", sourceType: "imported" }),
+				selectedAsset({ id: "generated", sourceType: "generated" }),
+			],
+		});
+		expect(filterAssetLibraryItems(items, { provenance: "other" })).toHaveLength(1);
+		expect(filterAssetLibraryItems(items, { provenance: "local" })).toHaveLength(0);
+		expect(filterAssetLibraryItems(items, { provenance: "generated" })).toHaveLength(0);
+	});
+
 	it("filters saved tags independently and intersects other filters", () => {
 		const items = buildAssetLibraryItems({
 			mediaAssets: [

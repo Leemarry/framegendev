@@ -89,3 +89,10 @@ Apply the visible source filter in both global and project library views. Its
 existing media/selected values describe physical assets versus adoption records,
 not provider provenance. Global mode never fetches project adoption records;
 selected-only therefore has an empty result instead of leaking other projects.
+
+Page provenance is separate from media/selected resource records. Use recorded
+physical media source first; only absent physical source falls back to adoption
+sourceType. Upload/import types are local, generation/toolbox/edited generated,
+unknown nonempty or conflicting fallback groups other, absent records unrecorded.
+Never infer source from filenames. Browser capture remains disabled pending a
+producer contract. Provenance intersects existing filters and never writes data.
