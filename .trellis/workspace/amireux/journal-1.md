@@ -1810,3 +1810,38 @@ Main real two-session video history, optional200/mismatch400, blocked read/retry
 ### Status
 
 [OK] **Completed**
+
+
+## Session 62: TASK-030 usage integrated; browser acceptance blocked
+<!-- trellis-session: v=2 fp=1c0459be1a158a40 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-030 usage integrated; browser acceptance blocked
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Recorded read-only usage projection and integrated runnable main; actual browser acceptance remains blocked.
+
+### Main Changes
+
+- Optional includeUsage contract, scoped selected/candidate/reference flags; import lineage excluded.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `652cfc7` | feat(media): filter recorded asset usage within library scope |
+
+### Testing
+
+- [OK] Source full native Windows check/full race and build passed; main66frontend tests, lint708format/build/Electron, media/repository/app race and embedded build passed.
+- [OK] Source/main four real PNG categories and backend restart preserve complete records/hashes; main201files, dual video histories and production combination protected.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Keep task in_progress until owned Edge9240 restored; actual menus/screenshots/narrow/page checks not run. Next independent080 project+session query intersection.

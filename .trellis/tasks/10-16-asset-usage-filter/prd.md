@@ -21,9 +21,9 @@ Filter real recorded selection, candidate and reference usage within current lib
 
 ## Acceptance Criteria
 
-- [ ] Real SQLite tests cover multi-use, all states, soft-delete, scope isolation,
+- [x] Real SQLite tests cover multi-use, all states, soft-delete, scope isolation,
   document-reader/repository failures and unchanged durable records.
-- [ ] Frontend regression covers intersection, missing usage, clear/reset and
+- [x] Frontend regression covers intersection, missing usage, clear/reset and
   failed-read/retry; lint/canonical format/build/Electron and Windows gates pass.
 - [ ] Source and integrated production UI actual status selection, failure/retry,
   narrow popup scrolling, reload/backend restart and complete snapshots/hashes.

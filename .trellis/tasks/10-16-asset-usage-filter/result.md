@@ -59,3 +59,19 @@ Renewed 2026-10-16 restore attempt with the exact owned profile/port was again
 rejected as blocked by policy. User authorization is recorded; actual environment
 restoration is still required. Implementation may be integrated with this explicit
 pending acceptance, but this task must not be completed or archived.
+
+Source implementation d75fb62 is integrated as main652cfc7. Main frontend3files/
+66tests, lint/full708canonical format/build/Electron compile pass. Main media/
+repository/app race pass (25.988s/38.432s/31.571s); embedded native build passes.
+Main31456 runs mediago-server-usage.exe with s1-integration/server.yaml. Independent
+main project-58432b529aa98fb6 has four real PNGs/local import tasks/adoption and
+Markdown reference. All four statuses, both invalid-query400 routes, global and
+other-project isolation pass. Actual stop/start preserves the original full
+documents/body/version/history/media/tasks/conversations/adoption and four hashes.
+Original global/nested/tag,201records/all201hashes, optional-kind dual video history
+and local production combination complete records/export hashes pass before and
+after restart. Source070 fixture is rechecked unchanged. Session2 stays617a80d.
+No actual source/main browser acceptance is claimed; menu/screenshot/narrow/page
+checks remain unchecked. Next independent080 item: project+session history query
+ignores session and returns both local tasks even for a nonexistent session;
+read-only reproduction retained in current task context, no records changed.

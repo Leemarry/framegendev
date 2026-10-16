@@ -68,6 +68,8 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 27. TASK-080命名历史可选类型`c6e58f5`→主`9eec53e`已验收：省略kind读取既有会话类型，显式错误类型返回400，真实仓储故障保持安全500。源完整Windows canonical check/全量race及独立build、源主3文件78测试/前端门/full708format/Electron、主generation/handlers race及嵌入构建通过。源主真实双视频会话切换、失败0重试1、页面及后端重启完整记录/实际视频hash不变；主201文件/原全局嵌套标签/制作组合全文版本双历史采用及导出hash也不变。见history-optional-kind归档。主31456运行`mediago-server-optional-kind.exe`，源31450/31451。390×480工具箱侧栏占大半宽度，视频/供应商提示被挤窄，属于会话2AppLayout/App.tsx导航归属的未验收差距；源另有4条ResizeObserver通知，不能宣称console-clean。浏览器进程重启、原生剪映及外部生成/Agent仍未验收，整体080/150不完成。下一项核实素材使用状态的既有采用/引用数据与官方交集；会话2仍`617a80d`。
 
+28. TASK-030使用状态筛选实现`d75fb62`→主`652cfc7`已集成，**界面待验收，不归档**。两素材列表可选`includeUsage=true`，新增只读`usage.selected/candidate/reference`布尔值（可重叠，全false为未使用），默认响应/持久化不变；项目统计当前项目，全局统计全局文件跨项目关系。采用软删/输出墓碑排除，本地导入追溯不误算参考，文档复用真实图片解析器，读取失败不声明未使用。源完整Windows canonical check/全量race及独立build、源主3文件66测试/前端门/full708format/Electron、主media/repository/app race与嵌入构建通过。源主真实四PNG/API隔离/无效参数400及后端重启完整记录hash通过；主201文件、双视频历史、原全局嵌套标签和制作组合完整记录/导出hash保护通过。源31450使用task-070/server.yaml，主31456运行`mediago-server-usage.exe`。隔离Edge原profile/CDP9240再次被自动审批以`blocked by policy`拒绝启动，用户已授权仍未恢复监听；真实菜单/失败重试/截图/窄屏/页面重开未运行，恢复条件是环境侧启动该已授权浏览器。见`.trellis/tasks/10-16-asset-usage-filter/result.md`。下一独立项080：项目+会话历史查询忽略会话条件（只读实际复现）；整体030/080/150仍未完成，会话2仍`617a80d`。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |
