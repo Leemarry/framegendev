@@ -1788,3 +1788,25 @@ Source full native Windows check including race and build pass; main media/repos
 ### Status
 
 [OK] **Completed**
+
+
+## Session 61: Accept named history kind in main production
+<!-- trellis-session: v=2 fp=4fe5d814f0a43e6e -->
+
+**Date**: 2026-10-16
+**Task**: Accept named history kind in main production
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Main real two-session video history, optional200/mismatch400, blocked read/retry/reload/backend restart; full history/media/docs/hash plus201 files and local production combination preserved. Source complete Windows gates and main focused race/frontend/embedded gates passed. Narrow toolbox layout remains failed; no external sends/native reopen. Session2 unchanged617a80d.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9eec53e` | fix(generation): resolve optional history kind and client errors |
+
+### Status
+
+[OK] **Completed**

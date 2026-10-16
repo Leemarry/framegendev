@@ -18,10 +18,10 @@ Read existing named conversation history using its recorded kind when omitted, a
 
 ## Acceptance Criteria
 
-- [ ] SQLite regression first reproduces omitted-kind failure for non-image
+- [x] SQLite regression first reproduces omitted-kind failure for non-image
   named conversations, then covers all four kinds/isolation/record preservation.
-- [ ] Handler tests distinguish wrapped query errors400 from safe backend500.
-- [ ] Source full Windows check/race/build and frontend gates; main focused/native
+- [x] Handler tests distinguish wrapped query errors400 from safe backend500.
+- [x] Source full Windows check/race/build and frontend gates; main focused/native
   and embedded checks, actual local history/error/retry/reopen and unchanged full
   records/hashes in protected fixtures. No external sends or native reopen claims.
 

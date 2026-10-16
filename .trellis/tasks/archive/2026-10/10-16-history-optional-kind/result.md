@@ -42,7 +42,20 @@ Fixture setup concurrently uploading the same input hit Windows exclusive sharin
 in main after creating its project. That existing empty owned project was verified
 and resumed through a recorded checkpoint with per-cache input copy; no project
 was deleted, duplicated or baseline replaced. Main project is
-project-d2618eb3cd1ac197. Corrected main integration/acceptance still pending.
+project-d2618eb3cd1ac197. Corrected source c6e58f5 is integrated in main9eec53e.
+Main focused race passes (generation25.886s, handlers11.889s); frontend3files/
+78tests, lint/full708canonical format/build/Electron and embedded native build
+pass. Main31456 now runs mediago-server-optional-kind.exe against its isolated
+configuration. Actual main browser two-session switching, optional200/equal
+explicit-video, mismatched400, failed-read video0/retry1, narrow refresh reachability
+and page reload pass. Repeated after actual backend stop/start: all pass again.
+Complete conversations/tasks/media/documents/selection and actual video hash are
+identical to the original snapshot. Protected global/nested/tag records/hashes,
+201physical records/all201content hashes and the complete production fixture's
+two full documents/versions/both histories/tasks/adoption/resolved chapters and
+uploaded/exported hashes also pass before and after restart. Durable main desktop
+and narrow screenshots are in evidence/; the narrow screenshot records the layout
+failure described above, not a mobile acceptance pass. Session2 remains617a80d.
 Native browser process/剪映 reopen, real provider generation and overall080/150
 remain incomplete. Independent Edge9240 launch was policy-rejected previously;
 page/backend reopen is a separate check. Session2 remains617a80d.

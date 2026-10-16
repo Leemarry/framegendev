@@ -66,6 +66,8 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 26. TASK-030完整列表`67643ed`→主`dff25bd`已验收：移除无分页响应中的隐藏200项上限，保留global-only/project+global可见性。源完整Windows check（含全量race）及独立build、源主前端门/full708format/Electron、主媒体/仓储race与嵌入构建通过。源主独立201真实文件由UI扫描，修复前200/最早搜索0，修复后202含全局/文本本地201/最早搜索预览1；取消删除、标签、失败0重试1、390×480滚动和页面后端重启完整201记录/201hash与原全局/嵌套/标签及制作组合完整记录hash不变。见asset-complete-list归档。主31456运行`mediago-server-complete-list.exe`，源31450/31451。仍为O(N)全量加载，不宣称超大库分页/虚拟滚动已实现；整体030/080/150与原生/外部差距保留，会话2仍617a80d。下一项核实制作组合暴露的历史会话kind错误被误报500，按080范围处理本地失败契约。
 
+27. TASK-080命名历史可选类型`c6e58f5`→主`9eec53e`已验收：省略kind读取既有会话类型，显式错误类型返回400，真实仓储故障保持安全500。源完整Windows canonical check/全量race及独立build、源主3文件78测试/前端门/full708format/Electron、主generation/handlers race及嵌入构建通过。源主真实双视频会话切换、失败0重试1、页面及后端重启完整记录/实际视频hash不变；主201文件/原全局嵌套标签/制作组合全文版本双历史采用及导出hash也不变。见history-optional-kind归档。主31456运行`mediago-server-optional-kind.exe`，源31450/31451。390×480工具箱侧栏占大半宽度，视频/供应商提示被挤窄，属于会话2AppLayout/App.tsx导航归属的未验收差距；源另有4条ResizeObserver通知，不能宣称console-clean。浏览器进程重启、原生剪映及外部生成/Agent仍未验收，整体080/150不完成。下一项核实素材使用状态的既有采用/引用数据与官方交集；会话2仍`617a80d`。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |

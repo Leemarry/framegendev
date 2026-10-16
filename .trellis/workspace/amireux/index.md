@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 60
+- **Total Sessions**: 61
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1790 | Active |
+| `journal-1.md` | ~1812 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 61 | 2026-10-16 | Accept named history kind in main production | `9eec53e` | `codex/nle-export` |
 | 60 | 2026-10-16 | Accept complete material list beyond 200 in main | `dff25bd` | `codex/nle-export` |
 | 59 | 2026-10-16 | Accept recorded media provenance in integrated main | `7fe1f6b` | `codex/nle-export` |
 | 58 | 2026-10-16 | Local production combination and real export | `3f19c92` | `codex/nle-export` |
