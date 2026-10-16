@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -14,6 +15,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -852,6 +854,66 @@ func TestListGenerationTasksTreatsUnknownSessionAsScope(t *testing.T) {
 	}
 	if got := generationTaskIDs(response.Tasks); !sameStringSet(got, []string{"generation-section-a"}) {
 		t.Fatalf("session section-a tasks = %v, want only generation-section-a", got)
+	}
+}
+
+func TestListGenerationTasksInfersNamedConversationKind(t *testing.T) {
+	for _, kind := range []string{"image", "video", "audio", "text"} {
+		t.Run(kind, func(t *testing.T) {
+			repo, err := newTestGenerationTaskRepository(t, filepath.Join(t.TempDir(), "workspace.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			store := NewGenerationTaskServiceFromRepository(repo, nil, nil)
+			workflow := NewGenerationService(nil, store, nil)
+			for _, scope := range []string{"own", "other"} {
+				if err := store.UpsertConversation(GenerationConversationRecord{ID: scope, ScopeID: scope, Kind: kind, Title: scope}); err != nil {
+					t.Fatal(err)
+				}
+				if err := store.Upsert(GenerationTaskRecord{ID: scope, ConversationID: scope, Kind: kind, Status: "completed", Prompt: "local fixture"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before, err := store.List()
+			if err != nil {
+				t.Fatal(err)
+			}
+			conversation, _, err := store.GetConversation("own")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, requested := range []string{"", "  ", kind} {
+				response, err := workflow.ListGenerationTasks(GenerationTaskListQuery{ConversationID: "own", Kind: requested})
+				if err != nil {
+					t.Fatalf("optional kind %q failed: %v", requested, err)
+				}
+				if len(response.Tasks) != 1 || response.Tasks[0].ID != "own" || response.Tasks[0].Kind != kind {
+					t.Fatalf("history kind/isolation changed: %+v", response.Tasks)
+				}
+			}
+			mismatchedKind := "image"
+			if kind == mismatchedKind {
+				mismatchedKind = "video"
+			}
+			for _, query := range []GenerationTaskListQuery{
+				{ConversationID: "own", Kind: "unsupported"},
+				{Kind: "unsupported"},
+				{ConversationID: "own", Kind: mismatchedKind},
+				{ConversationID: "own", ScopeID: "other", Kind: kind},
+			} {
+				if _, err := workflow.ListGenerationTasks(query); !errors.Is(err, ErrInvalidGenerationTaskQuery) {
+					t.Fatalf("invalid history query %+v returned %v", query, err)
+				}
+			}
+			after, err := store.List()
+			if err != nil || !reflect.DeepEqual(before, after) {
+				t.Fatalf("history reads changed task records: %v", err)
+			}
+			afterConversation, _, err := store.GetConversation("own")
+			if err != nil || !reflect.DeepEqual(conversation, afterConversation) {
+				t.Fatalf("history reads changed conversation: %v", err)
+			}
+		})
 	}
 }
 

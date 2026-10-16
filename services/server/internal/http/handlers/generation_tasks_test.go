@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -155,6 +157,7 @@ func TestHandleDeleteGenerationTaskAsset(t *testing.T) {
 type fakeGenerationTaskListService struct {
 	GenerationTaskService
 	query generationservice.GenerationTaskListQuery
+	err   error
 }
 
 func (service *fakeGenerationTaskListService) ListGenerationTasks(query generationservice.GenerationTaskListQuery) (dto.GenerationTasksResponse, error) {
@@ -163,7 +166,33 @@ func (service *fakeGenerationTaskListService) ListGenerationTasks(query generati
 		Tasks: []dto.GenerationTaskRecord{
 			{ID: "task-project", Kind: "image", ProjectID: query.ProjectID, Status: "running"},
 		},
-	}, nil
+	}, service.err
+}
+
+func TestHandleGenerationTasksQueryAndBackendErrors(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	for _, test := range []struct {
+		name   string
+		err    error
+		status int
+	}{
+		{name: "query", err: fmt.Errorf("%w: kind mismatch", generationservice.ErrInvalidGenerationTaskQuery), status: http.StatusBadRequest},
+		{name: "backend", err: errors.New("private database path"), status: http.StatusInternalServerError},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			handler := NewGenerationTasks(&fakeGenerationTaskListService{err: test.err})
+			router := gin.New()
+			router.GET("/generation/tasks", handler.HandleGenerationTasks)
+			router.GET("/generation/sessions/:sessionId/tasks", handler.HandleGenerationSessionTasks)
+			for _, path := range []string{"/generation/tasks?sessionId=own", "/generation/sessions/own/tasks"} {
+				response := httptest.NewRecorder()
+				router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+				if response.Code != test.status || strings.Contains(response.Body.String(), "private database path") {
+					t.Fatalf("status/error exposure mismatch: %d %s", response.Code, response.Body.String())
+				}
+			}
+		})
+	}
 }
 
 func TestHandleGenerationTasksPassesProjectIDFilter(t *testing.T) {

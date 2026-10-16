@@ -293,10 +293,16 @@ func (workflow *GenerationService) generationRequestForTask(
 	return request, nil
 }
 
+// ErrInvalidGenerationTaskQuery identifies invalid task history filters.
+var ErrInvalidGenerationTaskQuery = errors.New("invalid generation task query")
+
 // ListGenerationTasks lists generation tasks for HTTP handlers.
 func (workflow *GenerationService) ListGenerationTasks(query GenerationTaskListQuery) (generationTasksResponse, error) {
 	batchID := strings.TrimSpace(query.BatchID)
 	kind := strings.TrimSpace(query.Kind)
+	if kind != "" && !isSupportedGenerationConversationKind(kind) {
+		return generationTasksResponse{}, fmt.Errorf("%w: unsupported generation kind", ErrInvalidGenerationTaskQuery)
+	}
 	conversationID := strings.TrimSpace(query.ConversationID)
 	projectID := strings.TrimSpace(query.ProjectID)
 	hasScopeFilter := strings.TrimSpace(query.ScopeID) != ""
@@ -334,10 +340,22 @@ func (workflow *GenerationService) ListGenerationTasks(query GenerationTaskListQ
 		}
 		return generationTasksResponse{Tasks: GenerationTasksForClient(tasks)}, nil
 	} else if conversationID != "" {
+		if kind == "" {
+			stored, found, err := workflow.generationTasks.GetConversation(conversationID)
+			if err != nil {
+				return generationTasksResponse{}, err
+			}
+			if found {
+				kind = stored.Kind
+			}
+		}
 		conversation, status, err := workflow.resolveGenerationConversationWithScopeFilter(conversationID, scopeID, kind, hasScopeFilter)
 		if err != nil {
 			if status == http.StatusNotFound {
 				return generationTasksResponse{Tasks: []GenerationTaskRecord{}}, nil
+			}
+			if status == http.StatusBadRequest {
+				return generationTasksResponse{}, fmt.Errorf("%w: %w", ErrInvalidGenerationTaskQuery, err)
 			}
 			return generationTasksResponse{}, err
 		}

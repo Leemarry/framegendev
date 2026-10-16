@@ -20,6 +20,13 @@ is the current contract source.
 
 ## Local History Import (TASK-080)
 
+Task history GET kind is optional. For an existing named conversation, omitted
+kind uses its stored kind; legacy unnamed scope retains its existing default-image
+fallback. Explicit mismatched or unsupported kind wraps ErrInvalidGenerationTaskQuery
+and both list handlers map it to400. Repository failures remain safe500; never
+classify all errors as client errors. These reads and rejected filters must not
+upsert conversations/tasks. Keep existing project/batch precedence unchanged.
+
 `ImportGenerationMediaAssets` handles
 `POST /generation/sessions/:sessionId/media-assets/import` with assetIds/kind,
 optional projectId/scopeId/conversationTitle. Resolve existing conversation
