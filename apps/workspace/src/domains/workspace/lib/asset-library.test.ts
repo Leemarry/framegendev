@@ -19,6 +19,36 @@ import {
 } from "./asset-library";
 
 describe("asset-library", () => {
+	it("filters recorded usage, excludes unknown status and intersects other filters", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [
+				mediaAsset({ id: "used", usage: { selected: true, candidate: true, reference: false } }),
+				mediaAsset({
+					id: "reference",
+					usage: { selected: false, candidate: false, reference: true },
+				}),
+				mediaAsset({
+					id: "unused",
+					usage: { selected: false, candidate: false, reference: false },
+				}),
+				mediaAsset({ id: "unknown" }),
+			],
+		});
+		expect(filterAssetLibraryItems(items, { usage: "selected" }).map((item) => item.id)).toEqual([
+			"used",
+		]);
+		expect(filterAssetLibraryItems(items, { usage: "candidate" }).map((item) => item.id)).toEqual([
+			"used",
+		]);
+		expect(filterAssetLibraryItems(items, { usage: "reference" }).map((item) => item.id)).toEqual([
+			"reference",
+		]);
+		expect(filterAssetLibraryItems(items, { usage: "unused" }).map((item) => item.id)).toEqual([
+			"unused",
+		]);
+		expect(filterAssetLibraryItems(items, { usage: "selected", query: "unused" })).toHaveLength(0);
+		expect(filterAssetLibraryItems(items, { usage: "all" })).toHaveLength(4);
+	});
 	it.each([
 		["upload", "local"],
 		[" imported ", "local"],

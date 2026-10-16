@@ -68,7 +68,8 @@
     "10-16-local-production-combination",
     "10-16-asset-provenance-filter",
     "10-16-asset-complete-list",
-    "10-16-history-optional-kind"
+    "10-16-history-optional-kind",
+    "10-16-asset-usage-filter"
   ],
   "parent": null,
   "relatedFiles": [],

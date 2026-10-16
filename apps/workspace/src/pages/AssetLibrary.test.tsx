@@ -254,6 +254,59 @@ const folder = (id: string, name: string, parentId = ""): AssetLibraryFolder => 
 
 describe("material folder workflows", () => {
 	it.each(["?projectId=project-a", "?scope=all"])(
+		"loads usage only on demand and recovers failed filtering in %s",
+		async (scope) => {
+			const assets = [
+				{
+					...asset("used", "used.png", "2026-10-16T00:00:00Z"),
+					usage: { selected: true, candidate: false, reference: false },
+				},
+				{
+					...asset("free", "free.png", "2026-10-16T00:00:00Z"),
+					usage: { selected: false, candidate: false, reference: false },
+				},
+			];
+			vi.mocked(getMediaAssets).mockResolvedValue({ assets });
+			mount(undefined, scope);
+			await screen.findByRole("button", { name: "预览 free.png" });
+			expect(
+				vi.mocked(getMediaAssets).mock.calls.every(([filters]) => !filters?.includeUsage),
+			).toBe(true);
+			fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "使用状态" }), { key: "Enter" });
+			fireEvent.keyDown(await screen.findByRole("option", { name: "已选用" }), { key: "Enter" });
+			await screen.findByRole("button", { name: "预览 used.png" });
+			expect(screen.queryByRole("button", { name: "预览 free.png" })).not.toBeInTheDocument();
+			expect(getMediaAssets).toHaveBeenLastCalledWith({
+				projectId: scope.includes("project-a") ? "project-a" : undefined,
+				includeUsage: true,
+			});
+			fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+				target: { value: "free" },
+			});
+			expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
+			fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+				target: { value: "" },
+			});
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "使用状态" }), { key: "Enter" });
+			fireEvent.keyDown(await screen.findByRole("option", { name: "未使用" }), { key: "Enter" });
+			expect(screen.getByRole("button", { name: "预览 free.png" })).toBeInTheDocument();
+			fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+			vi.mocked(getMediaAssets).mockRejectedValueOnce(new Error("usage unavailable"));
+			fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+			expect(await screen.findByText(/素材库加载失败：usage unavailable/)).toBeVisible();
+			expect(screen.queryByRole("button", { name: "预览 free.png" })).not.toBeInTheDocument();
+			fireEvent.click(screen.getByRole("button", { name: "刷新素材" }));
+			await screen.findByRole("button", { name: "预览 free.png" });
+			fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+			fireEvent.keyDown(screen.getByRole("combobox", { name: "使用状态" }), { key: "Enter" });
+			fireEvent.keyDown(await screen.findByRole("option", { name: "全部素材" }), { key: "Enter" });
+			await screen.findByRole("button", { name: "预览 used.png" });
+			expect(screen.getByRole("button", { name: "预览 free.png" })).toBeInTheDocument();
+			expect(updateMediaAssetFields).not.toHaveBeenCalled();
+		},
+	);
+	it.each(["?projectId=project-a", "?scope=all"])(
 		"filters recorded provenance independently of resource records in %s",
 		async (scope) => {
 			vi.mocked(getMediaAssets).mockResolvedValue({

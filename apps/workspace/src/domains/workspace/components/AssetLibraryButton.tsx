@@ -67,6 +67,7 @@ import {
 	type AssetLibraryResourceType,
 	type AssetLibrarySource,
 	type AssetLibrarySourceFilter,
+	type AssetLibraryUsageFilter,
 	type AssetLibrarySort,
 	buildAssetLibraryItems,
 	filterAssetLibraryItems,
@@ -152,6 +153,14 @@ const resourceOptions: Array<{ label: string; value: AssetLibraryResourceFilter 
 
 const globalProjectValue = "__global__";
 
+const usageOptions: Array<{ label: string; value: AssetLibraryUsageFilter }> = [
+	{ label: "全部素材", value: "all" },
+	{ label: "已选用", value: "selected" },
+	{ label: "候选", value: "candidate" },
+	{ label: "用作参考", value: "reference" },
+	{ label: "未使用", value: "unused" },
+];
+
 export const AssetLibraryButton: React.FC<{ variant?: "icon" | "navigation"; label?: string }> = ({
 	variant = "icon",
 	label = "素材库",
@@ -235,6 +244,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
+	const [usageFilter, setUsageFilter] = useState<AssetLibraryUsageFilter>("all");
 	const [provenanceFilter, setProvenanceFilter] = useState<AssetLibraryProvenanceFilter>("all");
 	const [uploading, setUploading] = useState<"media" | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
@@ -249,7 +259,12 @@ export const AssetLibraryWorkspace: React.FC<{
 		open ? projectsKey : null,
 		() => getProjects(),
 	);
-	const mediaQueryKey = open ? [mediaAssetsKey, mediaProjectId] : null;
+	const includeUsage = usageFilter !== "all";
+	const mediaQueryKey = open
+		? includeUsage
+			? [mediaAssetsKey, mediaProjectId, "usage"]
+			: [mediaAssetsKey, mediaProjectId]
+		: null;
 	const documentsQueryKey =
 		open && selectedProjectId ? workspaceDocumentsKey(selectedProjectId) : null;
 	const selectedQueryKey =
@@ -259,7 +274,12 @@ export const AssetLibraryWorkspace: React.FC<{
 		error: mediaError,
 		isLoading: isMediaLoading,
 		mutate: mutateMediaAssets,
-	} = useSWR(mediaQueryKey, () => getMediaAssets({ projectId: selectedProjectId || undefined }));
+	} = useSWR(mediaQueryKey, () =>
+		getMediaAssets({
+			projectId: selectedProjectId || undefined,
+			...(includeUsage ? { includeUsage: true } : {}),
+		}),
+	);
 	const {
 		data: selectedData,
 		error: selectedError,
@@ -344,6 +364,7 @@ export const AssetLibraryWorkspace: React.FC<{
 				source: sourceFilter,
 				sort,
 				tag: tagFilter,
+				usage: usageFilter,
 			}),
 		[
 			folderItems,
@@ -356,6 +377,7 @@ export const AssetLibraryWorkspace: React.FC<{
 			provenanceFilter,
 			sort,
 			tagFilter,
+			usageFilter,
 		],
 	);
 	const isLoading =
@@ -381,6 +403,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	useEffect(() => {
 		if (!open) return;
 		setSourceFilter("all");
+		setUsageFilter("all");
 		setProvenanceFilter("all");
 		setResourceFilter("all");
 		setRatingFilter("all");
@@ -629,6 +652,7 @@ export const AssetLibraryWorkspace: React.FC<{
 		kindFilter !== "all" ||
 		provenanceFilter !== "all" ||
 		sourceFilter !== "all" ||
+		usageFilter !== "all" ||
 		resourceFilter !== "all" ||
 		ratingFilter !== "all",
 	);
@@ -795,6 +819,12 @@ export const AssetLibraryWorkspace: React.FC<{
 								value={kindFilter}
 								options={kindOptions}
 								onValueChange={(value) => setKindFilter(value as AssetLibraryKindFilter)}
+							/>
+							<AssetLibrarySelect
+								label="使用状态"
+								value={usageFilter}
+								options={usageOptions}
+								onValueChange={(value) => setUsageFilter(value as AssetLibraryUsageFilter)}
 							/>
 							<AssetLibrarySelect
 								label="来源"

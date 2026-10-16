@@ -8,6 +8,7 @@ export type AssetLibrarySource = "media" | "selected";
 export type AssetLibraryResourceType = AgentResourceType | "screenplay" | "reference";
 export type AssetLibraryKindFilter = "all" | AssetLibraryKind;
 export type AssetLibrarySourceFilter = "all" | AssetLibrarySource;
+export type AssetLibraryUsageFilter = "all" | "selected" | "candidate" | "reference" | "unused";
 export type AssetLibraryProvenanceFilter =
 	| "all"
 	| "local"
@@ -48,6 +49,7 @@ export interface BuildAssetLibraryItemsInput {
 }
 
 export interface FilterAssetLibraryItemsOptions {
+	usage?: AssetLibraryUsageFilter;
 	kind?: AssetLibraryKindFilter;
 	provenance?: AssetLibraryProvenanceFilter;
 	query?: string;
@@ -144,12 +146,23 @@ export const filterAssetLibraryItems = (
 		sort = "updatedDesc",
 		source = "all",
 		tag = "",
+		usage = "all",
 	}: FilterAssetLibraryItemsOptions = {},
 ) => {
 	const normalizedQuery = query.trim().toLowerCase();
 	const normalizedTag = tag.trim().toLowerCase();
 	const minRating = rating === "all" || rating === "rated" ? 0 : Number(rating);
 	const filtered = items.filter((item) => {
+		if (usage !== "all") {
+			const known =
+				item.mediaAsset?.usage ??
+				(!item.mediaAsset && item.selectedAssets.length > 0
+					? { selected: true, candidate: false, reference: false }
+					: undefined);
+			if (!known) return false;
+			if (usage === "unused" ? known.selected || known.candidate || known.reference : !known[usage])
+				return false;
+		}
 		if (kind !== "all" && item.kind !== kind) return false;
 		if (provenance !== "all" && assetLibraryItemProvenance(item) !== provenance) return false;
 		if (source !== "all" && !assetLibraryItemMatchesSource(item, source)) return false;

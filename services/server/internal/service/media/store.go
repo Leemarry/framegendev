@@ -56,6 +56,8 @@ type MediaAssets struct {
 }
 
 type MediaAsset struct {
+	Usage *domain.MediaAssetUsage `json:"usage,omitempty"`
+
 	ID                string   `json:"id"`
 	Kind              string   `json:"kind"`
 	Filename          string   `json:"filename"`

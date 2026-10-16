@@ -66,6 +66,14 @@ Page controls must not render Radix Dialog Title/Description without a Root.
 Scope IDE surface overrides to .asset-library-page; do not alter editor tokens
 globally to match the library reference.
 
+Page usage filtering requests includeUsage only for a specific usage filter,
+using a distinct SWR media key. Unknown usage never matches unused. Adopted-only
+items can match selected using actual adoption rows; physical files require the
+server projection. All restores the original request/key; scope/open resets the
+local choice. Keep existing loading/error/retry and intersect folder/tag/source
+filters. Import lineage is not generation reference usage. Official menu choices
+are confirmed; local relationship semantics do not prove official nonempty rules.
+
 The page's dedicated tag filter matches only saved media tags (trimmed,
 case-insensitive substring) and intersects existing folder/search/type/rating
 filters. Full-text search still includes notes and filenames. Filter text is local

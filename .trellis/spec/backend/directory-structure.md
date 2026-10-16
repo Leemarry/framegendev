@@ -57,6 +57,22 @@ Wrong: regex the entire Markdown text or query only project_selected_assets and
 declare unused. Correct: parse rendered image nodes through document ownership,
 merge the two sources, and propagate failures.
 
+## Material Usage Projection (TASK030)
+
+Material list routes support optional includeUsage=true, preserving default
+responses and storage. ListWithUsage attaches selected/candidate/reference flags
+using a batch repository projection and one existing document scan per relevant
+project, never per asset. Global mode counts any usage of global-only files;
+project mode counts the current project's usage of project+global visible files.
+Selected uses live adoption rows or selected retained task slots; candidate uses
+unselected retained slots. Ignore output tombstones and soft-deleted adoptions.
+Reference uses project reference entries, actual provider inputs (ID/local URL)
+and parsed document images. Internal media-library input IDs describe import
+lineage, not generation reference use. Uses may overlap; unused requires every
+flag false. An unwired/failed document reader or database failure cannot establish
+unused: fail safely. Check cancellation before/after scans. This remains O(N)
+loading plus project document scanning, not a pagination contract.
+
 ## Local Image Dimensions (TASK030)
 
 `media.enrichImageMetadata` reads local headers with existing PNG/JPEG/GIF
