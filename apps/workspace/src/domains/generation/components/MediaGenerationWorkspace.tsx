@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { FileText, Loader2, RefreshCw } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { mutate as mutateSWR, useSWRConfig } from "swr";
@@ -725,6 +725,34 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 		</div>
 	) : null;
 	const generationEntries = ws.orderedGenerationEntries.filter((entry) => entry.kind === kind);
+	const readingHistory = ws.isLoadingHistory || ws.isRefreshingHistory;
+	const historyUnavailable = readingHistory || Boolean(ws.historyError);
+	const historyEntries = historyUnavailable ? [] : generationEntries;
+	const historyStatus = (
+		<div className="flex shrink-0 items-center justify-end gap-2 border-b border-border px-3 py-1">
+			{readingHistory ? (
+				<span role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+					<Loader2 className="size-3.5 animate-spin" />
+					正在加载生成历史
+				</span>
+			) : ws.historyError ? (
+				<p role="alert" className="min-w-0 text-xs text-destructive">
+					生成历史加载失败，请重试。
+				</p>
+			) : null}
+			<Button
+				type="button"
+				variant="ghost"
+				size="icon"
+				aria-label="刷新生成历史"
+				title="刷新生成历史"
+				disabled={readingHistory || ws.needsConversation}
+				onClick={() => void ws.mutateTasks()}
+			>
+				<RefreshCw className="size-3.5" />
+			</Button>
+		</div>
+	);
 	const isAssetSelectionControlled = Boolean(onToggleAsset);
 	// 归属类型：调用方显式优先，否则回退到由 taskType 推导（保持历史行为）。
 	const resolvedSelectedAssetResourceType =
@@ -737,13 +765,11 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 	const effectiveSelectedAssetKeys = useMemo(() => {
 		const baseKeys = isAssetSelectionControlled
 			? Array.from(new Set(selectedAssetKeys))
-			: generationSelectionBaseKeys(generationEntries, selectedAssetKeys);
+			: generationSelectionBaseKeys(historyEntries, selectedAssetKeys);
 		return selectionKeysWithOverrides(baseKeys, assetSelectionOverrides);
-	}, [assetSelectionOverrides, generationEntries, isAssetSelectionControlled, selectedAssetKeys]);
+	}, [assetSelectionOverrides, historyEntries, isAssetSelectionControlled, selectedAssetKeys]);
 	const activeGenerationEntry =
-		generationEntries.find((entry) => entry.id === ws.activeEntryId) ??
-		generationEntries[0] ??
-		null;
+		historyEntries.find((entry) => entry.id === ws.activeEntryId) ?? historyEntries[0] ?? null;
 	const highlightedHistoryEntryId =
 		tabbedView && currentViewMode === "edit" ? null : (activeGenerationEntry?.id ?? null);
 	const renderedPromptExtras =
@@ -1357,6 +1383,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 		onToggleAsset || canPersistGeneratedAssetSelection ? toggleGeneratedAsset : undefined;
 
 	useEffect(() => {
+		if (historyUnavailable) return;
 		if (isAssetSelectionControlled || !projectId?.trim() || selectedAssetKeys.length === 0) return;
 
 		const selectedKeys = new Set(selectedAssetKeys);
@@ -1383,6 +1410,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 		}
 	}, [
 		generationEntries,
+		historyUnavailable,
 		isAssetSelectionControlled,
 		persistGeneratedAssetSelection,
 		projectId,
@@ -1504,18 +1532,17 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 	);
 
 	useEffect(() => {
-		if (generationEntries.length === 0) return;
-		if (ws.activeEntryId && generationEntries.some((entry) => entry.id === ws.activeEntryId))
-			return;
+		if (historyEntries.length === 0) return;
+		if (ws.activeEntryId && historyEntries.some((entry) => entry.id === ws.activeEntryId)) return;
 
-		ws.setActiveEntryId(generationEntries[0].id);
-	}, [generationEntries, ws.activeEntryId, ws.setActiveEntryId]);
+		ws.setActiveEntryId(historyEntries[0].id);
+	}, [historyEntries, ws.activeEntryId, ws.setActiveEntryId]);
 
 	useEffect(() => () => releaseEditingImageObjectUrl(), [releaseEditingImageObjectUrl]);
 
 	useEffect(() => {
-		onHistoryCountChange?.(generationEntries.length);
-	}, [generationEntries.length, onHistoryCountChange]);
+		if (!historyUnavailable) onHistoryCountChange?.(historyEntries.length);
+	}, [historyEntries.length, historyUnavailable, onHistoryCountChange]);
 
 	useEffect(() => {
 		if (tabbedView) return;
@@ -1527,10 +1554,11 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 	}, [activeGenerationEntry, tabbedView, ws.setPrompt]);
 
 	useEffect(() => {
-		syncGenerationEntries(generationEntries);
-	}, [generationEntries, syncGenerationEntries]);
+		if (!historyUnavailable) syncGenerationEntries(historyEntries);
+	}, [historyEntries, historyUnavailable, syncGenerationEntries]);
 
 	useEffect(() => {
+		if (historyUnavailable) return;
 		const asset = pendingDefaultSelectedAssetRef.current;
 		if (!asset) return;
 
@@ -1538,7 +1566,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 		if (!generatedAssetToggleHandler || effectiveSelectedAssetKeys.length > 0) return;
 
 		generatedAssetToggleHandler(asset, true);
-	}, [effectiveSelectedAssetKeys.length, generatedAssetToggleHandler]);
+	}, [effectiveSelectedAssetKeys.length, generatedAssetToggleHandler, historyUnavailable]);
 
 	const deleteEntry = useCallback(
 		async (entry: GenerationEntry) => {
@@ -1744,29 +1772,32 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 			{showTabbedHistory ? (
 				<>
 					<section aria-label="历史记录" className="flex h-full min-h-0 min-w-0 flex-col bg-card">
-						<HistoryGenerationList
-							activeEntryId={highlightedHistoryEntryId}
-							deletedAssetPlaceholderCounts={ws.deletedAssetPlaceholderCounts}
-							deletingEntryIds={ws.deletingEntryIds}
-							defaultSourceLabel={defaultHistorySourceLabel}
-							entries={generationEntries}
-							kind={kind}
-							deletingAssetKeys={ws.deletingAssetKeys}
-							selectedAssetKeys={effectiveSelectedAssetKeys}
-							onDeleteEntry={deleteEntry}
-							onDeleteAsset={deleteEntryAsset}
-							onDeletePlaceholder={deleteEntryAssetPlaceholder}
-							onCopyPrompt={resultActions.copyPrompt}
-							onEditAsset={openImageEditor}
-							onSaveAsset={resultActions.saveAsset}
-							onSelectEntry={selectHistoryEntry}
-							onToggleAsset={generatedAssetToggleHandler}
-							onUseAssetAsReference={useAssetAsReference}
-							onUsePrompt={useHistoryPrompt}
-							savedAssetKeys={resultActions.savedKeys}
-							savingAssetKeys={resultActions.savingKeys}
-							variant="list"
-						/>
+						{historyStatus}
+						{!historyUnavailable && (
+							<HistoryGenerationList
+								activeEntryId={highlightedHistoryEntryId}
+								deletedAssetPlaceholderCounts={ws.deletedAssetPlaceholderCounts}
+								deletingEntryIds={ws.deletingEntryIds}
+								defaultSourceLabel={defaultHistorySourceLabel}
+								entries={historyEntries}
+								kind={kind}
+								deletingAssetKeys={ws.deletingAssetKeys}
+								selectedAssetKeys={effectiveSelectedAssetKeys}
+								onDeleteEntry={deleteEntry}
+								onDeleteAsset={deleteEntryAsset}
+								onDeletePlaceholder={deleteEntryAssetPlaceholder}
+								onCopyPrompt={resultActions.copyPrompt}
+								onEditAsset={openImageEditor}
+								onSaveAsset={resultActions.saveAsset}
+								onSelectEntry={selectHistoryEntry}
+								onToggleAsset={generatedAssetToggleHandler}
+								onUseAssetAsReference={useAssetAsReference}
+								onUsePrompt={useHistoryPrompt}
+								savedAssetKeys={resultActions.savedKeys}
+								savingAssetKeys={resultActions.savingKeys}
+								variant="list"
+							/>
+						)}
 					</section>
 					{editorPane}
 				</>
@@ -1775,17 +1806,20 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 					{showSidebarHistory ? (
 						<>
 							<section className="flex min-h-0 min-w-0 flex-col border-b border-border bg-card lg:border-b-0">
-								<HistoryGenerationList
-									activeEntryId={highlightedHistoryEntryId}
-									deletingEntryIds={ws.deletingEntryIds}
-									defaultSourceLabel={defaultHistorySourceLabel}
-									entries={generationEntries}
-									kind={kind}
-									selectedAssetKeys={effectiveSelectedAssetKeys}
-									onDeleteEntry={deleteEntry}
-									onCopyPrompt={resultActions.copyPrompt}
-									onSelectEntry={selectHistoryEntry}
-								/>
+								{historyStatus}
+								{!historyUnavailable && (
+									<HistoryGenerationList
+										activeEntryId={highlightedHistoryEntryId}
+										deletingEntryIds={ws.deletingEntryIds}
+										defaultSourceLabel={defaultHistorySourceLabel}
+										entries={historyEntries}
+										kind={kind}
+										selectedAssetKeys={effectiveSelectedAssetKeys}
+										onDeleteEntry={deleteEntry}
+										onCopyPrompt={resultActions.copyPrompt}
+										onSelectEntry={selectHistoryEntry}
+									/>
+								)}
 							</section>
 
 							<div
@@ -1819,7 +1853,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 			)}
 
 			<MediaGenerationWorkspaceDialogs
-				generationEntries={generationEntries}
+				generationEntries={historyEntries}
 				inlineReferenceAssetIds={inlineShortcutReferenceIds}
 				referenceDialogOpen={referenceDialogOpen}
 				referenceShortcutGroups={referenceShortcutGroups}

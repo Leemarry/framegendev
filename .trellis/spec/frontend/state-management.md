@@ -194,6 +194,10 @@ entries, while keeping cached tasks and persisted local messages intact. Show an
 explicit status and refresh/retry using the same bound task mutator; never claim
 successful synchronization merely because mutate resolved with retained data.
 Conversation navigation and media-editor history are separate surfaces.
+MediaGenerationWorkspace uses the same read-state contract for its independent
+section/episode history: unmount stale history actions and reference entries,
+keep the editable prompt, and pause count/selection reconciliation while reads
+are unavailable. A failed read is not a successful empty history or zero count.
 
 AssetLibrary owns folderId in URL and folders in scope-keyed SWR. Folder navigation
 preserves projectId and route state; settings returns preserve the exact folder URL.
