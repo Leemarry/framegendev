@@ -1463,3 +1463,25 @@ Shared project/global history read states and retry accepted with real local imp
 ### Next Steps
 
 - TASK-080 exclude internal local imports from provider usage; repository-only contract and actual zero-usage UI/API check.
+
+
+## Session 49: TASK-080 local import usage integration
+<!-- trellis-session: v=2 fp=3e2dc2795f78c6ec -->
+
+**Date**: 2026-10-16
+**Task**: TASK-080 local import usage integration
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Source cbb5aaf cherry-picked to main 910f3fb; excluded media-library local imports before billing aggregation while retaining zero-token provider calls. Canonical Windows check/race/build, isolated source/main APIs, four grouping controls, failure recovery, real history, document/task persistence, main restart and production browser checks passed. Remaining: MediaGenerationWorkspace history, real provider generation/adoption, native Jianying and TASK-150.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `910f3fb` | fix(billing): exclude local media imports from provider usage |
+
+### Status
+
+[OK] **Completed**
