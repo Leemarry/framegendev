@@ -70,6 +70,8 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 28. TASK-030使用状态筛选实现`d75fb62`→主`652cfc7`已集成，**界面待验收，不归档**。两素材列表可选`includeUsage=true`，新增只读`usage.selected/candidate/reference`布尔值（可重叠，全false为未使用），默认响应/持久化不变；项目统计当前项目，全局统计全局文件跨项目关系。采用软删/输出墓碑排除，本地导入追溯不误算参考，文档复用真实图片解析器，读取失败不声明未使用。源完整Windows canonical check/全量race及独立build、源主3文件66测试/前端门/full708format/Electron、主media/repository/app race与嵌入构建通过。源主真实四PNG/API隔离/无效参数400及后端重启完整记录hash通过；主201文件、双视频历史、原全局嵌套标签和制作组合完整记录/导出hash保护通过。源31450使用task-070/server.yaml，主31456运行`mediago-server-usage.exe`。隔离Edge原profile/CDP9240再次被自动审批以`blocked by policy`拒绝启动，用户已授权仍未恢复监听；真实菜单/失败重试/截图/窄屏/页面重开未运行，恢复条件是环境侧启动该已授权浏览器。见`.trellis/tasks/10-16-asset-usage-filter/result.md`。下一独立项080：项目+会话历史查询忽略会话条件（只读实际复现）；整体030/080/150仍未完成，会话2仍`617a80d`。
 
+29. TASK-080项目/会话历史交集`b69d507`→主`d4d1710`已验收。源主旧版两路实际复现单会话返回2条及错误kind200；修复为显式会话与项目在分页前求交集，错误类型400，未知/外项目/清理为空项目不扩大读取，项目无会话仍聚合。源SQLite先失败两轮后通过，最终完整Windows canonical check/全量race及独立build、主generation/handler/repository race与嵌入构建通过。源主实际双本地视频两路查询/分页/未知项目及后端重启完整记录hash不变；主使用状态四PNG、201文件/all201hash、原全局嵌套标签与制作组合完整正文版本双历史/采用/导出hash保护通过。见history-project-session归档。主31456现运行`mediago-server-project-session.exe`，源31450同名final二进制、task-070配置，前端31451不变。无新UI，不声称浏览器切换/截图新验收；第28项使用状态菜单仍待Edge9240恢复，整体030/080/150及原生/外部边界保留，会话2仍`617a80d`。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |

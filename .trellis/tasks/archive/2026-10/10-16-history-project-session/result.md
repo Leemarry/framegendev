@@ -33,6 +33,23 @@ canonical check exits0, including tidy/fmt/vet/lint/build/Swagger/full race
 (generation77.238s); independent native build exits0. Temporary canonical bytes
 are restored. Main integration/new binary/restart verification is pending.
 
+Source b69d507 is integrated as main d4d1710. Main generation/handler/repository
+focused race exits0 (16.057s/4.271s/9.037s); embedded native build exits0. Main
+31456 runs mediago-server-project-session.exe with s1-integration/server.yaml.
+Actual main both routes combined filters, optional/explicit kind, wrong-kind400,
+unknown/foreign/cleaned-empty projects, limit/offset and project aggregate2 pass.
+Repeated after actual backend stop/start: same results, full original dual video
+history/conversation/task/media/document/selection and actual video hash unchanged.
+Usage-four-PNG complete records/hashes,201physical records/all201hashes, original
+global/nested/tag and complete local production combination full bodies/versions/
+both histories/adoption/episode and uploaded/exported hashes all match. Session2
+still617a80d; no edits there. Frontend files/dist were unchanged since usage main
+66tests/lint/full708format/build/Electron acceptance, so no repeated UI build claim.
+
+This API correction is accepted; overall080/150 remains incomplete. Browser menu
+and usage UI acceptance, native Jianying reopen and external provider/Agent sends
+remain unrun. The remaining usage item stays in_progress and unarchived.
+
 Task activation first refused empty context files; inline mode uses documented
 --allow-empty-context. Corrected generated base_branch to codex/nle-export before
 implementation. No parallel agent or other-session changes. Owned Edge9240 start

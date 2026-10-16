@@ -23,11 +23,11 @@ sessionId=nonexistent-s1-usage-session. A session URL must retain its identity.
 
 ## Acceptance
 
-- [ ] SQLite regression first fails, then proves named/legacy intersection,
+- [x] SQLite regression first fails, then proves named/legacy intersection,
   project-only aggregation, pagination, invalid kind and complete record equality.
-- [ ] Both HTTP routes pass combined filters to service; actual owned local
+- [x] Both HTTP routes pass combined filters to service; actual owned local
   video histories reproduce before and pass after, with backend restart snapshots.
-- [ ] Full native Windows check/race and build, integrated focused race/build,
+- [x] Full native Windows check/race and build, integrated focused race/build,
   original production combination and media fixtures pass.
 
 Usage UI acceptance remains blocked independently by Edge9240 policy. This API

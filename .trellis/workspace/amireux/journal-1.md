@@ -1845,3 +1845,38 @@ Recorded read-only usage projection and integrated runnable main; actual browser
 ### Next Steps
 
 - Keep task in_progress until owned Edge9240 restored; actual menus/screenshots/narrow/page checks not run. Next independent080 project+session query intersection.
+
+
+## Session 63: TASK-080 explicit project/session intersection accepted in main
+<!-- trellis-session: v=2 fp=76b817284cdcf299 -->
+
+**Date**: 2026-10-16
+**Task**: TASK-080 explicit project/session intersection accepted in main
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Preserve explicit session identity within project history before pagination; main runtime and restart accepted.
+
+### Main Changes
+
+- Source b69d507 integrated d4d1710. Project-only UI aggregate retained; malformed project filter cannot broaden session.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d4d1710` | fix(generation): intersect explicit history session with project |
+
+### Testing
+
+- [OK] Two pre-fix regressions retained; final native Windows check/full race and build exit0; main generation/handler/repository race and embedded build pass.
+- [OK] Source/main actual two-route HTTP optional-kind/pagination/wrong-kind400/unknown/foreign/empty-cleaned project and backend restart pass; original complete dual histories, usage,201file hashes and production combination unchanged.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- TASK030 usage UI awaits owned Edge9240 restoration after policy rejection; no native Jianying/provider/Agent or overall150 completion claimed.

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 62
+- **Total Sessions**: 63
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1847 | Active |
+| `journal-1.md` | ~1882 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 63 | 2026-10-16 | TASK-080 explicit project/session intersection accepted in main | `d4d1710` | `codex/nle-export` |
 | 62 | 2026-10-16 | TASK-030 usage integrated; browser acceptance blocked | `652cfc7` | `codex/nle-export` |
 | 61 | 2026-10-16 | Accept named history kind in main production | `9eec53e` | `codex/nle-export` |
 | 60 | 2026-10-16 | Accept complete material list beyond 200 in main | `dff25bd` | `codex/nle-export` |
