@@ -1709,3 +1709,38 @@ Source and integrated production filter/retry/reopen workflows pass; complete re
 ### Next Steps
 
 - TASK150 local production combination acceptance using existing local imports/adoption/NLE/export.
+
+
+## Session 58: Local production combination and real export
+<!-- trellis-session: v=2 fp=2396c33d011da3ed -->
+
+**Date**: 2026-10-16
+**Task**: Local production combination and real export
+**Branch**: `codex/nle-export`
+
+### Summary
+
+UI screenplay/storyboard, local video/audio import, adoption/history, NLE and real export accepted in integrated main.
+
+### Main Changes
+
+- Recorded dedicated project, exact content/history/selection/episode snapshots and durable screenshots.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3f19c92` | test(parity): verify local production through real NLE export |
+
+### Testing
+
+- [OK] 237 files / 1595 tests pass; actual failed save retry, one-frame playback, 1.700s export, cancel/conflict, narrow/page/backend reopen and full records/file hashes pass.
+- [OK] Native client and external generation/Agent remain unrun; isolated Edge restart again rejected by policy.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Official provenance source filter through existing fields; six options confirmed by actual isolated app.

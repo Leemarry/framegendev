@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 57
+- **Total Sessions**: 58
 - **Last Active**: 2026-10-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1711 | Active |
+| `journal-1.md` | ~1746 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,7 @@
 
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 58 | 2026-10-16 | Local production combination and real export | `3f19c92` | `codex/nle-export` |
 | 57 | 2026-10-16 | Global library source filter acceptance | `b514f6b` | `codex/nle-export` |
 | 56 | 2026-10-16 | TASK030 directory and all browsing integrated | `c1de8a9` | `codex/nle-export` |
 | 55 | 2026-10-16 | TASK030 descendant folder browsing integrated | `4068f39` | `codex/nle-export` |
