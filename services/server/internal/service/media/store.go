@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	mediaAssetListLimit     = 200
 	MaxMediaAssetUploadSize = 200 << 20
 	MediaKindImage          = shared.AssetKindImage
 	MediaKindVideo          = shared.AssetKindVideo
@@ -276,7 +275,7 @@ func (store *MediaAssets) List(projectID string) ([]MediaAsset, error) {
 	}
 
 	store.mu.RLock()
-	models, err := store.repo.ListMediaAssets(mediaAssetListLimit, projectID)
+	models, err := store.repo.ListMediaAssets(projectID)
 	store.mu.RUnlock()
 	if err != nil {
 		return nil, err

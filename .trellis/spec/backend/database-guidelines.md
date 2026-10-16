@@ -66,6 +66,11 @@ Good: project metadata survives restart and note-only changes preserve tags.
 Base: legacy rows have []/empty/0. Bad: global PUT targeting project media returns404.
 Project lists currently include global assets for compatibility; writes must use
 the media's actual projectId, never its current viewing project's ID.
+List responses are complete visible metadata snapshots: the assets[] contract has
+no cursor or partial marker. Do not cap the repository query before search/type
+filtering, which silently hides older assets. Preserve global-only studio and
+project+global compatibility scope. Complete loading remains O(N); future bounded
+pagination must update the response and every caller rather than silently truncate.
 
 ### Required Tests
 
