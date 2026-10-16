@@ -1531,3 +1531,26 @@ TASK030/080 responsive modal title fix accepted in source/main. Actual355/390CSS
 ### Status
 
 [OK] **Completed**
+
+
+## Session 52: TASK030/150 local adoption round trip integrated
+<!-- trellis-session: v=2 fp=be53f14fd63178de -->
+
+**Date**: 2026-10-16
+**Task**: TASK030/150 local adoption round trip integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Fixed imported provenance, failed deselection rollback and write-free reopen. Source/main real local adoption, failure recovery, full record/hash and restart accepted; main 237 files 1586 tests and frontend/build gates pass. Initial coordinate-created empty storyboard baseline failure retained; separate confirmed project passed. External generation, Agent and native Jianying remain unaccepted.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8187d88` | fix(generation): preserve local adoption provenance and round trips |
+| `a1b079d` | fix(generation): preserve local adoption provenance and round trips |
+
+### Status
+
+[OK] **Completed**

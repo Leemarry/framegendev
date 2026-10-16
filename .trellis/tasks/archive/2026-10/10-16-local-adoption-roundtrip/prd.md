@@ -29,10 +29,10 @@ TASK030/150: verify existing real local import -> section result selection -> re
 
 ## Acceptance Criteria
 
-- [ ] Source/main actual successful adoption and failed-write recovery pass.
-- [ ] Resource summary, editor and reopened result agree after restart.
-- [ ] Complete records/media hashes and existing protected baselines checked.
-- [ ] Applicable tests/checks run, failures/remaining external/native gaps recorded.
+- [x] Source/main actual successful adoption and failed-write recovery pass.
+- [x] Resource summary, editor and reopened result agree after restart.
+- [x] Complete records/media hashes and existing protected baselines checked.
+- [x] Applicable tests/checks run, failures/remaining external/native gaps recorded.
 
 ## Notes
 

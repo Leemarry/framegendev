@@ -38,6 +38,34 @@ backend Windows gates reused unchanged from accepted local-import-usage.
 
 ## Integration
 
-Pending main production integration and actual acceptance. TASK030/080/150 overall
-remain incomplete; external generation, Agent and native Jianying reopening are
-not covered by local import acceptance. Session2 remains617a80d.
+Source8187d88 cherry-picked cleanly as main a1b079d. Main73files503tests and full
+237files1586tests pass, plus lint, full708-file canonical LF format, build,
+Electron compile and embedded Windows workspace_dist build. First format command
+referenced a missing cache script; rerun with the verified absolute path passed.
+First full-test command put maxWorkers through pnpm's parser and failed before
+running tests; correct exec vitest command passed. One combined documentation
+patch failed atomically on a heading mismatch, corrected without partial edits.
+
+Main31456 runs mediago-server-adoption.exe. Initial dedicated project1434529e89bb1a23
+passed actual failed selection/recovery/deselection rollback and zero-write
+close/reopen checks. During restart validation a coordinate click accidentally
+created an empty storyboard doc-1792118301456-len2phu5v7o. Captured Network events
+show POST /workspace/documents with that ID/title/empty content. Complete project
+documents baseline then failed (extra document and updatedAt metadata), retained
+without restoration/deletion. Original body/version/history unchanged. This run
+is not counted as complete unchanged-record restart acceptance.
+
+Repeated in separate project04aabdf084db43fa using AX-verified DOM click fallback
+after the coordinate failure. Actual local asset1207ae4b580f1a0d, both failed-write
+directions/recovery, resource summary, close/reopen/page reload and actual backend
+restart pass. Complete original project documents including all metadata/version,
+history/import tasks, post-adoption selected records/resolved episode and media
+hash remain identical. Screenshot confirmed390CSS width/600height, page390,
+480x640 real image loaded. Both original failed fixture and confirmed fixture
+remain; evidence under .cache/parity/task-150-local-adoption[-confirmed]. Browser
+screenshot timeouts recovered by bringing only the owned test tab to the front.
+Protected prior history/scope/media-editor baselines remain unchanged.
+
+TASK030/080/150 overall remain incomplete; external generation, Agent and native
+Jianying reopening are not covered. Session2 remains617a80d; no newer verified
+commits. No backend source changed, existing Windows check/race reused.
