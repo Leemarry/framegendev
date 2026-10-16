@@ -1644,3 +1644,33 @@ Include-subfolders accepted in source and embedded main; independent browser dae
 ### Next Steps
 
 - Implement independently verifiable directory/all browsing using existing scoped data; keep favorite/trash and usage-state gaps.
+
+
+## Session 56: TASK030 directory and all browsing integrated
+<!-- trellis-session: v=2 fp=a52c4c667adedd07 -->
+
+**Date**: 2026-10-16
+**Task**: TASK030 directory and all browsing integrated
+**Branch**: `codex/nle-export`
+
+### Summary
+
+Scoped directory/all view accepted in source/main production with real nested files, failure/retry/restart and unchanged full records.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c1de8a9` | feat(media): switch between directory and all asset browsing |
+
+### Testing
+
+- [OK] 3files51tests, frontend gates and embedded Windows build pass; earlier full237files1591tests retained with exact revision.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Fix confirmed global source filter no-op; retain pagination and other remaining parity gaps.

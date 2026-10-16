@@ -56,6 +56,8 @@ GAP-004 保留未解决：旧共享测试 doc-ref-a 在 20:22:14 经 workspace_s
 
 21. TASK-030包含子文件夹`a47441f`→主`4068f39`已验收：现有目录树/祖先路径派生子孙范围，保留项目隔离和直接目录默认；源主真实四文件嵌套目录父1→3/子2/根5、失败重试/取消/390×480滚动及重启完整记录与四文件hash通过。主3文件50测试/前端门/full708format/Electron/嵌入构建通过，见asset-folder-descendants归档。主31456运行`mediago-server-descendants.exe`，源31450/31451。本地使用独立BU_NAME=`parity-s1-local`，官方`parity-s1-filter-official`，勿再使用共享default的当前标签。官方新desktop=`MediaGoParityS1Filters`、CDP9242、独立task-030-filter-official配置，实际存储页确认路径，官方服务48273。真实下拉补采在本项evidence：范围目录/全部/收藏/回收站，使用状态已选用/候选/参考/未使用；标签实际input+datalist。下一项目录/全部范围；收藏/回收站/使用状态/其余详情及030/080/150整体未完成，会话2仍617a80d。
 
+22. TASK-030目录/全部范围`eb7d272`→主`c1de8a9`已验收：全部复用当前scope数据跨目录显示、保留上传目录，侧栏导航回目录模式。源主实际全部5/标签0/失败0重试5/子目录1、390×480及页面后端重启完整记录与四hash通过；主3文件51测试/前端门/full708format/Electron/嵌入构建通过，见asset-browse-scope归档。主31456运行`mediago-server-browse-scope.exe`。既有后端列表上限200保留为分页差距，不宣称大库完整覆盖。下一项修复全局页来源筛选被projectMode忽略的实证缺陷；收藏/回收站/使用状态/其余详情及030/080/150整体未完成，会话2仍617a80d。
+
 ## 已核实环境
 
 | 用途         | 隔离目录与端口                                                         | 状态                                                  |

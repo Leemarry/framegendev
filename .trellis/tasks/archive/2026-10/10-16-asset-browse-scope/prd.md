@@ -17,10 +17,10 @@ Add directory/all browsing using existing scoped asset and folder data, preservi
 
 ## Acceptance Criteria
 
-- [ ] All/direct/subfolder/filter/navigation and unchanged scope API tests pass.
-- [ ] Source/main actual existing nested fixtures: select all/directory, filtering,
+- [x] All/direct/subfolder/filter/navigation and unchanged scope API tests pass.
+- [x] Source/main actual existing nested fixtures: select all/directory, filtering,
       failure/cancel/retry, reload/backend restart retain complete records/hash.
-- [ ] Relevant frontend tests/lint/full format/build/Electron/embedded build pass.
+- [x] Relevant frontend tests/lint/full format/build/Electron/embedded build pass.
 
 ## Boundary And Plan
 
