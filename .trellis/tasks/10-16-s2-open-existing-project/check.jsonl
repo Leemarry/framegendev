@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Go build and targeted backend checks"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Workspace lint/build and focused UI tests"}
