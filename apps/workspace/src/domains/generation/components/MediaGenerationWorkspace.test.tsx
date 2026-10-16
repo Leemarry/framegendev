@@ -1102,6 +1102,52 @@ describe("MediaGenerationWorkspace", () => {
 		expect(generationApiMocks.updateSelectedGenerationAsset).not.toHaveBeenCalled();
 	});
 
+	it.each([
+		["with display details", importedMaterialEntry],
+		["without display details", { ...importedMaterialEntry, requestDetails: undefined }],
+		[
+			"from legacy history",
+			{
+				...importedMaterialEntry,
+				id: "media-library:legacy",
+				assets: importedMaterialEntry.assets?.map((asset) => ({
+					...asset,
+					assetId: "local-media",
+				})),
+			},
+		],
+	])("persists local material selection with imported provenance %s", async (_, entry) => {
+		vi.mocked(useGenerationWorkspace).mockReturnValue({
+			...workspaceDefaults,
+			activeEntryId: entry.id,
+			orderedGenerationEntries: [entry],
+		} as unknown as ReturnType<typeof useGenerationWorkspace>);
+		render(
+			<MediaGenerationWorkspace
+				historyScopeId="history-a"
+				initialPrompt=""
+				kind="image"
+				projectId="project-a"
+				selectedAssetResourceId="section-a"
+				selectedAssetSourceDocumentId="doc-a"
+				taskType="storyboard"
+				viewMode="history"
+			/>,
+		);
+		fireEvent.click(screen.getByRole("checkbox", { name: "选入结果" }));
+		await waitFor(() =>
+			expect(generationApiMocks.updateSelectedGenerationAsset).toHaveBeenCalledWith(
+				"project-a",
+				expect.objectContaining({
+					sourceType: "imported",
+					selected: true,
+					resourceId: "section-a",
+					sourceDocumentId: "doc-a",
+				}),
+			),
+		);
+	});
+
 	it("persists selected generated image with the document title", async () => {
 		const selectedEntry: GenerationEntry = {
 			...imageEntry,
@@ -1300,6 +1346,64 @@ describe("MediaGenerationWorkspace", () => {
 		});
 		expect(screen.queryByRole("checkbox", { name: "取消选入结果" })).toBeNull();
 		expect(toastMocks.error).toHaveBeenCalledWith("backend unavailable");
+	});
+
+	it("restores persisted selection after failed deselection without resyncing stale document keys", async () => {
+		const asset = {
+			kind: "image" as const,
+			assetId: "local-media",
+			url: "/api/v1/media-assets/local-media/content",
+		};
+		vi.mocked(useGenerationWorkspace).mockReturnValue({
+			...workspaceDefaults,
+			activeEntryId: importedMaterialEntry.id,
+			orderedGenerationEntries: [{ ...importedMaterialEntry, assets: [asset] }],
+		} as unknown as ReturnType<typeof useGenerationWorkspace>);
+		render(
+			<MediaGenerationWorkspace
+				historyScopeId="history-a"
+				initialPrompt=""
+				kind="image"
+				projectId="project-a"
+				selectedAssetKeys={["image:/api/v1/media-assets/local-media/content"]}
+				selectedAssetResourceId="section-a"
+				taskType="storyboard"
+				viewMode="history"
+			/>,
+		);
+		await waitFor(() =>
+			expect(generationApiMocks.updateSelectedGenerationAsset).toHaveBeenCalledOnce(),
+		);
+		generationApiMocks.updateSelectedGenerationAsset.mockClear();
+		generationApiMocks.updateSelectedGenerationAsset.mockRejectedValueOnce(new Error("offline"));
+		fireEvent.click(screen.getByRole("checkbox", { name: "取消选入结果" }));
+		await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith("offline"));
+		expect(generationApiMocks.updateSelectedGenerationAsset).toHaveBeenCalledOnce();
+		expect(
+			screen.getByRole("checkbox", { name: "取消选入结果" }).getAttribute("aria-checked"),
+		).toBe("true");
+	});
+
+	it("opens persisted selected resource keys without writing them again", () => {
+		vi.mocked(useGenerationWorkspace).mockReturnValue({
+			...workspaceDefaults,
+			activeEntryId: importedMaterialEntry.id,
+			orderedGenerationEntries: [importedMaterialEntry],
+		} as unknown as ReturnType<typeof useGenerationWorkspace>);
+		render(
+			<MediaGenerationWorkspace
+				historyScopeId="history-a"
+				initialPrompt=""
+				kind="image"
+				projectId="project-a"
+				selectedAssetKeys={["image:/api/v1/media-assets/local-media/content"]}
+				selectedAssetKeysPersisted
+				selectedAssetResourceId="section-a"
+				taskType="storyboard"
+				viewMode="history"
+			/>,
+		);
+		expect(generationApiMocks.updateSelectedGenerationAsset).not.toHaveBeenCalled();
 	});
 
 	it("ignores an older failed selection save after a newer toggle", async () => {

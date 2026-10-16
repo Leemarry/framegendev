@@ -228,6 +228,7 @@ export interface MediaGenerationWorkspaceProps {
 	sectionId?: string | null;
 	taskType?: GenerationTaskType;
 	selectedAssetKeys?: string[];
+	selectedAssetKeysPersisted?: boolean;
 	selectedAssetResourceId?: string | null;
 	selectedAssetResourceType?: SelectedGenerationResourceType | null;
 	selectedAssetSourceDocumentId?: string | null;
@@ -279,6 +280,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 	sectionId,
 	taskType,
 	selectedAssetKeys = [],
+	selectedAssetKeysPersisted = false,
 	selectedAssetResourceId,
 	selectedAssetResourceType,
 	selectedAssetSourceDocumentId,
@@ -1200,6 +1202,16 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 			sourceType: "edited" | "generated" = "generated",
 		) => {
 			const persistTarget = resolveGeneratedAssetTaskSlot(asset, generationEntries);
+			const sourceEntry =
+				generationEntries.find((entry) => entry.assets?.includes(asset)) ??
+				generationEntries.find(
+					(entry) =>
+						persistTarget && taskIdFromGenerationEntryId(entry.id) === persistTarget.taskId,
+				);
+			const resolvedSourceType =
+				sourceType === "generated" && sourceEntry && isImportedMaterialEntry(sourceEntry)
+					? "imported"
+					: sourceType;
 			const mediaAssetId = asset.assetId?.trim();
 			const normalizedProjectId = projectId?.trim();
 			const resourceId = selectedAssetResourceId?.trim();
@@ -1249,7 +1261,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 					resourceType,
 					selected,
 					sourceDocumentId: selectedAssetSourceDocumentId?.trim() || undefined,
-					sourceType,
+					sourceType: resolvedSourceType,
 					title: persistedTitle,
 					url: asset.url,
 				});
@@ -1384,7 +1396,13 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 
 	useEffect(() => {
 		if (historyUnavailable) return;
-		if (isAssetSelectionControlled || !projectId?.trim() || selectedAssetKeys.length === 0) return;
+		if (
+			selectedAssetKeysPersisted ||
+			isAssetSelectionControlled ||
+			!projectId?.trim() ||
+			selectedAssetKeys.length === 0
+		)
+			return;
 
 		const selectedKeys = new Set(selectedAssetKeys);
 		for (const entry of generationEntries) {
@@ -1393,6 +1411,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 
 				const selectionKey = generationAssetSelectionKey(asset);
 				if (!selectionKey || !selectedKeys.has(selectionKey)) continue;
+				if (selectionKey in assetSelectionOverrides) continue;
 				if (syncedDocumentSelectionKeysRef.current.has(selectionKey)) continue;
 
 				const persistRequestId =
@@ -1409,12 +1428,14 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 			}
 		}
 	}, [
+		assetSelectionOverrides,
 		generationEntries,
 		historyUnavailable,
 		isAssetSelectionControlled,
 		persistGeneratedAssetSelection,
 		projectId,
 		selectedAssetKeys,
+		selectedAssetKeysPersisted,
 	]);
 	const releaseEditingImageObjectUrl = useCallback(() => {
 		if (!editingImageObjectUrlRef.current) return;
@@ -2056,11 +2077,7 @@ const findImportedMaterialAsset = (entries: GenerationEntry[], mediaAsset: Media
 };
 
 const isImportedMaterialEntry = (entry: GenerationEntry) =>
-	entry.id.startsWith("media-library:") ||
-	(entry.id.startsWith("media-library-") &&
-		entry.requestDetails?.some(
-			(detail) => detail.label.trim() === "来源" && detail.value.trim() === "素材库",
-		));
+	entry.id.startsWith("media-library:") || entry.id.startsWith("media-library-");
 
 const mediaAssetSelectionKey = (asset: MediaAsset) =>
 	generationAssetSelectionKey(mediaAssetGenerationAsset(asset));

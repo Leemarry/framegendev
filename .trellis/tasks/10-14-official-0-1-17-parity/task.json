@@ -58,7 +58,8 @@
     "10-16-history-scope-acceptance",
     "10-16-local-import-usage",
     "10-16-media-workspace-history-state",
-    "10-16-generation-modal-header"
+    "10-16-generation-modal-header",
+    "10-16-local-adoption-roundtrip"
   ],
   "parent": null,
   "relatedFiles": [],

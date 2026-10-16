@@ -199,6 +199,15 @@ section/episode history: unmount stale history actions and reference entries,
 keep the editable prompt, and pause count/selection reconciliation while reads
 are unavailable. A failed read is not a successful empty history or zero count.
 
+MediaGenerationWorkspace recognizes local import history by its reserved
+media-library- / legacy media-library: task ID prefix, without requiring display
+details. Persist its adoption as imported; retain explicit edited provenance.
+Explicit selection overrides take precedence over legacy document selection
+sync, including failed deselection rollback. DocumentSectionGenerator marks keys
+read from selected-resource records with selectedAssetKeysPersisted; opening such
+history must not re-save adoption or change its timestamps. Explicit legacy
+document keys still use the existing sync path.
+
 AssetLibrary owns folderId in URL and folders in scope-keyed SWR. Folder navigation
 preserves projectId and route state; settings returns preserve the exact folder URL.
 After create/rename, update the same cache from the saved response before entering
