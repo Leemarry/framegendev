@@ -2,6 +2,12 @@
 
 更新：2026-10-17。只保留活跃事实，历史见 [快照](HISTORY-HANDOFF-2026-10-15.md)。续作入口 [README](README.md)。
 
+## 2026-10-17 TASK-030 素材收藏状态
+
+- 增加 `assets.favorite` 持久化字段及旧库默认 `false` 迁移；媒体列表/更新响应、服务层 partial update 和 owner-scope 错误边界均覆盖。素材库页面/弹窗增加 `全部 / 收藏` 筛选，预览增加收藏/取消收藏按钮，项目素材使用素材实际 owner scope 更新并刷新 SWR。详细结果见 `.trellis/tasks/10-17-asset-favorites/result.md`。
+- 定向 Go（media/repository/app）、workspace 45 项收藏/元数据/素材库测试、lint、tsc、build、oxfmt 通过；Go vet/build 通过。全量 `go test ./...` 有既有 generation history 排序用例一次失败，单独重跑通过，未归因于本项。
+- TASK-030 总项保持开发中：真实浏览器/Electron 收藏交互、回收站、详情结构、超大库分页和真实生成采用仍未完成。TASK-100 继续保持开发中；未修改主目录未提交 `pnpm-lock.yaml`。
+
 ## 2026-10-17 TASK-100 存储管理
 
 - 分类统计、限定海报缓存预览/清理、逐文件结果及 StoragePanel 已实现；海报扫描仅在点击“预览清理”后启动，不因打开页面自动扫描。注册项目路径读取不会修复或创建项目布局，嵌套根和项目位于全局素材库内均避免重复计数。实现细节和检查见 `.trellis/tasks/10-17-storage-management/result.md`。
