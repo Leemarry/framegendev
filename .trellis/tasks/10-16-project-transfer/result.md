@@ -53,3 +53,20 @@ dependencies are repaired from the intended lockfile, run the browser/Electron
 flow with isolated data: native package selection, preview, confirmation,
 import/export, cancellation, collision feedback, reopen and reference integrity.
 Do not infer `.mgpack` compatibility or central workspace-history migration.
+
+## Latest isolated runtime recheck (2026-10-17)
+
+- The compatibility Vite configuration mounted the Electron renderer at
+  `http://127.0.0.1:31582/` with an isolated user-data directory. The previous
+  `31580` renderer instance returned `untrusted renderer` for native IPC because
+  its configured development origin did not match the Electron process; the
+  application security check was left unchanged.
+- Against the isolated API on port `31581`, exporting
+  `project-import-20261017` produced a deterministic ZIP, preview returned a
+  fingerprint and 2-file/309-byte summary, and importing it into the existing
+  destination returned the expected `409 Conflict` without changing the
+  registered project. These checks used only `.cache/parity/task-062` and the
+  existing task-100 isolated workspace.
+- Native OS file-picker confirmation/cancellation and a full UI round trip are
+  still pending because the system dialog cannot be driven reliably through the
+  page CDP. The task therefore remains in progress.
