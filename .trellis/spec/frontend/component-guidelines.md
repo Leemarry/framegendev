@@ -65,3 +65,10 @@ revalidates media, selected resources and documents used for association filters
 Page controls must not render Radix Dialog Title/Description without a Root.
 Scope IDE surface overrides to .asset-library-page; do not alter editor tokens
 globally to match the library reference.
+
+The page's dedicated tag filter matches only saved media tags (trimmed,
+case-insensitive substring) and intersects existing folder/search/type/rating
+filters. Full-text search still includes notes and filenames. Filter text is local
+view state, cleared on scope/open changes; filtering must never save metadata.
+Keep unknown tags nonmatching and failure states free of cached actions. Verify
+saved tags separately from filter preference persistence after reload/restart.

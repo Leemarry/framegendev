@@ -112,6 +112,32 @@ const asset = (id: string, filename: string, createdAt: string): MediaAsset => (
 });
 
 describe("project material library page", () => {
+	it("filters saved tags separately from full-text search and clears without writes", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				{ ...asset("tagged", "A.png", "2026-10-15T10:00:00Z"), tags: ["Night scene"] },
+				{ ...asset("untagged", "Night.png", "2026-10-15T10:00:00Z"), tags: [], note: "Night" },
+			],
+		});
+		mount();
+		await screen.findByRole("button", { name: "预览 Night.png" });
+		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
+		fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+			target: { value: " NIGHT " },
+		});
+		expect(screen.getByRole("button", { name: "预览 A.png" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "预览 Night.png" })).not.toBeInTheDocument();
+		fireEvent.change(screen.getByRole("textbox", { name: "搜索素材" }), {
+			target: { value: "Night.png" },
+		});
+		expect(screen.getByRole("heading", { name: "暂无匹配素材" })).toBeInTheDocument();
+		fireEvent.change(screen.getByRole("textbox", { name: "筛选标签" }), {
+			target: { value: "" },
+		});
+		expect(screen.getByRole("button", { name: "预览 Night.png" })).toBeInTheDocument();
+		expect(updateMediaAssetFields).not.toHaveBeenCalled();
+	});
+
 	it.each(["media", "documents", "folders"])(
 		"blocks cached asset actions after a %s refresh failure and recovers on retry",
 		async (failure) => {

@@ -47,6 +47,7 @@ export interface FilterAssetLibraryItemsOptions {
 	resourceType?: AssetLibraryResourceFilter;
 	sort?: AssetLibrarySort;
 	source?: AssetLibrarySourceFilter;
+	tag?: string;
 }
 
 const mediaContentURLPattern =
@@ -133,9 +134,11 @@ export const filterAssetLibraryItems = (
 		resourceType = "all",
 		sort = "updatedDesc",
 		source = "all",
+		tag = "",
 	}: FilterAssetLibraryItemsOptions = {},
 ) => {
 	const normalizedQuery = query.trim().toLowerCase();
+	const normalizedTag = tag.trim().toLowerCase();
 	const minRating = rating === "all" || rating === "rated" ? 0 : Number(rating);
 	const filtered = items.filter((item) => {
 		if (kind !== "all" && item.kind !== kind) return false;
@@ -144,6 +147,11 @@ export const filterAssetLibraryItems = (
 		const itemRating = item.mediaAsset?.rating ?? 0;
 		if (rating === "rated" && itemRating <= 0) return false;
 		if (minRating > 0 && itemRating < minRating) return false;
+		if (
+			normalizedTag &&
+			!item.mediaAsset?.tags?.some((value) => value.toLowerCase().includes(normalizedTag))
+		)
+			return false;
 		if (!normalizedQuery) return true;
 		return [
 			item.title,

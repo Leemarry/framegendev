@@ -19,6 +19,23 @@ import {
 } from "./asset-library";
 
 describe("asset-library", () => {
+	it("filters saved tags independently and intersects other filters", () => {
+		const items = buildAssetLibraryItems({
+			mediaAssets: [
+				mediaAsset({ id: "tagged", filename: "A.png", tags: ["Night scene"], rating: 5 }),
+				mediaAsset({ id: "text-only", filename: "Night.png", tags: [], note: "Night scene" }),
+				mediaAsset({ id: "unknown", filename: "B.png", tags: undefined }),
+			],
+		});
+		expect(filterAssetLibraryItems(items, { tag: " NIGHT " }).map((item) => item.id)).toEqual([
+			"tagged",
+		]);
+		expect(filterAssetLibraryItems(items, { tag: "night", query: "B.png" })).toHaveLength(0);
+		expect(filterAssetLibraryItems(items, { tag: "night", kind: "audio" })).toHaveLength(0);
+		expect(filterAssetLibraryItems(items, { tag: "night", rating: "5" })).toHaveLength(1);
+		expect(filterAssetLibraryItems(items, { tag: "   " })).toHaveLength(3);
+	});
+
 	it("merges selected generated assets into matching media assets", () => {
 		const items = buildAssetLibraryItems({
 			mediaAssets: [

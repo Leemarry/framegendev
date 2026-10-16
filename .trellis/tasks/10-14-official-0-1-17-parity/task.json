@@ -60,7 +60,8 @@
     "10-16-media-workspace-history-state",
     "10-16-generation-modal-header",
     "10-16-local-adoption-roundtrip",
-    "10-16-image-dimensions"
+    "10-16-image-dimensions",
+    "10-16-asset-tag-filter"
   ],
   "parent": null,
   "relatedFiles": [],

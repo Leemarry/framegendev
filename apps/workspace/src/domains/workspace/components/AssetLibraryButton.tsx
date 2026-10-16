@@ -215,6 +215,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [kindFilter, setKindFilter] = useState<AssetLibraryKindFilter>("all");
 	const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
 	const [query, setQuery] = useState("");
+	const [tagFilter, setTagFilter] = useState("");
 	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
 	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
 	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
@@ -308,8 +309,19 @@ export const AssetLibraryWorkspace: React.FC<{
 				resourceType: projectMode ? resourceFilter : "all",
 				source: projectMode ? sourceFilter : "all",
 				sort,
+				tag: tagFilter,
 			}),
-		[folderItems, kindFilter, projectMode, query, ratingFilter, resourceFilter, sourceFilter, sort],
+		[
+			folderItems,
+			kindFilter,
+			projectMode,
+			query,
+			ratingFilter,
+			resourceFilter,
+			sourceFilter,
+			sort,
+			tagFilter,
+		],
 	);
 	const isLoading =
 		refreshing ||
@@ -336,6 +348,7 @@ export const AssetLibraryWorkspace: React.FC<{
 		setSourceFilter("all");
 		setResourceFilter("all");
 		setRatingFilter("all");
+		setTagFilter("");
 		setActiveKey("");
 		setRefreshError(null);
 	}, [open, selectedProjectId]);
@@ -570,6 +583,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	};
 	const hasActiveAssetFilter = Boolean(
 		query ||
+		tagFilter.trim() ||
 		kindFilter !== "all" ||
 		sourceFilter !== "all" ||
 		resourceFilter !== "all" ||
@@ -730,6 +744,14 @@ export const AssetLibraryWorkspace: React.FC<{
 								options={ratingOptions}
 								onValueChange={(value) => setRatingFilter(value as AssetLibraryRatingFilter)}
 							/>
+							<label className="grid gap-1 text-xs text-muted-foreground">
+								<span>标签</span>
+								<Input
+									aria-label="筛选标签"
+									value={tagFilter}
+									onChange={(event) => setTagFilter(event.target.value)}
+								/>
+							</label>
 						</PopoverContent>
 					</Popover>
 					<input
