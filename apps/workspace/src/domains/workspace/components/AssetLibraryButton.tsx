@@ -30,7 +30,7 @@ import {
 	Sparkles,
 } from "lucide-react";
 import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { Link, useLocation } from "react-router-dom";
 import { AudioPlayer } from "@/components/AudioPlayer";
@@ -112,6 +112,7 @@ import { AssetLibraryUseDialog } from "./AssetLibraryUseDialog";
 import { SidebarNavContent, sidebarNavRowClassName } from "./SidebarNavButton";
 import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
+import { libraryScrollKey } from "@/domains/workspace/lib/library-scroll";
 import {
 	type LibraryRouteController,
 	useLibraryFilters,
@@ -385,6 +386,49 @@ export const AssetLibraryWorkspace: React.FC<{
 		[documentsData?.documents, mediaData?.assets, projectMode, selectedData?.assets],
 	);
 	const folderId = folderControls?.folderId || "";
+	const libraryScrollStorageKey = libraryScrollKey({
+		folderId: folderId || null,
+		projectId: mediaProjectId ?? null,
+		status: filters.status,
+	});
+	const rememberLibraryScroll = useLibraryPreferencesStore((state) => state.setScrollPosition);
+	const restoredLibraryScrollKey = useRef("");
+	const pendingLibraryScroll = useRef<{ key: string; offset: number } | null>(null);
+	const libraryScrollTimer = useRef<number | undefined>(undefined);
+	const flushLibraryScroll = () => {
+		const pending = pendingLibraryScroll.current;
+		if (!pending) return;
+		pendingLibraryScroll.current = null;
+		rememberLibraryScroll(pending.key, pending.offset);
+	};
+	const scheduleLibraryScrollSave = (offset: number) => {
+		const pending = pendingLibraryScroll.current;
+		if (pending && pending.key !== libraryScrollStorageKey) flushLibraryScroll();
+		pendingLibraryScroll.current = { key: libraryScrollStorageKey, offset };
+		window.clearTimeout(libraryScrollTimer.current);
+		libraryScrollTimer.current = window.setTimeout(flushLibraryScroll, 200);
+	};
+	const attachLibraryScroll = useCallback(
+		(element: HTMLDivElement | null) => {
+			if (!element) {
+				restoredLibraryScrollKey.current = "";
+				return;
+			}
+			if (restoredLibraryScrollKey.current === libraryScrollStorageKey) return;
+			restoredLibraryScrollKey.current = libraryScrollStorageKey;
+			const offset =
+				useLibraryPreferencesStore.getState().scrollPositions[libraryScrollStorageKey] ?? 0;
+			if (offset > 0) element.scrollTop = offset;
+		},
+		[libraryScrollStorageKey],
+	);
+	useEffect(
+		() => () => {
+			window.clearTimeout(libraryScrollTimer.current);
+			flushLibraryScroll();
+		},
+		[],
+	);
 	const visibleFolderIds = useMemo(() => {
 		const ids = new Set([folderId]);
 		if (includeSubfolders && folderControls) {
@@ -1259,9 +1303,12 @@ export const AssetLibraryWorkspace: React.FC<{
 				data-details={showDetails}
 			>
 				<div
+					ref={attachLibraryScroll}
+					data-library-items
 					className={
 						isPage ? "asset-library-items" : "max-h-72 min-h-0 overflow-y-auto p-4 lg:max-h-none"
 					}
+					onScroll={(event) => scheduleLibraryScrollSave(event.currentTarget.scrollTop)}
 				>
 					{!isLoading && !error && childFolders.length ? (
 						<div className="asset-library-child-folders">

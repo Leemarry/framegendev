@@ -21,6 +21,7 @@ import {
 	getWorkspaceDocumentResources,
 	getWorkspaceDocuments,
 } from "@/domains/workspace/api/workspace";
+import { useLibraryPreferencesStore } from "@/lib/stores/library-preferences";
 import { AssetLibraryButton } from "./AssetLibraryButton";
 
 vi.mock("@/components/AudioPlayer", () => ({
@@ -608,6 +609,34 @@ describe("AssetLibraryButton", () => {
 		await waitFor(() =>
 			expect(screen.queryByRole("alertdialog", { name: "用于创作" })).not.toBeInTheDocument(),
 		);
+	});
+
+	it("remembers the grid scroll offset when the library reopens", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [mediaAsset({ filename: "scroll.png", id: "scroll-media" })],
+		});
+
+		renderAssetLibraryButton("/");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "全局素材库" });
+
+		const items = document.querySelector("[data-library-items]");
+		expect(items).not.toBeNull();
+		if (!items) return;
+		items.scrollTop = 320;
+		fireEvent.scroll(items);
+		await waitFor(() =>
+			expect(useLibraryPreferencesStore.getState().scrollPositions["ready|global|root"]).toBe(320),
+		);
+
+		cleanup();
+		renderAssetLibraryButton("/");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "全局素材库" });
+
+		const reopened = document.querySelector("[data-library-items]");
+		expect(reopened?.scrollTop).toBe(320);
+		useLibraryPreferencesStore.getState().setScrollPosition("ready|global|root", 0);
 	});
 
 	it("copies the asset path from the preview panel", async () => {
