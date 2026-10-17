@@ -27,6 +27,7 @@ type AssetModel struct {
 	SourceURL       string    `gorm:"column:source_url;not null;default:'';index:assets_source_url_idx"`
 	MetadataStatus  string    `gorm:"column:metadata_status;not null;default:''"`
 	StorageStatus   string    `gorm:"column:storage_status;not null;default:'ready';index:assets_storage_status_idx"`
+	TrashedAt       *time.Time `gorm:"column:trashed_at;index:assets_trashed_at_idx"`
 	CreatedAt       time.Time `gorm:"column:created_at;not null;autoCreateTime:nano"`
 	UpdatedAt       time.Time `gorm:"column:updated_at;not null;autoUpdateTime:nano"`
 

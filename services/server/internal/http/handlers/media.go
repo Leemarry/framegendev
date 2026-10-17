@@ -35,6 +35,18 @@ func NewMediaAssets(service *service.MediaAssets) MediaAssets {
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/media-assets [get]
 func (handler MediaAssets) HandleMediaAssets(context *gin.Context) {
+	if context.Query("status") == "trashed" {
+		assets, err := handler.service.ListTrashed(optionalProjectID(context))
+		if err != nil {
+			httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
+			return
+		}
+
+		assets = service.FilterMediaAssets(assets, context.Query("kind"), context.Query("q"))
+		httpresponse.OK(context, service.MediaAssetsResponse{Assets: assets})
+		return
+	}
+
 	includeUsage := false
 	if value, supplied := context.GetQuery("includeUsage"); supplied {
 		var err error
@@ -446,4 +458,98 @@ func (handler MediaAssets) HandleDeleteMediaAsset(context *gin.Context) {
 // @Router /api/v1/projects/{projectId}/media-assets/{assetId} [delete]
 func (handler MediaAssets) HandleDeleteProjectMediaAsset(context *gin.Context) {
 	handler.HandleDeleteMediaAsset(context)
+}
+
+// HandleTrashMediaAsset godoc
+// @Summary 移入回收站
+// @Description 把媒体资产移入回收站，文件保留以便恢复。
+// @Tags Media Assets
+// @Produce json
+// @Param assetId path string true "Asset ID"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/media-assets/{assetId}/trash [post]
+func (handler MediaAssets) HandleTrashMediaAsset(context *gin.Context) {
+	id := strings.TrimSpace(context.Param("assetId"))
+	if id == "" {
+		httpresponse.Error(context, http.StatusBadRequest, "asset id is required")
+		return
+	}
+
+	asset, ok, err := handler.service.MoveToTrashInScope(id, optionalProjectID(context))
+	if err != nil {
+		httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
+		return
+	}
+	if !ok {
+		httpresponse.Error(context, http.StatusNotFound, "media asset not found")
+		return
+	}
+
+	httpresponse.OK(context, asset)
+}
+
+// HandleRestoreMediaAsset godoc
+// @Summary 恢复媒体资产
+// @Description 从回收站恢复媒体资产到素材库。
+// @Tags Media Assets
+// @Produce json
+// @Param assetId path string true "Asset ID"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/media-assets/{assetId}/restore [post]
+func (handler MediaAssets) HandleRestoreMediaAsset(context *gin.Context) {
+	id := strings.TrimSpace(context.Param("assetId"))
+	if id == "" {
+		httpresponse.Error(context, http.StatusBadRequest, "asset id is required")
+		return
+	}
+
+	asset, ok, err := handler.service.RestoreInScope(id, optionalProjectID(context))
+	if err != nil {
+		httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
+		return
+	}
+	if !ok {
+		httpresponse.Error(context, http.StatusNotFound, "media asset not found")
+		return
+	}
+
+	httpresponse.OK(context, asset)
+}
+
+// HandleTrashProjectMediaAsset godoc
+// @Summary 项目素材移入回收站
+// @Description 把项目范围内的媒体资产移入回收站。
+// @Tags Media Assets
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param assetId path string true "Asset ID"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/media-assets/{assetId}/trash [post]
+func (handler MediaAssets) HandleTrashProjectMediaAsset(context *gin.Context) {
+	handler.HandleTrashMediaAsset(context)
+}
+
+// HandleRestoreProjectMediaAsset godoc
+// @Summary 恢复项目媒体资产
+// @Description 从回收站恢复项目范围内的媒体资产。
+// @Tags Media Assets
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param assetId path string true "Asset ID"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/media-assets/{assetId}/restore [post]
+func (handler MediaAssets) HandleRestoreProjectMediaAsset(context *gin.Context) {
+	handler.HandleRestoreMediaAsset(context)
 }

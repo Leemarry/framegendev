@@ -86,6 +86,7 @@ type MediaAsset struct {
 	MetadataUpdatedAt string   `json:"metadataUpdatedAt,omitempty"`
 	StorageStatus     string   `json:"storageStatus,omitempty"`
 	StorageError      string   `json:"storageError,omitempty"`
+	TrashedAt         string   `json:"trashedAt,omitempty"`
 	CreatedAt         string   `json:"createdAt"`
 	UpdatedAt         string   `json:"updatedAt"`
 	FilePath          string   `json:"-"`
@@ -874,6 +875,71 @@ func unsupportedMediaAssetKindError() error {
 	return fmt.Errorf("only image, video, audio, and text assets are supported")
 }
 
+// MoveToTrashInScope moves an asset to the trash only when the API scope owns it.
+// The files stay on disk so the asset can be restored.
+func (store *MediaAssets) MoveToTrashInScope(id, projectID string) (MediaAsset, bool, error) {
+	asset, found, err := store.Get(id)
+	if err != nil || !found {
+		return MediaAsset{}, found, err
+	}
+	if asset.ProjectID != domain.CleanProjectID(projectID) {
+		return MediaAsset{}, false, nil
+	}
+	if asset.TrashedAt != "" {
+		return asset, true, nil
+	}
+
+	store.mu.Lock()
+	_, trashErr := store.repo.TrashMediaAsset(id, time.Now())
+	store.mu.Unlock()
+	if trashErr != nil {
+		return MediaAsset{}, false, trashErr
+	}
+
+	updated, found, err := store.Get(id)
+	return updated, found, err
+}
+
+// RestoreInScope returns a trashed asset to the library when the scope owns it.
+func (store *MediaAssets) RestoreInScope(id, projectID string) (MediaAsset, bool, error) {
+	asset, found, err := store.Get(id)
+	if err != nil || !found {
+		return MediaAsset{}, found, err
+	}
+	if asset.ProjectID != domain.CleanProjectID(projectID) {
+		return MediaAsset{}, false, nil
+	}
+	if asset.TrashedAt == "" {
+		return asset, true, nil
+	}
+
+	store.mu.Lock()
+	_, restoreErr := store.repo.RestoreMediaAsset(id, time.Now())
+	store.mu.Unlock()
+	if restoreErr != nil {
+		return MediaAsset{}, false, restoreErr
+	}
+
+	updated, found, err := store.Get(id)
+	return updated, found, err
+}
+
+// ListTrashed returns trashed assets for one library scope.
+func (store *MediaAssets) ListTrashed(projectID string) ([]MediaAsset, error) {
+	if store.initErr != nil {
+		return nil, store.initErr
+	}
+
+	store.mu.RLock()
+	models, err := store.repo.ListTrashedMediaAssets(projectID)
+	store.mu.RUnlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return store.mediaAssetRecordsFromModels(models), nil
+}
+
 // DeleteInScope removes a physical asset only when the API scope owns it.
 func (store *MediaAssets) DeleteInScope(id, projectID string) (bool, error) {
 	asset, found, err := store.Get(id)
@@ -1085,11 +1151,21 @@ func (store *MediaAssets) mediaAssetRecordFromModel(model mediaAssetModel) Media
 		PosterURL:       model.PosterURL,
 		MetadataStatus:  model.MetadataStatus,
 		StorageStatus:   model.StorageStatus,
+		TrashedAt:       trashedAtString(model.TrashedAt),
 		CreatedAt:       domain.StringFromTime(model.CreatedAt),
 		UpdatedAt:       domain.StringFromTime(model.UpdatedAt),
 		FilePath:        store.assetFilePath(domain.StringValue(model.ProjectID), model.RelPath),
 		PosterPath:      store.assetFilePath(domain.StringValue(model.ProjectID), model.PosterRelPath),
 	}
+}
+
+// trashedAtString renders an optional trash timestamp as an empty string when set.
+func trashedAtString(value *time.Time) string {
+	if value == nil {
+		return ""
+	}
+
+	return domain.StringFromTime(*value)
 }
 
 func (store *MediaAssets) assetFilePath(projectID string, relPath string) string {

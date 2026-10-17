@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"gorm.io/gorm"
@@ -31,7 +32,7 @@ func NewMediaAssetRepositoryFromDB(db *gorm.DB) *MediaAssetRepository {
 func (repo *MediaAssetRepository) ListMediaAssets(projectID string) ([]domain.AssetModel, error) {
 	projectID = domain.CleanProjectID(projectID)
 	models := []domain.AssetModel{}
-	query := repo.db.Order("updated_at DESC")
+	query := repo.db.Where("trashed_at IS NULL").Order("updated_at DESC")
 	if projectID == "" {
 		query = query.Where("project_id IS NULL")
 	} else {
@@ -46,7 +47,7 @@ func (repo *MediaAssetRepository) ListMediaAssets(projectID string) ([]domain.As
 // ListAllMediaAssets returns every media asset ordered by update time.
 func (repo *MediaAssetRepository) ListAllMediaAssets() ([]domain.AssetModel, error) {
 	models := []domain.AssetModel{}
-	if err := repo.db.Order("updated_at DESC").Find(&models).Error; err != nil {
+	if err := repo.db.Where("trashed_at IS NULL").Order("updated_at DESC").Find(&models).Error; err != nil {
 		return nil, fmt.Errorf("listing all media assets: %w", err)
 	}
 	return models, nil
@@ -59,7 +60,7 @@ func (repo *MediaAssetRepository) ListAllMediaAssets() ([]domain.AssetModel, err
 func (repo *MediaAssetRepository) ListMediaAssetsInScope(projectID string) ([]domain.AssetModel, error) {
 	projectID = domain.CleanProjectID(projectID)
 	models := []domain.AssetModel{}
-	query := repo.db.Order("updated_at DESC")
+	query := repo.db.Where("trashed_at IS NULL").Order("updated_at DESC")
 	if projectID == "" {
 		query = query.Where("project_id IS NULL")
 	} else {
@@ -167,6 +168,44 @@ func (repo *MediaAssetRepository) DeleteMediaAsset(id string) (bool, error) {
 		return false, fmt.Errorf("deleting media asset: %w", result.Error)
 	}
 	return result.RowsAffected > 0, nil
+}
+
+// TrashMediaAsset moves a media asset to the trash without touching its files.
+func (repo *MediaAssetRepository) TrashMediaAsset(id string, trashedAt time.Time) (bool, error) {
+	result := repo.db.Model(&domain.AssetModel{}).
+		Where("id = ? AND trashed_at IS NULL", strings.TrimSpace(id)).
+		Updates(map[string]any{"trashed_at": trashedAt, "updated_at": trashedAt})
+	if result.Error != nil {
+		return false, fmt.Errorf("trashing media asset: %w", result.Error)
+	}
+	return result.RowsAffected > 0, nil
+}
+
+// RestoreMediaAsset returns a trashed media asset to the library.
+func (repo *MediaAssetRepository) RestoreMediaAsset(id string, restoredAt time.Time) (bool, error) {
+	result := repo.db.Model(&domain.AssetModel{}).
+		Where("id = ? AND trashed_at IS NOT NULL", strings.TrimSpace(id)).
+		Updates(map[string]any{"trashed_at": nil, "updated_at": restoredAt})
+	if result.Error != nil {
+		return false, fmt.Errorf("restoring media asset: %w", result.Error)
+	}
+	return result.RowsAffected > 0, nil
+}
+
+// ListTrashedMediaAssets returns trashed rows ordered by the newest removal.
+func (repo *MediaAssetRepository) ListTrashedMediaAssets(projectID string) ([]domain.AssetModel, error) {
+	projectID = domain.CleanProjectID(projectID)
+	models := []domain.AssetModel{}
+	query := repo.db.Where("trashed_at IS NOT NULL").Order("trashed_at DESC")
+	if projectID == "" {
+		query = query.Where("project_id IS NULL")
+	} else {
+		query = query.Where("project_id IS NULL OR project_id = ?", projectID)
+	}
+	if err := query.Find(&models).Error; err != nil {
+		return nil, fmt.Errorf("listing trashed media assets: %w", err)
+	}
+	return models, nil
 }
 
 // UpdateMediaAssetFilename updates the display filename and timestamp.
