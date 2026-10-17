@@ -267,3 +267,46 @@ All three must pass before declaring a change complete.
 ## 官方 0.1.17 复刻项目
 
 项目自定义指引见 `AGENTS.md` 末尾「官方 0.1.17 复刻项目」一节；唯一事实源为 `docs/parity/GAP.md`。官方前端参考源码用 `python scripts/parity/export-official-web.py` 导出到 `.cache/ref/web`。
+
+## Cost and delegation rules
+
+Claude remains the coordinator: decompose the task, delegate bounded work through the commands below, review the returned result, and perform the final integration. Do not silently do a large delegated task yourself.
+
+- Large repository search, parity comparison, documentation整理, and mechanical inspection: delegate to DeepSeek Harness.
+- Tests, lint/build diagnosis, code review, and an independent small fix: delegate to Codex CLI with `gpt-6.1-sol`.
+- Claude handles architecture decisions, cross-module changes, conflict resolution, final edits, and final verification.
+- Use one external delegation at a time. Do not start workflows, background agents, or parallel subagents unless the user explicitly asks.
+- Before delegation, state the target directories and file types. Never recursively enter `.cache`, `node_modules`, `dist`, `build`, `coverage`, `.git`, or minified bundles.
+- Limit each delegated task to 30 source files and 1500 Chinese characters of report output.
+- Write reports to `.cache/delegates/` and read those reports instead of scanning the same files again.
+- For an implementation delegated to Codex, use `-s workspace-write`, restrict the prompt to one bounded change, and inspect `git diff` before accepting it. Do not let two agents edit the same files.
+- Do not run connectivity tests such as `codex exec "reply OK"`; a real task is the test.
+- Before editing directly, give the user a short plan and wait for approval unless the user already approved the change.
+
+### Delegation commands
+
+Run these commands from the repository root. Replace `TARGET_DIRS` with the exact directories requested by the user; never substitute the repository root for a broad scan.
+
+DeepSeek analysis or mechanical inspection:
+
+```powershell
+New-Item -ItemType Directory -Force ".cache\delegates" | Out-Null
+$dsh = "C:\Users\Amireux\AppData\Local\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd"
+& $dsh headless "Analyze TARGET_DIRS only. Do not edit files. Do not scan .cache, node_modules, dist, build, coverage, .git, or minified bundles. Read at most 30 source files. Return evidence paths, findings, and concrete recommendations in Chinese, maximum 1500 characters." 1> ".cache\delegates\deepseek-report.md" 2> ".cache\delegates\deepseek.log"
+```
+
+Codex/GPT review or test diagnosis:
+
+```powershell
+codex exec --skip-git-repo-check -s read-only -m gpt-6.1-sol -o ".cache\delegates\codex-report.md" "Review TARGET_DIRS only. Do not edit files. Do not scan .cache, node_modules, dist, build, coverage, or .git. Report only severe findings with file paths, line numbers, and fixes, maximum 1200 Chinese characters."
+```
+
+After either command, Claude must read only the resulting report, inspect the named files, and then either apply the approved change or ask for approval. Do not launch a workflow to wrap these commands.
+
+### When invoked by the DeepSeek coordinator
+
+If the prompt starts with "你被 DeepSeek 总控调用" (see `DEEPSEEK.md` §4), the rules above that make Claude the coordinator do not apply:
+
+- Do not delegate to DeepSeek or Codex, and do not start workflows or subagents — answer or edit directly.
+- Read only the ask file `.cache/delegates/<模块>-claude-ask.md` and the files it lists.
+- Without "用户已授权本次修改": advise only, no edits. With it: edit only the listed files, run the relevant quality gates, do not commit, and report.
