@@ -77,7 +77,7 @@ export function AssetLibraryScopes({
 				) : null}
 				{error ? (
 					<p role="alert" className="p-2 text-xs text-error-foreground">
-						项目范围加载失败
+						项目加载失败
 					</p>
 				) : null}
 			</nav>
@@ -102,7 +102,7 @@ export function AssetLibraryScopes({
 				</Select>
 				{error ? (
 					<p role="alert" className="mt-1 text-xs text-error-foreground">
-						项目范围加载失败
+						项目加载失败
 					</p>
 				) : null}
 			</div>
