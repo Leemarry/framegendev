@@ -75,7 +75,11 @@ export const App: React.FC = () => {
 	const headerActions = showWorkbenchTabs ? (
 		<AgentWorkbenchHeaderActions mode={routeWorkbenchMode} showTabs={!forceDocumentWorkbench} />
 	) : null;
-	if (location.pathname === "/prompt-pack-editor" || location.pathname === "/assets") {
+	if (
+		location.pathname === "/prompt-pack-editor" ||
+		location.pathname === "/library" ||
+		location.pathname === "/assets"
+	) {
 		return (
 			<>
 				<AnalyticsRouteSync />

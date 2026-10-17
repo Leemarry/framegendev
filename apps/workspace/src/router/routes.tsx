@@ -59,10 +59,18 @@ function LegacyWorkspaceRouteRedirect() {
 	return <Navigate to={`${pathname}${location.search}${location.hash}`} replace />;
 }
 
+/** LegacyAssetLibraryRedirect keeps old `/assets` links working after the official `/library` rename. */
+export function LegacyAssetLibraryRedirect() {
+	const location = useLocation();
+
+	return <Navigate to={`/library${location.search}${location.hash}`} replace />;
+}
+
 const routes: RouteObject[] = [
 	{ path: "/", element: <RootShell /> },
 	{ path: "/projects", element: <Home /> },
-	{ path: "/assets", element: <AssetLibrary /> },
+	{ path: "/library", element: <AssetLibrary /> },
+	{ path: "/assets", element: <LegacyAssetLibraryRedirect /> },
 	{ path: "/toolbox", element: <StudioHome /> },
 	{ path: "/toolbox/image", element: <StudioImage /> },
 	{ path: "/toolbox/video", element: <StudioVideo /> },

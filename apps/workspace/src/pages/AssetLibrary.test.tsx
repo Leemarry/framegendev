@@ -89,7 +89,7 @@ const LocationEvidence = () => {
 };
 function mount(state?: unknown, search = "?projectId=project-a") {
 	return render(
-		<MemoryRouter initialEntries={[{ pathname: "/assets", search, state }]}>
+		<MemoryRouter initialEntries={[{ pathname: "/library", search, state }]}>
 			<SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
 				<AssetLibrary />
 				<LocationEvidence />
@@ -226,7 +226,7 @@ describe("project material library page", () => {
 		fireEvent.click(screen.getByRole("button", { name: "本地用户设置" }));
 		expect(screen.getByLabelText("当前路径")).toHaveTextContent("/settings?tab=appearance");
 		expect(JSON.parse(screen.getByLabelText("路由状态").textContent || "{}")).toEqual({
-			settingsReturn: { path: "/assets?projectId=project-a", state },
+			settingsReturn: { path: "/library?projectId=project-a", state },
 		});
 	});
 	it("uploads into the active project and direct entry returns to that project", async () => {
@@ -615,7 +615,7 @@ describe("material folder workflows", () => {
 		await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
 		expect(reparentLibraryFolder).toHaveBeenCalledWith("project-a", "parent", "target");
 		expect(screen.getByLabelText("当前路径")).toHaveTextContent(
-			"/assets?projectId=project-a&folderId=parent",
+			"/library?projectId=project-a&folderId=parent",
 		);
 		expect(screen.getByLabelText("路由状态")).toHaveTextContent("doc-a");
 		expect(screen.getByRole("button", { name: "预览 inside.png" })).toBeInTheDocument();
@@ -691,7 +691,7 @@ describe("global material scopes", () => {
 			"?scope=all&projectId=project-a&folderId=parent",
 		);
 		fireEvent.click(await screen.findByRole("button", { name: "全局素材" }));
-		expect(screen.getByLabelText("当前路径")).toHaveTextContent("/assets?scope=all");
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent("/library?scope=all");
 		expect(screen.getByLabelText("当前路径")).not.toHaveTextContent("folderId");
 		await waitFor(() => expect(getLibraryFolders).toHaveBeenCalledWith(null));
 		fireEvent.click(screen.getByRole("button", { name: "素材范围 测试项目" }));

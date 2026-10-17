@@ -56,7 +56,7 @@
 
 | 模块 | 功能点 | 官方证据 | 我们现状 | 缺口 | 工作量 | 状态 |
 |---|---|---|---|---|---|---|
-| shell | 路由 `/library` | `workspace-bootstrap` `xw`：`{path:"/library",element:aw}` 懒加载 AssetLibrary；`tg()` 有 projectId 时映射 `project-asset-library`，无则 `asset-library` | `router/routes.tsx` 用 `/assets` | 改成 `/library`（子路径 `/library/*`），`/assets` 重定向；`AssetLibraryButton` 跳转和 `sidebar-navigation` 屏幕映射一起改 | S | ❌ |
+| shell | 路由 `/library` | `workspace-bootstrap` `xw`：`{path:"/library",element:aw}` 懒加载 AssetLibrary；`tg()` 有 projectId 时映射 `project-asset-library`，无则 `asset-library` | `routes.tsx` 已有 `/library`；`/assets` 走 `LegacyAssetLibraryRedirect` 并保留 query；`AssetLibraryButton` 链接、页面自身 `location.pathname` 拼接、`App.tsx` 的整屏分支都已改；`router/routes.test.tsx` 两条用例覆盖重定向 | 侧栏屏幕 `asset-library`/`project-asset-library` 还没进 `SidebarScreenId`（见「侧栏屏幕层级」）；未做运行时点击核对 | S | 🟡 |
 | shell | 路由 `/history`、`/history/{image,video,text,audio}` | `ow/sw/cw/lw/uw` 对应 `GenerationHistory-*.js` 的 `GenerationHistoryHome/Image/...`；侧栏标题 `generationCenter:生成历史` | 无这些路由；生成历史走 `GlobalToolboxDrawer` 抽屉 + `MediaGenerationHistory.tsx` | 加 5 条整页路由；侧栏加 `generation-history`(level 2) 和 `project-generation-center`(level 3)；按钮改跳路由 | M | ❌ |
 | shell | 路由 `/project-settings` | `rw` 是 `ProjectSettings-*.js`；带 projectId 进 `project-settings` 屏，不带进 `projects` 屏 | `pages/ProjectSettings.tsx` 存在但未注册；项目设置借用 `/settings?projectId=`（`workbench-route.ts:30`） | 加独立路由，`/settings?projectId` 做兼容重定向；`ProjectNavigatorProjectPanels.tsx:454` 改跳 | S | 🟡 |
 | shell | 路由 `/agent`、`/agent/archived` | `iw` 是 `GlobalAgent-*.js`；屏幕 `global-agent`(2)、`global-agent-archive`(3) | `routes.tsx:74` 把 `/agent` 重定向到 `/projects`；侧栏 Drami 按钮 disabled | 补 GlobalAgent 页（复用 `domains/agent` 的 AgentChat/AgentTimeline），开放侧栏入口 | L | ❌ |

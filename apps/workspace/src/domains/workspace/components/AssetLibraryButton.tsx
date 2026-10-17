@@ -217,7 +217,7 @@ const ProjectAssetLibraryLink = ({
 	return (
 		<Link
 			className={sidebarNavRowClassName}
-			to={projectId ? `/assets?projectId=${encodeURIComponent(projectId)}` : "/assets?scope=all"}
+			to={projectId ? `/library?projectId=${encodeURIComponent(projectId)}` : "/library?scope=all"}
 			state={{
 				assetReturnTo: location.pathname + location.search,
 				assetReturnState: location.state,

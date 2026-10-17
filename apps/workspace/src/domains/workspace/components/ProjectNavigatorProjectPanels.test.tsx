@@ -189,7 +189,7 @@ describe("ProjectSidebarPanel", () => {
 		const projectSidebar = renderProjectSidebar(true);
 		expect(screen.getByRole("link", { name: "打开项目素材库" })).toHaveAttribute(
 			"href",
-			"/assets?projectId=project-a",
+			"/library?projectId=project-a",
 		);
 		expect(screen.getByRole("button", { name: "打开生成历史" })).toHaveTextContent("项目生成历史");
 		expect(screen.getByRole("button", { name: "项目设置" })).toBeTruthy();
@@ -201,7 +201,7 @@ describe("ProjectSidebarPanel", () => {
 		renderProjectsSidebar({ onOpenSettings, onOpenProjects });
 		expect(screen.getByRole("link", { name: "打开全局素材库" })).toHaveAttribute(
 			"href",
-			"/assets?scope=all",
+			"/library?scope=all",
 		);
 		expect(screen.getByRole("button", { name: "打开生成历史" })).toHaveTextContent("生成历史");
 		fireEvent.click(screen.getByRole("button", { name: "项目管理" }));
