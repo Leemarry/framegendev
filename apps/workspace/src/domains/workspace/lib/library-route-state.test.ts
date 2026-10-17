@@ -8,7 +8,7 @@ import {
 describe("library route state", () => {
 	it("reads the official asset library parameters", () => {
 		const filters = readLibraryRouteFilters(
-			"?view=assets&kind=video&q=cat&tag=hero&sort=nameAsc&resource=character&source=selected&usage=candidate&minRating=3&favorite=favorite&includeDescendants=true&folder=folder-1&provenance=generated",
+			"?view=assets&kind=video&q=cat&tag=hero&sort=nameAsc&resource=character&source=selected&usage=candidate&minRating=3&favorite=favorite&includeDescendants=true&folder=folder-1&provenance=generated&status=trashed",
 		);
 
 		expect(filters).toEqual({
@@ -23,6 +23,7 @@ describe("library route state", () => {
 			resource: "character",
 			sort: "nameAsc",
 			source: "selected",
+			status: "trashed",
 			tag: "hero",
 			usage: "candidate",
 		});
@@ -104,6 +105,7 @@ describe("library route state", () => {
 			resource: "prop" as const,
 			sort: "sizeDesc" as const,
 			source: "media" as const,
+			status: "trashed" as const,
 			tag: "bgm",
 			usage: "unused" as const,
 		};

@@ -4,7 +4,9 @@ import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	getMediaAssets,
+	restoreMediaAsset,
 	scanMediaAssets,
+	trashMediaAsset,
 	type MediaAsset,
 	uploadMediaAsset,
 	updateMediaAssetFields,
@@ -20,6 +22,7 @@ import {
 import { AssetLibrary } from "./AssetLibrary";
 import { getWorkspaceDocuments } from "@/domains/workspace/api/workspace";
 import { getSelectedGenerationAssets } from "@/domains/generation/api/generation";
+import { ConfirmDialog } from "@/shared/components/callable/ConfirmDialog";
 
 vi.mock("@/components/AudioPlayer", () => ({ AudioPlayer: () => null }));
 vi.mock("@/components/VideoPlayer", () => ({ VideoPlayer: () => null }));
@@ -59,6 +62,8 @@ vi.mock("@/domains/workspace/api/media", () => ({
 	updateMediaAssetMetadata: vi.fn(),
 	updateMediaAssetFields: vi.fn(),
 	deleteMediaAsset: vi.fn(),
+	trashMediaAsset: vi.fn(),
+	restoreMediaAsset: vi.fn(),
 }));
 vi.mock("@/domains/workspace/api/library-folders", () => ({
 	libraryFoldersKey: (id: string) => `/folders/${id}`,
@@ -93,6 +98,7 @@ function mount(state?: unknown, search = "?projectId=project-a") {
 			<SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
 				<AssetLibrary />
 				<LocationEvidence />
+				<ConfirmDialog />
 			</SWRConfig>
 		</MemoryRouter>,
 	);
@@ -697,6 +703,51 @@ describe("global material scopes", () => {
 		expect(currentPath).not.toHaveTextContent("kind=");
 		expect(currentPath).not.toHaveTextContent("minRating=");
 		expect(await screen.findByRole("button", { name: "预览 root.png" })).toBeInTheDocument();
+	});
+
+	it("browses the trash and restores an asset", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
+		vi.mocked(getMediaAssets).mockImplementation(async (filters) =>
+			filters?.status === "trashed"
+				? {
+						assets: [
+							{
+								...asset("gone", "gone.png", "2026-10-16T00:00:00Z"),
+								trashedAt: "2026-10-17T00:00:00Z",
+							},
+						],
+					}
+				: { assets: [asset("root", "root.png", "2026-10-16T00:00:00Z")] },
+		);
+		mount(undefined, "?projectId=project-a");
+		await screen.findByRole("button", { name: "预览 root.png" });
+
+		fireEvent.click(screen.getByRole("button", { name: "回收站" }));
+
+		await waitFor(() =>
+			expect(screen.getByLabelText("当前路径")).toHaveTextContent("status=trashed"),
+		);
+		expect(await screen.findByRole("button", { name: "预览 gone.png" })).toBeInTheDocument();
+		expect(getMediaAssets).toHaveBeenLastCalledWith(
+			expect.objectContaining({ projectId: "project-a", status: "trashed" }),
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "恢复 gone.png" }));
+
+		await waitFor(() => expect(restoreMediaAsset).toHaveBeenCalledWith("gone", "project-a"));
+	});
+
+	it("moves an asset to the trash instead of deleting it", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [asset("root", "root.png", "2026-10-16T00:00:00Z")],
+		});
+		mount(undefined, "?projectId=project-a");
+
+		fireEvent.click(await screen.findByRole("button", { name: "删除 root.png" }));
+		fireEvent.click(await screen.findByRole("button", { name: "移到回收站" }));
+
+		await waitFor(() => expect(trashMediaAsset).toHaveBeenCalledWith("root", "project-a"));
 	});
 
 	it("switches URL scopes and resets directory while preserving the return state", async () => {

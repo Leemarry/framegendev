@@ -15,6 +15,7 @@ import {
 	Loader2,
 	MoveRight,
 	PencilLine,
+	RotateCcw,
 	Search,
 	Star,
 	Trash2,
@@ -51,7 +52,9 @@ import {
 	getMediaAssets,
 	mediaAssetReferencesPath,
 	mediaAssetsKey,
+	restoreMediaAsset,
 	scanMediaAssets,
+	trashMediaAsset,
 	updateMediaAsset,
 	updateMediaAssetMetadata,
 	updateMediaAssetFields,
@@ -295,6 +298,9 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [refreshError, setRefreshError] = useState<unknown>(null);
 	const sort = filters.sort;
 	const setSort = (value: AssetLibrarySort) => patchFilters({ sort: value });
+	const status = filters.status;
+	void status;
+	const setStatus = (value: "ready" | "trashed") => patchFilters({ status: value });
 	const thumbnailSize = useLibraryPreferencesStore((state) => state.thumbnailSize);
 	const setThumbnailSize = useLibraryPreferencesStore((state) => state.setThumbnailSize);
 	const [showDetails, setShowDetails] = useState(!isPage);
@@ -305,15 +311,20 @@ export const AssetLibraryWorkspace: React.FC<{
 		() => getProjects(),
 	);
 	const includeUsage = usageFilter !== "all";
+	const trashMode = filters.status === "trashed";
 	const mediaQueryKey = open
-		? includeUsage
-			? [mediaAssetsKey, mediaProjectId, "usage"]
-			: [mediaAssetsKey, mediaProjectId]
+		? trashMode
+			? [mediaAssetsKey, mediaProjectId, "trashed"]
+			: includeUsage
+				? [mediaAssetsKey, mediaProjectId, "usage"]
+				: [mediaAssetsKey, mediaProjectId]
 		: null;
 	const documentsQueryKey =
-		open && selectedProjectId ? workspaceDocumentsKey(selectedProjectId) : null;
+		open && selectedProjectId && !trashMode ? workspaceDocumentsKey(selectedProjectId) : null;
 	const selectedQueryKey =
-		open && selectedProjectId ? selectedGenerationAssetsQueryKey(selectedProjectId) : null;
+		open && selectedProjectId && !trashMode
+			? selectedGenerationAssetsQueryKey(selectedProjectId)
+			: null;
 	const {
 		data: mediaData,
 		error: mediaError,
@@ -322,7 +333,8 @@ export const AssetLibraryWorkspace: React.FC<{
 	} = useSWR(mediaQueryKey, () =>
 		getMediaAssets({
 			projectId: selectedProjectId || undefined,
-			...(includeUsage ? { includeUsage: true } : {}),
+			...(trashMode ? { status: "trashed" as const } : {}),
+			...(includeUsage && !trashMode ? { includeUsage: true } : {}),
 		}),
 	);
 	const {
@@ -511,12 +523,12 @@ export const AssetLibraryWorkspace: React.FC<{
 		if (busyKey) return;
 		const confirmed = await confirmDialog({
 			confirmIcon: <Trash2 className="size-4" />,
-			confirmLabel: item.sourceType === "selected" ? "取消选入" : "删除",
+			confirmLabel: item.sourceType === "selected" ? "取消选入" : "移到回收站",
 			description:
 				item.sourceType === "selected"
 					? "会从已选生成资源中移除，不会删除原始生成记录。"
-					: `将删除“${item.title}”，此操作不可撤销。`,
-			title: item.sourceType === "selected" ? "取消选入该资源？" : "删除该素材？",
+					: `“${item.title}”会移到回收站，可以随时恢复。`,
+			title: item.sourceType === "selected" ? "取消选入该资源？" : "移到回收站？",
 			variant: "destructive",
 		});
 		if (!confirmed) return;
@@ -524,18 +536,58 @@ export const AssetLibraryWorkspace: React.FC<{
 		setBusyKey(item.key);
 		try {
 			if (item.sourceType === "media" && item.mediaAsset) {
-				await deleteMediaAsset(item.mediaAsset.id, item.mediaAsset.projectId || undefined);
+				await trashMediaAsset(item.mediaAsset.id, item.mediaAsset.projectId || undefined);
 				await mutateMediaAssets();
 			} else {
 				await unselectGenerationAssets(item.selectedAssets);
 			}
-			toast.success(item.sourceType === "selected" ? "已取消选入" : "素材已删除", {
+			toast.success(item.sourceType === "selected" ? "已取消选入" : "已移到回收站", {
 				description: item.title,
 			});
 		} catch (err) {
-			toast.error(item.sourceType === "selected" ? "取消选入失败" : "删除失败", {
+			toast.error(item.sourceType === "selected" ? "取消选入失败" : "移到回收站失败", {
 				description: errorMessage(err, "素材操作失败。"),
 			});
+		} finally {
+			setBusyKey("");
+		}
+	};
+
+	const purgeItem = async (item: AssetLibraryItem) => {
+		const asset = item.mediaAsset;
+		if (!asset || busyKey) return;
+		const confirmed = await confirmDialog({
+			confirmIcon: <Trash2 className="size-4" />,
+			confirmLabel: "彻底删除",
+			description: `将永久删除“${item.title}”及其文件，此操作不可撤销。`,
+			title: "彻底删除该素材？",
+			variant: "destructive",
+		});
+		if (!confirmed) return;
+
+		setBusyKey(item.key);
+		try {
+			await deleteMediaAsset(asset.id, asset.projectId || undefined);
+			await mutateMediaAssets();
+			toast.success("素材已彻底删除", { description: item.title });
+		} catch (err) {
+			toast.error("彻底删除失败", { description: errorMessage(err, "素材操作失败。") });
+		} finally {
+			setBusyKey("");
+		}
+	};
+
+	const restoreItem = async (item: AssetLibraryItem) => {
+		const asset = item.mediaAsset;
+		if (!asset || busyKey) return;
+
+		setBusyKey(item.key);
+		try {
+			await restoreMediaAsset(asset.id, asset.projectId || undefined);
+			await mutateMediaAssets();
+			toast.success("素材已恢复", { description: item.title });
+		} catch (err) {
+			toast.error("恢复失败", { description: errorMessage(err, "素材恢复失败。") });
 		} finally {
 			setBusyKey("");
 		}
@@ -866,6 +918,18 @@ export const AssetLibraryWorkspace: React.FC<{
 						]}
 						onValueChange={(value) => setSort(value as AssetLibrarySort)}
 					/>
+					<Button
+						type="button"
+						variant={trashMode ? "secondary" : "ghost"}
+						size="sm"
+						aria-pressed={trashMode}
+						aria-label="回收站"
+						title="回收站"
+						onClick={() => setStatus(trashMode ? "ready" : "trashed")}
+					>
+						<Trash2 className="size-4" />
+						回收站
+					</Button>
 					<Popover>
 						<PopoverTrigger asChild>
 							<Button
@@ -1172,8 +1236,17 @@ export const AssetLibraryWorkspace: React.FC<{
 									active={item.key === activeItem?.key}
 									busy={busyKey === item.key}
 									item={item}
-									onDelete={() => void deleteItem(item)}
+									onDelete={() =>
+										trashMode && item.sourceType === "media"
+											? void purgeItem(item)
+											: void deleteItem(item)
+									}
 									onDownload={() => void downloadItem(item)}
+									onRestore={
+										trashMode && item.sourceType === "media"
+											? () => void restoreItem(item)
+											: undefined
+									}
 									onPreview={() => {
 										setActiveKey(item.key);
 										if (isPage) setShowDetails(true);
@@ -1276,7 +1349,8 @@ const AssetLibraryCard: React.FC<{
 	onDelete: () => void;
 	onDownload: () => void;
 	onPreview: () => void;
-}> = ({ active, busy, item, onDelete, onDownload, onPreview }) => {
+	onRestore?: () => void;
+}> = ({ active, busy, item, onDelete, onDownload, onPreview, onRestore }) => {
 	const thumbnailSource = assetLibraryItemThumbnailSource(item);
 	const kindTag = assetLibraryKindTag(item);
 	const resourceTags = assetLibraryResourceTags(item);
@@ -1331,6 +1405,19 @@ const AssetLibraryCard: React.FC<{
 					<Download className="size-3.5" />
 				</Button>
 				<div className="flex items-center gap-1">
+					{onRestore ? (
+						<Button
+							type="button"
+							size="sm"
+							variant="ghost"
+							className="h-7 px-2"
+							disabled={busy}
+							onClick={onRestore}
+							aria-label={`恢复 ${item.title}`}
+						>
+							<RotateCcw className="size-3.5" />
+						</Button>
+					) : null}
 					<Button
 						type="button"
 						size="sm"
@@ -1339,7 +1426,11 @@ const AssetLibraryCard: React.FC<{
 						disabled={busy}
 						onClick={onDelete}
 						aria-label={
-							item.sourceType === "selected" ? `取消选入 ${item.title}` : `删除 ${item.title}`
+							onRestore
+								? `彻底删除 ${item.title}`
+								: item.sourceType === "selected"
+									? `取消选入 ${item.title}`
+									: `删除 ${item.title}`
 						}
 					>
 						{busy ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}

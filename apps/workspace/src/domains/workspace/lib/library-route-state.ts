@@ -29,6 +29,7 @@ export interface LibraryRouteFilters {
 	resource: AssetLibraryResourceFilter;
 	sort: AssetLibrarySort;
 	source: AssetLibrarySourceFilter;
+	status: "ready" | "trashed";
 	tag: string;
 	usage: AssetLibraryUsageFilter;
 }
@@ -45,6 +46,7 @@ export const defaultLibraryRouteFilters: LibraryRouteFilters = {
 	resource: "all",
 	sort: "createdDesc",
 	source: "all",
+	status: "ready",
 	tag: "",
 	usage: "all",
 };
@@ -121,6 +123,7 @@ export const readLibraryRouteFilters = (search: string): LibraryRouteFilters => 
 		resource: pick(resourceValues, params.get("resource"), "all"),
 		sort: pick(sortValues, params.get("sort"), defaultLibraryRouteFilters.sort),
 		source: pick(sourceValues, params.get("source"), "all"),
+		status: params.get("status") === "trashed" ? "trashed" : "ready",
 		tag: params.get("tag") ?? "",
 		usage: pick(usageValues, params.get("usage"), "all"),
 	};
@@ -145,6 +148,7 @@ export const patchLibraryRouteSearch = (
 	writeParam(params, "resource", next.resource === "all" ? "" : next.resource);
 	writeParam(params, "sort", next.sort === defaultLibraryRouteFilters.sort ? "" : next.sort);
 	writeParam(params, "source", next.source === "all" ? "" : next.source);
+	writeParam(params, "status", next.status === "trashed" ? "trashed" : "");
 	writeParam(params, "tag", next.tag);
 	writeParam(params, "usage", next.usage === "all" ? "" : next.usage);
 

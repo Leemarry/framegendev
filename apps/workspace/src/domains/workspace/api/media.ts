@@ -31,6 +31,7 @@ export interface MediaAsset {
 	metadataUpdatedAt?: string;
 	storageStatus?: "ready" | "missing" | string;
 	storageError?: string;
+	trashedAt?: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -83,6 +84,7 @@ export interface MediaAssetFilters {
 	kind?: "all" | MediaAssetKind;
 	projectId?: string;
 	q?: string;
+	status?: "ready" | "trashed";
 }
 
 export const getMediaAssets = async (filters: MediaAssetFilters = {}) => {
@@ -91,6 +93,7 @@ export const getMediaAssets = async (filters: MediaAssetFilters = {}) => {
 			includeUsage: filters.includeUsage,
 			kind: filters.kind,
 			q: filters.q,
+			status: filters.status === "trashed" ? "trashed" : undefined,
 		},
 	});
 	return response.data;
@@ -133,6 +136,22 @@ export const uploadMediaAsset = async (
 export const deleteMediaAsset = async (id: string, projectId?: string) => {
 	const response = await httpClient.delete<MediaAssetsResponse>(
 		`${mediaAssetsPath(projectId)}/${encodeURIComponent(id)}`,
+	);
+	return response.data;
+};
+
+/** Moves an asset to the trash; its files stay on disk until the trash is purged. */
+export const trashMediaAsset = async (id: string, projectId?: string | null) => {
+	const response = await httpClient.post<MediaAsset>(
+		`${mediaAssetsPath(projectId)}/${encodeURIComponent(id)}/trash`,
+	);
+	return response.data;
+};
+
+/** Restores a trashed asset back into the library. */
+export const restoreMediaAsset = async (id: string, projectId?: string | null) => {
+	const response = await httpClient.post<MediaAsset>(
+		`${mediaAssetsPath(projectId)}/${encodeURIComponent(id)}/restore`,
 	);
 	return response.data;
 };
