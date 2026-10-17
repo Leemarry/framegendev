@@ -460,6 +460,58 @@ func (handler MediaAssets) HandleDeleteProjectMediaAsset(context *gin.Context) {
 	handler.HandleDeleteMediaAsset(context)
 }
 
+// HandleAssetCatalogUse godoc
+// @Summary 用于创作
+// @Description 把选中的素材保存到目标项目素材库，可同时加入一个章节的候选列表；请求带 operationId，重试同一 operationId 会返回首次结果。
+// @Tags Media Assets
+// @Accept json
+// @Produce json
+// @Param payload body SwaggerObject true "operationId/projectId/assetIds，可选 sourceProjectId 与 target{documentId,sectionId}"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/asset-catalog/use [post]
+func (handler MediaAssets) HandleAssetCatalogUse(context *gin.Context) {
+	payload, err := decodeJSON[service.AssetCatalogUseRequest](context)
+	if err != nil {
+		httpresponse.ErrorFromStatus(context, http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := handler.service.UseForCreation(context.Request.Context(), payload)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, service.ErrAssetCatalogUseInvalid) {
+			status = http.StatusBadRequest
+		}
+		if errors.Is(err, service.ErrCatalogSectionNotFound) {
+			status = http.StatusNotFound
+		}
+		httpresponse.ErrorFromStatus(context, status, err)
+		return
+	}
+
+	httpresponse.OK(context, result)
+}
+
+// HandleProjectAssetCatalogUse godoc
+// @Summary 项目范围内用于创作
+// @Description 与全局 POST /asset-catalog/use 等价，目标是请求体里的 projectId。
+// @Tags Media Assets
+// @Accept json
+// @Produce json
+// @Param projectId path string true "Project ID"
+// @Param payload body SwaggerObject true "与全局接口同构"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/asset-catalog/use [post]
+func (handler MediaAssets) HandleProjectAssetCatalogUse(context *gin.Context) {
+	handler.HandleAssetCatalogUse(context)
+}
+
 // HandleTrashMediaAsset godoc
 // @Summary 移入回收站
 // @Description 把媒体资产移入回收站，文件保留以便恢复。

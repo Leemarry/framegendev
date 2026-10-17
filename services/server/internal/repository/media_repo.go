@@ -7,6 +7,7 @@ import (
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // MediaAssetRepository persists local media asset metadata.
@@ -150,6 +151,105 @@ func (repo *MediaAssetRepository) FindMediaAssetByContentHashAndScope(contentHas
 		return domain.AssetModel{}, fmt.Errorf("finding media asset by content hash and scope: %w", err)
 	}
 	return model, nil
+}
+
+// FindMediaAssetByContentHashKindInScope returns the latest asset with identical
+// content in one library scope, regardless of how it was created.
+func (repo *MediaAssetRepository) FindMediaAssetByContentHashKindInScope(contentHash string, kind string, projectID string) (domain.AssetModel, error) {
+	var model domain.AssetModel
+	err := repo.db.Where(
+		"content_hash = ? AND kind = ? AND COALESCE(project_id, '') = ? AND trashed_at IS NULL",
+		strings.TrimSpace(contentHash),
+		strings.TrimSpace(kind),
+		domain.CleanProjectID(projectID),
+	).
+		Order("updated_at DESC").
+		First(&model).Error
+	if IsRecordNotFound(err) {
+		return domain.AssetModel{}, ErrRecordNotFound
+	}
+	if err != nil {
+		return domain.AssetModel{}, fmt.Errorf("finding media asset by content hash in scope: %w", err)
+	}
+	return model, nil
+}
+
+// GetDocumentSection returns one persisted section of a project document.
+func (repo *MediaAssetRepository) GetDocumentSection(projectID string, documentID string, sectionID string) (domain.DocumentSectionModel, error) {
+	var model domain.DocumentSectionModel
+	err := repo.db.Where(
+		"project_id = ? AND document_id = ? AND section_id = ?",
+		domain.CleanProjectID(projectID),
+		strings.TrimSpace(documentID),
+		strings.TrimSpace(sectionID),
+	).First(&model).Error
+	if IsRecordNotFound(err) {
+		return domain.DocumentSectionModel{}, ErrRecordNotFound
+	}
+	if err != nil {
+		return domain.DocumentSectionModel{}, fmt.Errorf("getting document section: %w", err)
+	}
+	return model, nil
+}
+
+// EnsureProjectSelectedAssetCandidate records a section candidate once, keeping
+// existing selections untouched on replays.
+func (repo *MediaAssetRepository) EnsureProjectSelectedAssetCandidate(candidate domain.ProjectSelectedAssetModel) (bool, error) {
+	projectID := domain.CleanProjectID(candidate.ProjectID)
+	resourceID := strings.TrimSpace(domain.StringValue(candidate.ResourceID))
+	assetID := strings.TrimSpace(candidate.AssetID)
+	if projectID == "" || resourceID == "" || assetID == "" {
+		return false, nil
+	}
+
+	var count int64
+	if err := repo.db.Model(&domain.ProjectSelectedAssetModel{}).
+		Where(
+			"project_id = ? AND resource_type = ? AND resource_id = ? AND asset_id = ? AND deleted_at IS NULL",
+			projectID,
+			strings.TrimSpace(candidate.ResourceType),
+			resourceID,
+			assetID,
+		).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("checking project selected asset candidate: %w", err)
+	}
+	if count > 0 {
+		return false, nil
+	}
+
+	candidate.ProjectID = projectID
+	if err := repo.db.Create(&candidate).Error; err != nil {
+		return false, fmt.Errorf("creating project selected asset candidate: %w", err)
+	}
+	return true, nil
+}
+
+// GetAssetCatalogOperation returns the stored result of one idempotent write.
+func (repo *MediaAssetRepository) GetAssetCatalogOperation(operationID string) (domain.AssetCatalogOperationModel, error) {
+	var model domain.AssetCatalogOperationModel
+	err := repo.db.Where("operation_id = ?", strings.TrimSpace(operationID)).First(&model).Error
+	if IsRecordNotFound(err) {
+		return domain.AssetCatalogOperationModel{}, ErrRecordNotFound
+	}
+	if err != nil {
+		return domain.AssetCatalogOperationModel{}, fmt.Errorf("getting asset catalog operation: %w", err)
+	}
+	return model, nil
+}
+
+// CreateAssetCatalogOperation stores one operation result, ignoring replays of
+// the same operation ID so the first response keeps winning.
+func (repo *MediaAssetRepository) CreateAssetCatalogOperation(model domain.AssetCatalogOperationModel) error {
+	if err := repo.db.
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "operation_id"}},
+			DoNothing: true,
+		}).
+		Create(&model).Error; err != nil {
+		return fmt.Errorf("creating asset catalog operation: %w", err)
+	}
+	return nil
 }
 
 // CreateMediaAsset inserts a media asset.

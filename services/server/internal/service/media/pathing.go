@@ -45,6 +45,8 @@ func normalizeMediaAssetSource(source string) string {
 		return MediaSourcePreview
 	case MediaSourceGeneration:
 		return MediaSourceGeneration
+	case MediaSourceImported:
+		return MediaSourceImported
 	default:
 		return MediaSourceGeneration
 	}

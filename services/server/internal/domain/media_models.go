@@ -39,6 +39,21 @@ func (AssetModel) TableName() string {
 	return "assets"
 }
 
+// AssetCatalogOperationModel records one idempotent asset-catalog write so that
+// a retry carrying the same operation ID replays the original response instead
+// of saving the assets twice.
+type AssetCatalogOperationModel struct {
+	ID           string    `gorm:"column:id;primaryKey"`
+	OperationID  string    `gorm:"column:operation_id;not null;uniqueIndex:asset_catalog_operations_operation_id"`
+	ResponseJSON string    `gorm:"column:response_json;not null;type:text;default:''"`
+	CreatedAt    time.Time `gorm:"column:created_at;not null;autoCreateTime:nano"`
+}
+
+// TableName returns the idempotency ledger table name.
+func (AssetCatalogOperationModel) TableName() string {
+	return "asset_catalog_operations"
+}
+
 // AssetLibraryFolderModel stores logical media classification independently of document folders.
 type AssetLibraryFolderModel struct {
 	ID        string    `gorm:"column:id;primaryKey" json:"id"`
