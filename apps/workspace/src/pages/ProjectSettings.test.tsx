@@ -40,7 +40,7 @@ vi.mock("swr", () => ({
 
 const show = (tab = "project-skills") =>
 	render(
-		<MemoryRouter initialEntries={[`/settings?projectId=p&tab=${tab}`]}>
+		<MemoryRouter initialEntries={[`/project-settings?projectId=p&tab=${tab}`]}>
 			<ProjectSettings />
 		</MemoryRouter>,
 	);

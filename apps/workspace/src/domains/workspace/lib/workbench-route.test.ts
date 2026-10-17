@@ -78,7 +78,7 @@ describe("workbench route", () => {
 		expect(studioTabPath("image", { conversationId: "session-1" })).toBe(
 			"/toolbox/image?conversation=session-1",
 		);
-		expect(settingsPath("project-1")).toBe("/settings?projectId=project-1");
+		expect(settingsPath("project-1")).toBe("/project-settings?projectId=project-1");
 		expect(isProjectSettingsRoute("/settings", "?projectId=project-1")).toBe(true);
 	});
 });

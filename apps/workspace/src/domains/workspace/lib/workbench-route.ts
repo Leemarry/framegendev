@@ -28,7 +28,11 @@ export const getRouteDocumentWorkbench = (search: string): AgentDocumentWorkbenc
 export const isAgentRoute = (pathname: string) => pathname === "/projects";
 
 export const isProjectSettingsRoute = (pathname: string, search: string) =>
-	isSettingsRoute(pathname) && Boolean(getRouteProjectId(search));
+	pathname === "/project-settings" ||
+	pathname.startsWith("/project-settings/") ||
+	// legacy `/settings?projectId=…` links redirect to the dedicated route, but the
+	// shell still has to treat them as project settings until the redirect lands.
+	(isSettingsRoute(pathname) && Boolean(getRouteProjectId(search)));
 
 export const isSettingsRoute = (pathname: string) =>
 	pathname === "/settings" || pathname.startsWith("/settings/");
@@ -88,7 +92,7 @@ export const settingsPath = (projectId?: string | null) => {
 	if (!projectId) return "/settings";
 	const params = new URLSearchParams();
 	params.set("projectId", projectId);
-	return `/settings?${params.toString()}`;
+	return `/project-settings?${params.toString()}`;
 };
 
 export const agentProjectRouteState = (projectView: AgentProjectView) => ({ projectView });

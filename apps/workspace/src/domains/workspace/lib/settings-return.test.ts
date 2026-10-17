@@ -12,7 +12,7 @@ describe("resolveSettingsReturn", () => {
 	});
 	it("preserves a nested settings return when software settings opens inside project settings", () => {
 		const target = {
-			path: "/settings?projectId=p&tab=project-files",
+			path: "/project-settings?projectId=p&tab=project-files",
 			state: { settingsReturn: { path: "/projects?projectId=p&documentId=d" } },
 		};
 		expect(resolveSettingsReturn({ settingsReturn: target }, null)).toEqual(target);

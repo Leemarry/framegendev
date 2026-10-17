@@ -14,6 +14,9 @@ const AssetLibrary = lazy(() =>
 const Settings = lazy(() =>
 	import("@/pages/Settings").then((module) => ({ default: module.Settings })),
 );
+const ProjectSettings = lazy(() =>
+	import("@/pages/ProjectSettings").then((module) => ({ default: module.ProjectSettings })),
+);
 const PromptPackEditor = lazy(() =>
 	import("@/pages/PromptPackEditor").then((module) => ({ default: module.PromptPackEditor })),
 );
@@ -66,6 +69,18 @@ export function LegacyAssetLibraryRedirect() {
 	return <Navigate to={`/library${location.search}${location.hash}`} replace />;
 }
 
+/** SettingsRoute sends legacy `/settings?projectId=…` links to the dedicated project settings page. */
+export function SettingsRoute({ fallback }: { fallback: React.ReactNode }) {
+	const location = useLocation();
+	const projectId = new URLSearchParams(location.search).get("projectId")?.trim();
+
+	if (projectId) {
+		return <Navigate to={`/project-settings${location.search}${location.hash}`} replace />;
+	}
+
+	return <>{fallback}</>;
+}
+
 const routes: RouteObject[] = [
 	{ path: "/", element: <RootShell /> },
 	{ path: "/projects", element: <Home /> },
@@ -81,7 +96,8 @@ const routes: RouteObject[] = [
 	{ path: "/toolbox/audio-transcribe", element: <StudioAudioTranscribe /> },
 	{ path: "/agent", element: <LegacyWorkspaceRouteRedirect /> },
 	{ path: "/studio/*", element: <LegacyWorkspaceRouteRedirect /> },
-	{ path: "/settings", element: <Settings /> },
+	{ path: "/settings", element: <SettingsRoute fallback={<Settings />} /> },
+	{ path: "/project-settings", element: <ProjectSettings /> },
 	{ path: "/prompt-pack-editor", element: <PromptPackEditor /> },
 	{ path: "*", element: <div>404 - 页面未找到</div> },
 ];
