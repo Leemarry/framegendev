@@ -682,6 +682,23 @@ describe("global material scopes", () => {
 		fireEvent.change(screen.getByLabelText("上传素材"), { target: { files: [file] } });
 		await waitFor(() => expect(uploadMediaAsset).toHaveBeenCalledWith(file, null, "global-folder"));
 	});
+	it("clears every active filter from the empty state", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [asset("root", "root.png", "2026-10-16T00:00:00Z")],
+		});
+		mount(undefined, "?projectId=project-a&tag=missing&kind=image&minRating=3");
+
+		expect(await screen.findByText("暂无匹配素材")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "清除筛选" }));
+
+		await waitFor(() => expect(screen.getByLabelText("当前路径")).not.toHaveTextContent("tag="));
+		const currentPath = screen.getByLabelText("当前路径");
+		expect(currentPath).not.toHaveTextContent("kind=");
+		expect(currentPath).not.toHaveTextContent("minRating=");
+		expect(await screen.findByRole("button", { name: "预览 root.png" })).toBeInTheDocument();
+	});
+
 	it("switches URL scopes and resets directory while preserving the return state", async () => {
 		vi.mocked(getLibraryFolders).mockImplementation(async (projectId) => ({
 			folders: projectId ? [folder("parent", "角色")] : [],

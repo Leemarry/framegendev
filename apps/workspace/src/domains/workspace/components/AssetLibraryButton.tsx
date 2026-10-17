@@ -735,6 +735,19 @@ export const AssetLibraryWorkspace: React.FC<{
 		ratingFilter !== "all" ||
 		favoriteFilter !== "all",
 	);
+	// The official empty state offers one action that drops every active filter.
+	const clearAssetFilters = () =>
+		patchFilters({
+			favorite: "all",
+			kind: "all",
+			provenance: "all",
+			q: "",
+			rating: "all",
+			resource: "all",
+			source: "all",
+			tag: "",
+			usage: "all",
+		});
 	const content = (
 		<>
 			{isPage ? (
@@ -1116,7 +1129,13 @@ export const AssetLibraryWorkspace: React.FC<{
 							<div className="asset-library-page-empty">
 								<File className="size-10 text-muted-foreground" />
 								<h2>{hasActiveAssetFilter ? "暂无匹配素材" : "这里还没有素材"}</h2>
-								{hasActiveAssetFilter ? null : <p>导入文件，或把文件放入素材目录后刷新。</p>}
+								{hasActiveAssetFilter ? (
+									<Button type="button" variant="outline" onClick={clearAssetFilters}>
+										清除筛选
+									</Button>
+								) : (
+									<p>导入文件，或把文件放入素材目录后刷新。</p>
+								)}
 								<div>
 									{folderControls ? (
 										<Button
