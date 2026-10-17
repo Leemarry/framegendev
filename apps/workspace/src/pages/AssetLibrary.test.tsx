@@ -421,7 +421,7 @@ describe("material folder workflows", () => {
 				},
 			],
 		});
-		mount(undefined, "?projectId=project-a&folderId=parent");
+		mount(undefined, "?projectId=project-a&folder=parent");
 		await screen.findByRole("button", { name: "预览 direct.png" });
 		expect(screen.queryByRole("button", { name: "预览 nested.png" })).not.toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "筛选素材" }));
@@ -460,7 +460,7 @@ describe("material folder workflows", () => {
 				vi.mocked(getMediaAssets).mockResolvedValue({ assets: [moved] });
 				return moved;
 			});
-		mount(undefined, "?projectId=project-a&folderId=parent");
+		mount(undefined, "?projectId=project-a&folder=parent");
 		fireEvent.click(await screen.findByRole("button", { name: "预览 inside.png" }));
 		fireEvent.keyDown(screen.getByRole("combobox", { name: "移动到文件夹" }), { key: "Enter" });
 		const root = await screen.findByRole("option", { name: "素材库根目录" });
@@ -487,7 +487,7 @@ describe("material folder workflows", () => {
 		vi.mocked(uploadMediaAsset).mockResolvedValue(
 			asset("uploaded", "fixture.png", "2026-10-14T00:00:00Z"),
 		);
-		mount({ assetReturnTo: "/projects?documentId=doc-a" }, "?projectId=project-a&folderId=parent");
+		mount({ assetReturnTo: "/projects?documentId=doc-a" }, "?projectId=project-a&folder=parent");
 		await screen.findByRole("button", { name: "返回上级文件夹" });
 		await waitFor(() =>
 			expect(screen.getByRole("button", { name: "新建素材文件夹" })).toBeEnabled(),
@@ -501,14 +501,14 @@ describe("material folder workflows", () => {
 			expect(createLibraryFolder).toHaveBeenCalledWith("project-a", "主角", "parent"),
 		);
 		await waitFor(() =>
-			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=child"),
+			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=child"),
 		);
 		const file = new File(["bytes"], "fixture.png", { type: "image/png" });
 		fireEvent.change(screen.getByLabelText("上传素材"), { target: { files: [file] } });
 		await waitFor(() => expect(uploadMediaAsset).toHaveBeenCalledWith(file, "project-a", "child"));
 		expect(updateMediaAssetFields).not.toHaveBeenCalled();
 		fireEvent.click(screen.getByRole("button", { name: "返回上级文件夹" }));
-		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=parent");
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=parent");
 		expect(screen.getByLabelText("路由状态")).toHaveTextContent("doc-a");
 	});
 	it("retains a rejected rename draft, retries and cancels creation without writes", async () => {
@@ -540,7 +540,7 @@ describe("material folder workflows", () => {
 			folders: [folder("parent", "角色"), folder("child", "主角", "parent")],
 		});
 		vi.mocked(deleteLibraryFolder).mockResolvedValue(undefined);
-		mount(undefined, "?projectId=project-a&folderId=child");
+		mount(undefined, "?projectId=project-a&folder=child");
 		await screen.findByRole("button", { name: "删除文件夹 主角" });
 		fireEvent.click(screen.getByRole("button", { name: "删除文件夹 主角" }));
 		expect(screen.getByRole("heading", { name: "删除文件夹" })).toBeInTheDocument();
@@ -550,7 +550,7 @@ describe("material folder workflows", () => {
 		fireEvent.click(screen.getByRole("button", { name: /^删除文件夹$/ }));
 		await waitFor(() => expect(deleteLibraryFolder).toHaveBeenCalledWith("project-a", "child"));
 		await waitFor(() =>
-			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=parent"),
+			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=parent"),
 		);
 		cleanup();
 		vi.mocked(deleteLibraryFolder).mockRejectedValue({
@@ -558,11 +558,11 @@ describe("material folder workflows", () => {
 			message: "library folder is not empty",
 			details: null,
 		});
-		mount(undefined, "?projectId=project-a&folderId=child");
+		mount(undefined, "?projectId=project-a&folder=child");
 		fireEvent.click(await screen.findByRole("button", { name: "删除文件夹 主角" }));
 		fireEvent.click(screen.getByRole("button", { name: /^删除文件夹$/ }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("library folder is not empty");
-		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=child");
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=child");
 	});
 	it("restores a URL folder, limits content to its scope and disables nonexistent uploads", async () => {
 		vi.mocked(getLibraryFolders).mockResolvedValue({
@@ -575,17 +575,17 @@ describe("material folder workflows", () => {
 				{ ...asset("global", "global.png", "2026-10-14T00:00:00Z"), projectId: "" },
 			],
 		});
-		mount(undefined, "?projectId=project-a&folderId=parent");
+		mount(undefined, "?projectId=project-a&folder=parent");
 		await screen.findByRole("button", { name: "预览 inside.png" });
 		expect(screen.queryByRole("button", { name: "预览 root.png" })).not.toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "预览 global.png" })).not.toBeInTheDocument();
 		expect(screen.getByText("已加载 1 个文件夹，1 个文件")).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "打开文件夹 主角" }));
 		await waitFor(() =>
-			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=child"),
+			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=child"),
 		);
 		cleanup();
-		mount(undefined, "?projectId=project-a&folderId=missing");
+		mount(undefined, "?projectId=project-a&folder=missing");
 		await screen.findByText(/文件夹不存在/);
 		expect(screen.getByLabelText("上传素材")).toBeDisabled();
 	});
@@ -601,7 +601,7 @@ describe("material folder workflows", () => {
 			assets: [{ ...asset("inside", "inside.png", "2026-10-14T00:00:00Z"), folderId: "parent" }],
 		});
 		vi.mocked(reparentLibraryFolder).mockResolvedValue(folder("parent", "角色", "target"));
-		mount({ assetReturnTo: "/projects?documentId=doc-a" }, "?projectId=project-a&folderId=parent");
+		mount({ assetReturnTo: "/projects?documentId=doc-a" }, "?projectId=project-a&folder=parent");
 		fireEvent.click(await screen.findByRole("button", { name: "移动文件夹 角色" }));
 		const dialog = screen.getByRole("alertdialog");
 		expect(within(dialog).getByRole("button", { name: "移动" })).toBeDisabled();
@@ -615,14 +615,14 @@ describe("material folder workflows", () => {
 		await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
 		expect(reparentLibraryFolder).toHaveBeenCalledWith("project-a", "parent", "target");
 		expect(screen.getByLabelText("当前路径")).toHaveTextContent(
-			"/library?projectId=project-a&folderId=parent",
+			"/library?projectId=project-a&folder=parent",
 		);
 		expect(screen.getByLabelText("路由状态")).toHaveTextContent("doc-a");
 		expect(screen.getByRole("button", { name: "预览 inside.png" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "打开文件夹 主角" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "返回上级文件夹" })).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "返回上级文件夹" }));
-		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=target");
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=target");
 	});
 	it("cancels without writes and keeps a conflicting move draft for retry", async () => {
 		vi.mocked(getLibraryFolders).mockResolvedValue({
@@ -631,7 +631,7 @@ describe("material folder workflows", () => {
 		vi.mocked(reparentLibraryFolder)
 			.mockRejectedValueOnce({ code: 400, message: "folder name already exists" })
 			.mockResolvedValueOnce(folder("child", "主角"));
-		mount(undefined, "?projectId=project-a&folderId=child");
+		mount(undefined, "?projectId=project-a&folder=child");
 		fireEvent.click(await screen.findByRole("button", { name: "移动文件夹 主角" }));
 		fireEvent.click(screen.getByRole("button", { name: "取消" }));
 		expect(reparentLibraryFolder).not.toHaveBeenCalled();
@@ -645,7 +645,7 @@ describe("material folder workflows", () => {
 		expect(screen.getByRole("combobox", { name: "选择目标目录" })).toHaveTextContent(
 			"素材库根目录",
 		);
-		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=child");
+		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=child");
 		fireEvent.click(screen.getByRole("button", { name: "移动" }));
 		await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
 		expect(reparentLibraryFolder).toHaveBeenCalledTimes(2);
@@ -676,7 +676,7 @@ describe("global material scopes", () => {
 		fireEvent.click(screen.getByRole("button", { name: "创建" }));
 		await waitFor(() => expect(createLibraryFolder).toHaveBeenCalledWith(null, "共享", ""));
 		await waitFor(() =>
-			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folderId=global-folder"),
+			expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=global-folder"),
 		);
 		const file = new File(["bytes"], "fixture.png", { type: "image/png" });
 		fireEvent.change(screen.getByLabelText("上传素材"), { target: { files: [file] } });
@@ -688,11 +688,11 @@ describe("global material scopes", () => {
 		}));
 		mount(
 			{ assetReturnTo: "/projects?documentId=doc-a" },
-			"?scope=all&projectId=project-a&folderId=parent",
+			"?scope=all&projectId=project-a&folder=parent",
 		);
 		fireEvent.click(await screen.findByRole("button", { name: "全局素材" }));
 		expect(screen.getByLabelText("当前路径")).toHaveTextContent("/library?scope=all");
-		expect(screen.getByLabelText("当前路径")).not.toHaveTextContent("folderId");
+		expect(screen.getByLabelText("当前路径")).not.toHaveTextContent("folder=");
 		await waitFor(() => expect(getLibraryFolders).toHaveBeenCalledWith(null));
 		fireEvent.click(screen.getByRole("button", { name: "素材范围 测试项目" }));
 		expect(screen.getByLabelText("当前路径")).toHaveTextContent("projectId=project-a");

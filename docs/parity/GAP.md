@@ -103,7 +103,7 @@
 
 | 模块 | 功能点 | 官方证据 | 我们现状 | 缺口 | 工作量 | 状态 |
 |---|---|---|---|---|---|---|
-| assets | 路由与 URL 状态 | 路由 `path:'/library'`；从 URL 读 `view(directory/assets)`、`root(library/legacy-work)`、`folder`、`q`、`kind`、`tag`、`minRating`、`source`、`resource`、`usage`、`sort`、`favorite`、`status`、`includeDescendants`，用 replace 写回 | `routes.tsx` 是 `/assets`；`AssetLibraryButton.tsx` 筛选全在 useState，URL 只有 `scope`/`projectId`/`folderId` | 路由改 `/library`（`/assets` 重定向），筛选状态进 URL | M | ❌ |
+| assets | 路由与 URL 状态 | 官方把筛选全部放 URL：`hg=['view','root','usage','minRating','includeDescendants','kind','q','resource','source','folder','sort','tag','favorite','status']`，页面用 `view==='assets'`、`root==='legacy-work'`、`minRating` 0–5 钳制、`folder` 还原目录 | `/library` 上线；新增 `library-route-state.ts` 按官方参数读写 `view`/`kind`/`q`/`tag`/`sort`/`resource`/`source`/`usage`/`minRating`/`favorite`/`includeDescendants`/`folder`（旧 `folderId` 仍可读），页面模式下 URL 即唯一状态，弹窗仍走本地状态 | `source`、`sort` 的值域还是本地（media/selected、updatedDesc…），官方是 upload/browser/…、created-desc；`root`、`status` 未接；滚动位置记录未做 | M | 🟡 |
 | assets | 数据层/API | `useCatalog`：`ci('/assets',…,{limit:100})` 加 cursor 分页（useSWRInfinite）；写操作带 `expectedRevision` 和 `operationId:'op-'+uuid` | `api/media.ts` 一次拉全量，前端过滤 | 新建 `asset-catalog` api 模块：分页、revision 乐观锁、operationId | L | ❌ |
 | assets | 浏览视图 | `assetHub.browseView`：directory/all/favorites/trash；`directoryBrowse`、`upOneLevel`、`openFolder`、`directoryCount`、面包屑；`U('/entries')` | 有目录浏览和"返回上级文件夹"，没有回收站视图，也没有 `/entries` | 补 view 切换（含 trash）、面包屑，改走 entries 接口 | M | 🟡 |
 | assets | 回收站 | `trash`、`remove:'移入回收站'`、`restore`、`confirmRemove`、`trashed`；`/assets/{id}/restore`、`DELETE /assets/{id}`（带 revision） | "删除该素材？"是硬删除（"此操作不可撤销"） | 改软删除，加回收站视图和恢复 | M | ❌ |
@@ -114,7 +114,7 @@
 | assets | 导入关联目标 | `ImportTarget-DpUcK9iS.js`：`creationTarget.label:'关联文档 / 分镜（可选）'`，选项 libraryOnly | 无 | 新组件 ImportTarget，导入时可加入章节候选 | S | ❌ |
 | assets | 刷新/扫描/事件 | `POST /refresh`、`DELETE /scans/{id}`、`xi=EventSource(ci('/events'))` 推送；`refreshing:'正在同步…'`、`synced` | 有 `/media-assets/scan`，同步调用 | 后台扫描任务、SSE 事件、取消扫描 | M | 🟡 |
 | assets | 搜索/排序/筛选 | placeholder"搜索名称、标签、备注和关联对象"；`sortOptions` rating-desc/created-desc/updated-desc/name-asc；`B('/facets')` 分页；筛选 chip + `clearFilters` | 选项基本有，标签取自本地数据；没有 chip、没有 clearFilters | facets 接口、筛选 chip、清除筛选、补"名称"排序 | S | 🟡 |
-| assets | 偏好持久化 | 官方把视图偏好写进 URL/存储，`mg` 存 picker 过滤器、位置与滚动位置 | `thumbnailSize` 改为 `library-preferences.v1` 持久化（zustand persist，120–300 钳制，默认 190）；`sort`、`view`、详情开关仍是 `useState` | 其余偏好随「路由与 URL 状态」一起搬进 URL；滚动位置记录未做 | S | 🟡 |
+| assets | 偏好持久化 | 官方把视图偏好写进 URL/存储，`mg` 存 picker 过滤器、位置与滚动位置 | `thumbnailSize` 走 `library-preferences.v1`（zustand persist，120–300 钳制，默认 190）；`sort`、`view`、详情开关已随「路由与 URL 状态」进 URL | 滚动位置与 picker 上次选择未记录 | S | 🟡 |
 | assets | 多选/批量 | `selected:'已选择 {{count}} 项'`、`bulkHint`、`commonTags`；批量 move/favorite/trash/restore；`selectedTray` | 单选 | 多选（Ctrl/Shift）、批量操作、批量属性面板 | L | ❌ |
 | assets | 比较 | `compare:'比较两张图片'`，正好选中 2 张图片时可用；`zoomPreview/fitPreview` | 无 | 新增比较对话框 | S | ❌ |
 | assets | 用于创作 | `useForCreation`、`useHint`、`copyOnlyHint`、`addedCandidate`、`savedToProject`；`POST /asset-catalog/use`；`/assets/{id}/copy-to-project` | 无 | 用于创作对话框（选项目 + 章节）、复制到项目 | M | ❌ |

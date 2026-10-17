@@ -106,6 +106,10 @@ import { SidebarNavContent, sidebarNavRowClassName } from "./SidebarNavButton";
 import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
 import {
+	type LibraryRouteController,
+	useLibraryFilters,
+} from "@/domains/workspace/hooks/use-library-route-filters";
+import {
 	maxLibraryThumbnailSize,
 	minLibraryThumbnailSize,
 	useLibraryPreferencesStore,
@@ -240,29 +244,57 @@ export const AssetLibraryWorkspace: React.FC<{
 	projectId: string | null;
 	presentation?: "dialog" | "page";
 	folderControls?: AssetLibraryFolderControls;
-}> = ({ onOpenChange, open, projectId, presentation = "dialog", folderControls }) => {
+	filtersController?: LibraryRouteController | null;
+}> = ({
+	onOpenChange,
+	open,
+	projectId,
+	presentation = "dialog",
+	folderControls,
+	filtersController = null,
+}) => {
 	const toast = useToast();
 	const mediaUploadRef = useRef<HTMLInputElement | null>(null);
 	const gridRef = useRef<HTMLElement | null>(null);
 	const [activeKey, setActiveKey] = useState("");
 	const [busyKey, setBusyKey] = useState("");
-	const [kindFilter, setKindFilter] = useState<AssetLibraryKindFilter>("all");
 	const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
-	const [query, setQuery] = useState("");
-	const [tagFilter, setTagFilter] = useState("");
-	const [includeSubfolders, setIncludeSubfolders] = useState(false);
-	const [browseScope, setBrowseScope] = useState<"directory" | "all">("directory");
-	const [ratingFilter, setRatingFilter] = useState<AssetLibraryRatingFilter>("all");
-	const [favoriteFilter, setFavoriteFilter] = useState<AssetLibraryFavoriteFilter>("all");
-	const [resourceFilter, setResourceFilter] = useState<AssetLibraryResourceFilter>("all");
-	const [sourceFilter, setSourceFilter] = useState<AssetLibrarySourceFilter>("all");
-	const [usageFilter, setUsageFilter] = useState<AssetLibraryUsageFilter>("all");
-	const [provenanceFilter, setProvenanceFilter] = useState<AssetLibraryProvenanceFilter>("all");
+	const isPage = presentation === "page";
+	// The page keeps every filter in the URL; the dialog keeps them in local state.
+	const { filters, patchFilters } = useLibraryFilters(
+		isPage ? filtersController : null,
+		isPage ? "createdDesc" : "updatedDesc",
+	);
+	const kindFilter = filters.kind;
+	const setKindFilter = (value: AssetLibraryKindFilter) => patchFilters({ kind: value });
+	const query = filters.q;
+	const setQuery = (value: string) => patchFilters({ q: value });
+	const tagFilter = filters.tag;
+	const setTagFilter = (value: string) => patchFilters({ tag: value });
+	const includeSubfolders = filters.includeSubfolders;
+	const setIncludeSubfolders = (value: boolean) => patchFilters({ includeSubfolders: value });
+	const browseScope = filters.browseScope;
+	const setBrowseScope = (value: "directory" | "all") => patchFilters({ browseScope: value });
+	const ratingFilter = filters.rating;
+	const setRatingFilter = (value: AssetLibraryRatingFilter) => patchFilters({ rating: value });
+	const favoriteFilter = filters.favorite;
+	const setFavoriteFilter = (value: AssetLibraryFavoriteFilter) =>
+		patchFilters({ favorite: value });
+	const resourceFilter = filters.resource;
+	const setResourceFilter = (value: AssetLibraryResourceFilter) =>
+		patchFilters({ resource: value });
+	const sourceFilter = filters.source;
+	const setSourceFilter = (value: AssetLibrarySourceFilter) => patchFilters({ source: value });
+	const usageFilter = filters.usage;
+	const setUsageFilter = (value: AssetLibraryUsageFilter) => patchFilters({ usage: value });
+	const provenanceFilter = filters.provenance;
+	const setProvenanceFilter = (value: AssetLibraryProvenanceFilter) =>
+		patchFilters({ provenance: value });
 	const [uploading, setUploading] = useState<"media" | null>(null);
 	const [refreshing, setRefreshing] = useState(false);
 	const [refreshError, setRefreshError] = useState<unknown>(null);
-	const isPage = presentation === "page";
-	const [sort, setSort] = useState<AssetLibrarySort>(isPage ? "createdDesc" : "updatedDesc");
+	const sort = filters.sort;
+	const setSort = (value: AssetLibrarySort) => patchFilters({ sort: value });
 	const thumbnailSize = useLibraryPreferencesStore((state) => state.thumbnailSize);
 	const setThumbnailSize = useLibraryPreferencesStore((state) => state.setThumbnailSize);
 	const [showDetails, setShowDetails] = useState(!isPage);
@@ -415,23 +447,34 @@ export const AssetLibraryWorkspace: React.FC<{
 		setSelectedProjectId(projectId ?? "");
 	}, [open, projectId]);
 
-	useEffect(() => {
-		if (!open) return;
-		setSourceFilter("all");
-		setUsageFilter("all");
-		setProvenanceFilter("all");
-		setResourceFilter("all");
-		setRatingFilter("all");
-		setFavoriteFilter("all");
-		setTagFilter("");
-		setIncludeSubfolders(false);
-		setBrowseScope("directory");
-		setActiveKey("");
-		setRefreshError(null);
-	}, [open, selectedProjectId]);
+	// Effects below patch filters from callbacks that change identity on every URL
+	// edit, so they read the latest one through a ref instead of re-running.
+	const patchFiltersRef = useRef(patchFilters);
+	patchFiltersRef.current = patchFilters;
 
 	useEffect(() => {
-		setBrowseScope("directory");
+		// The page owns its filters through the URL, so only the dialog resets them.
+		if (!open || isPage) return;
+		patchFiltersRef.current({
+			browseScope: "directory",
+			favorite: "all",
+			includeSubfolders: false,
+			provenance: "all",
+			rating: "all",
+			resource: "all",
+			source: "all",
+			tag: "",
+			usage: "all",
+		});
+		setActiveKey("");
+		setRefreshError(null);
+	}, [isPage, open, selectedProjectId]);
+
+	const previousFolderIdRef = useRef(folderId);
+	useEffect(() => {
+		if (previousFolderIdRef.current === folderId) return;
+		previousFolderIdRef.current = folderId;
+		patchFiltersRef.current({ browseScope: "directory" });
 	}, [folderId]);
 
 	useEffect(() => {

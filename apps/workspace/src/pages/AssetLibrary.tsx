@@ -22,6 +22,11 @@ import {
 	type AssetLibraryFolderControls,
 } from "@/domains/workspace/components/AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
+import {
+	patchLibraryRouteSearch,
+	readLibraryRouteFilters,
+} from "@/domains/workspace/lib/library-route-state";
+import { useLibraryRouteController } from "@/domains/workspace/hooks/use-library-route-filters";
 import { getProjects, projectsKey } from "@/domains/projects/api/projects";
 import { AssetLibraryScopes } from "@/domains/workspace/components/AssetLibraryScopes";
 
@@ -29,6 +34,7 @@ export function AssetLibrary() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const projectId = getRouteProjectId(location.search);
+	const filtersController = useLibraryRouteController();
 	const scopeNavigation = !projectId || new URLSearchParams(location.search).get("scope") === "all";
 	const {
 		data: projectsData,
@@ -40,11 +46,12 @@ export function AssetLibrary() {
 		const params = new URLSearchParams(location.search);
 		params.set("scope", "all");
 		params.delete("folderId");
+		params.delete("folder");
 		if (id) params.set("projectId", id);
 		else params.delete("projectId");
 		navigate(`${location.pathname}?${params}`, { state: location.state });
 	};
-	const folderId = new URLSearchParams(location.search).get("folderId") || "";
+	const folderId = readLibraryRouteFilters(location.search).folderId;
 	const [editingFolder, setEditingFolder] = useState<AssetLibraryFolder | "create" | null>(null);
 	const [deletingFolder, setDeletingFolder] = useState<AssetLibraryFolder | null>(null);
 	const [movingFolder, setMovingFolder] = useState<AssetLibraryFolder | null>(null);
@@ -59,10 +66,13 @@ export function AssetLibrary() {
 		folderData && folderId && !folders.some((folder) => folder.id === folderId),
 	);
 	const navigateFolder = (id: string) => {
-		const params = new URLSearchParams(location.search);
-		if (id) params.set("folderId", id);
-		else params.delete("folderId");
-		navigate(`${location.pathname}?${params}`, { state: location.state });
+		navigate(
+			{
+				pathname: location.pathname,
+				search: patchLibraryRouteSearch(location.search, { folderId: id }),
+			},
+			{ state: location.state },
+		);
 	};
 	const folderControls: AssetLibraryFolderControls = {
 		folders,
@@ -163,6 +173,7 @@ export function AssetLibrary() {
 				presentation="page"
 				projectId={projectId}
 				folderControls={folderControls}
+				filtersController={filtersController}
 				onOpenChange={(open) => {
 					if (!open) goBack();
 				}}
