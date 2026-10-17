@@ -105,6 +105,11 @@ import { AssetLibraryMetadataEditor } from "./AssetLibraryMetadataEditor";
 import { SidebarNavContent, sidebarNavRowClassName } from "./SidebarNavButton";
 import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
+import {
+	maxLibraryThumbnailSize,
+	minLibraryThumbnailSize,
+	useLibraryPreferencesStore,
+} from "@/lib/stores/library-preferences";
 
 const kindOptions: Array<{ label: string; value: AssetLibraryKindFilter }> = [
 	{ label: "全部", value: "all" },
@@ -258,7 +263,8 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [refreshError, setRefreshError] = useState<unknown>(null);
 	const isPage = presentation === "page";
 	const [sort, setSort] = useState<AssetLibrarySort>(isPage ? "createdDesc" : "updatedDesc");
-	const [thumbnailSize, setThumbnailSize] = useState(190);
+	const thumbnailSize = useLibraryPreferencesStore((state) => state.thumbnailSize);
+	const setThumbnailSize = useLibraryPreferencesStore((state) => state.setThumbnailSize);
 	const [showDetails, setShowDetails] = useState(!isPage);
 	const projectMode = Boolean(selectedProjectId);
 	const mediaProjectId = selectedProjectId;
@@ -900,8 +906,8 @@ export const AssetLibraryWorkspace: React.FC<{
 					</Popover>
 					<input
 						type="range"
-						min={120}
-						max={300}
+						min={minLibraryThumbnailSize}
+						max={maxLibraryThumbnailSize}
 						step={10}
 						value={thumbnailSize}
 						aria-label="缩略图大小"

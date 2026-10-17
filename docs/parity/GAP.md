@@ -114,7 +114,7 @@
 | assets | 导入关联目标 | `ImportTarget-DpUcK9iS.js`：`creationTarget.label:'关联文档 / 分镜（可选）'`，选项 libraryOnly | 无 | 新组件 ImportTarget，导入时可加入章节候选 | S | ❌ |
 | assets | 刷新/扫描/事件 | `POST /refresh`、`DELETE /scans/{id}`、`xi=EventSource(ci('/events'))` 推送；`refreshing:'正在同步…'`、`synced` | 有 `/media-assets/scan`，同步调用 | 后台扫描任务、SSE 事件、取消扫描 | M | 🟡 |
 | assets | 搜索/排序/筛选 | placeholder"搜索名称、标签、备注和关联对象"；`sortOptions` rating-desc/created-desc/updated-desc/name-asc；`B('/facets')` 分页；筛选 chip + `clearFilters` | 选项基本有，标签取自本地数据；没有 chip、没有 clearFilters | facets 接口、筛选 chip、清除筛选、补"名称"排序 | S | 🟡 |
-| assets | 偏好持久化 | zustand persist `asset-library-preferences.v1`：`rowHeight` 96–280（默认 160）、`detailsVisible` | `thumbnailSize` 是 useState(190)，不持久化 | 持久化并对齐范围 | S | 🟡 |
+| assets | 偏好持久化 | 官方把视图偏好写进 URL/存储，`mg` 存 picker 过滤器、位置与滚动位置 | `thumbnailSize` 改为 `library-preferences.v1` 持久化（zustand persist，120–300 钳制，默认 190）；`sort`、`view`、详情开关仍是 `useState` | 其余偏好随「路由与 URL 状态」一起搬进 URL；滚动位置记录未做 | S | 🟡 |
 | assets | 多选/批量 | `selected:'已选择 {{count}} 项'`、`bulkHint`、`commonTags`；批量 move/favorite/trash/restore；`selectedTray` | 单选 | 多选（Ctrl/Shift）、批量操作、批量属性面板 | L | ❌ |
 | assets | 比较 | `compare:'比较两张图片'`，正好选中 2 张图片时可用；`zoomPreview/fitPreview` | 无 | 新增比较对话框 | S | ❌ |
 | assets | 用于创作 | `useForCreation`、`useHint`、`copyOnlyHint`、`addedCandidate`、`savedToProject`；`POST /asset-catalog/use`；`/assets/{id}/copy-to-project` | 无 | 用于创作对话框（选项目 + 章节）、复制到项目 | M | ❌ |
