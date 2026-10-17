@@ -114,6 +114,7 @@ func registerCoreRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
 	apiRoutes.GET("/codex-skills/:id", handlers.CodexSkills.HandleGetCodexSkill)
 	apiRoutes.GET("/agent/backends", handlers.AgentBackends.HandleListBackends)
 	apiRoutes.GET("/media-assets", handlers.MediaAssets.HandleMediaAssets)
+	apiRoutes.GET("/asset-catalog/assets", handlers.MediaAssets.HandleAssetCatalogAssets)
 	apiRoutes.GET("/asset-library-folders", handlers.MediaAssets.HandleLibraryFolders)
 	apiRoutes.POST("/asset-library-folders", handlers.MediaAssets.HandleCreateLibraryFolder)
 	apiRoutes.PUT("/asset-library-folders/:folderId", handlers.MediaAssets.HandleRenameLibraryFolder)

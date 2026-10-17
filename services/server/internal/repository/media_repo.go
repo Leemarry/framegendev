@@ -45,6 +45,83 @@ func (repo *MediaAssetRepository) ListMediaAssets(projectID string) ([]domain.As
 	return models, nil
 }
 
+// AssetCatalogPageQuery describes one cursor page and its supported filters.
+type AssetCatalogPageQuery struct {
+	ProjectID string
+	CursorAt  string
+	CursorID  string
+	Kind      string
+	Query     string
+	Tag       string
+	FolderID  string
+	Source    string
+	MinRating *int
+	Favorite  bool
+	Trashed   bool
+	Limit     int
+}
+
+// ListAssetCatalogPage returns one database-backed page and the scope revision.
+func (repo *MediaAssetRepository) ListAssetCatalogPage(options AssetCatalogPageQuery) ([]domain.AssetModel, string, error) {
+	projectID := domain.CleanProjectID(options.ProjectID)
+	scopeQuery := func() *gorm.DB {
+		query := repo.db.Model(&domain.AssetModel{})
+		if projectID == "" {
+			return query.Where("project_id IS NULL")
+		}
+		return query.Where("project_id IS NULL OR project_id = ?", projectID)
+	}
+	var revisionState struct {
+		Count        int64
+		MaxUpdatedAt string
+	}
+	if err := scopeQuery().Select("COUNT(*) AS count, COALESCE(MAX(updated_at), '') AS max_updated_at").Scan(&revisionState).Error; err != nil {
+		return nil, "", fmt.Errorf("reading asset catalog revision: %w", err)
+	}
+	revision := fmt.Sprintf("%s:%d", revisionState.MaxUpdatedAt, revisionState.Count)
+
+	query := scopeQuery()
+	if options.Trashed {
+		query = query.Where("trashed_at IS NOT NULL")
+	} else {
+		query = query.Where("trashed_at IS NULL")
+	}
+	if options.Kind != "" && options.Kind != "all" {
+		query = query.Where("kind = ?", options.Kind)
+	}
+	if options.Query != "" {
+		pattern := "%" + strings.ToLower(options.Query) + "%"
+		query = query.Where("LOWER(filename) LIKE ? OR LOWER(tags_json) LIKE ? OR LOWER(note) LIKE ? OR LOWER(source_url) LIKE ? OR LOWER(rel_path) LIKE ? OR LOWER(mime_type) LIKE ?", pattern, pattern, pattern, pattern, pattern, pattern)
+	}
+	if options.Tag != "" {
+		query = query.Where("LOWER(tags_json) LIKE ?", "%\""+strings.ToLower(options.Tag)+"\"%")
+	}
+	if options.FolderID != "" {
+		query = query.Where("library_folder_id = ?", options.FolderID)
+	}
+	if options.Source != "" && options.Source != "all" {
+		query = query.Where("source = ?", options.Source)
+	}
+	if options.Favorite {
+		query = query.Where("favorite = ?", true)
+	}
+	if options.MinRating != nil {
+		query = query.Where("rating >= ?", *options.MinRating)
+	}
+	if options.CursorID != "" {
+		cursorAt, err := time.Parse(time.RFC3339Nano, options.CursorAt)
+		if err != nil {
+			return nil, "", fmt.Errorf("parsing asset catalog cursor timestamp: %w", err)
+		}
+		query = query.Where("updated_at < ? OR (updated_at = ? AND id < ?)", cursorAt, cursorAt, options.CursorID)
+	}
+	models := []domain.AssetModel{}
+	if err := query.Order("updated_at DESC").Order("id DESC").Limit(options.Limit).Find(&models).Error; err != nil {
+		return nil, "", fmt.Errorf("listing asset catalog page: %w", err)
+	}
+	return models, revision, nil
+}
+
 // ListAllMediaAssets returns every media asset ordered by update time.
 func (repo *MediaAssetRepository) ListAllMediaAssets() ([]domain.AssetModel, error) {
 	models := []domain.AssetModel{}

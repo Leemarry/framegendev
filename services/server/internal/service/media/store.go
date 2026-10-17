@@ -291,6 +291,20 @@ func (store *MediaAssets) List(projectID string) ([]MediaAsset, error) {
 	return store.backfillListedMetadata(assets)
 }
 
+// ListCatalogPage returns one filtered catalog page without loading other assets.
+func (store *MediaAssets) ListCatalogPage(options repository.AssetCatalogPageQuery) ([]MediaAsset, string, error) {
+	if store.initErr != nil {
+		return nil, "", store.initErr
+	}
+	store.mu.RLock()
+	models, revision, err := store.repo.ListAssetCatalogPage(options)
+	store.mu.RUnlock()
+	if err != nil {
+		return nil, "", err
+	}
+	return store.mediaAssetRecordsFromModels(models), revision, nil
+}
+
 func (store *MediaAssets) Get(id string) (MediaAsset, bool, error) {
 	if store.initErr != nil {
 		return MediaAsset{}, false, store.initErr
