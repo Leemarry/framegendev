@@ -11,7 +11,14 @@ const levels: Record<SidebarScreenId, number> = {
 	projects: 1,
 	"studio-types": 1,
 	project: 2,
+	"global-agent": 2,
+	"asset-library": 2,
+	"generation-history": 2,
 	"studio-conversations": 2,
+	"project-asset-library": 3,
+	"project-generation-center": 3,
+	"project-settings": 3,
+	"global-agent-archive": 3,
 	settings: 3,
 };
 

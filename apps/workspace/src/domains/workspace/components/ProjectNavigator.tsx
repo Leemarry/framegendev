@@ -34,6 +34,7 @@ import { useProjectStore } from "@/domains/projects/stores";
 import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import {
 	resolveSidebarScreen,
+	sidebarStackScreen,
 	studioTabFromPath,
 	workModeForScreen,
 } from "@/domains/workspace/lib/sidebar-navigation";
@@ -122,6 +123,7 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 		projectId: activeProjectId,
 		workMode,
 	});
+	const stackScreen = sidebarStackScreen(activeScreen);
 	const isProjectSettingsMode = isProjectSettingsRoute(location.pathname, location.search);
 	const routeWorkMode = workModeForScreen(activeScreen);
 	const studioSearchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -135,9 +137,7 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 		activeScreen,
 		isProjectSettingsMode,
 	);
-	const settingsScreenLevel = sidebarScreenLevel("settings", {
-		isProjectSettings: settingsScreenIsProjectSettings,
-	});
+	const settingsScreenLevel = sidebarScreenLevel("settings");
 
 	const openSearch = useCallback((scope: "global" | "project") => {
 		setSearchScope(scope);
@@ -603,11 +603,11 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 			<div className="flex h-full min-h-0 flex-col overflow-hidden text-ide-sidebar-foreground">
 				<div className="relative min-h-0 flex-1 overflow-hidden">
 					<SidebarScreenStack
-						activeId={activeScreen}
+						activeId={stackScreen}
 						screens={[
 							{
 								id: "projects",
-								level: sidebarScreenLevel("projects", { isProjectSettings: false }),
+								level: sidebarScreenLevel("projects"),
 								node: (
 									<ProjectsSidebarPanel
 										error={error}
@@ -633,7 +633,7 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 							},
 							{
 								id: "project",
-								level: sidebarScreenLevel("project", { isProjectSettings: false }),
+								level: sidebarScreenLevel("project"),
 								node: (
 									<ProjectSidebarPanel
 										displayProject={displayProject}
@@ -664,7 +664,7 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 							},
 							{
 								id: "studio-types",
-								level: sidebarScreenLevel("studio-types", { isProjectSettings: false }),
+								level: sidebarScreenLevel("studio-types"),
 								node: (
 									<StudioSessionsScreen
 										activeConversationId={activeStudioConversationId}
@@ -681,9 +681,7 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 							},
 							{
 								id: "studio-conversations",
-								level: sidebarScreenLevel("studio-conversations", {
-									isProjectSettings: false,
-								}),
+								level: sidebarScreenLevel("studio-conversations"),
 								node: null,
 							},
 							{

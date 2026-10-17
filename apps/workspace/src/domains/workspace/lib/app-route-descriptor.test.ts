@@ -9,7 +9,7 @@ describe("app route descriptor", () => {
 		expect(resolveAppRouteDescriptor("/", "", { workMode: "agent" })).toMatchObject({
 			level: 1,
 			sidebarScreen: "projects",
-			title: "智能体工作台",
+			title: "项目管理",
 		});
 		expect(resolveAppRouteDescriptor("/", "", { workMode: "studio" })).toMatchObject({
 			level: 1,
@@ -73,12 +73,80 @@ describe("app route descriptor", () => {
 		).toMatchObject({
 			level: 9999,
 			sidebarScreen: "settings",
-			title: "项目设置",
+			title: "设置",
 		});
+	});
+
+	it("stacks the library, history and agent screens on their official levels", () => {
+		expect(resolveAppRouteDescriptor("/library", "", { workMode: "agent" })).toMatchObject({
+			level: 2,
+			sidebarScreen: "asset-library",
+			title: "素材库",
+			workMode: "agent",
+		});
+		expect(
+			resolveAppRouteDescriptor("/library", "?projectId=project-1", {
+				workMode: "agent",
+				projectId: "project-1",
+				projectName: "测试项目",
+			}),
+		).toMatchObject({
+			level: 3,
+			sidebarScreen: "project-asset-library",
+			title: "测试项目",
+		});
+		expect(resolveAppRouteDescriptor("/history/video", "", { workMode: "agent" })).toMatchObject({
+			level: 2,
+			sidebarScreen: "generation-history",
+			title: "生成历史",
+			workMode: "studio",
+		});
+		expect(
+			resolveAppRouteDescriptor("/history", "?projectId=project-1", {
+				workMode: "agent",
+				projectId: "project-1",
+			}),
+		).toMatchObject({
+			level: 3,
+			sidebarScreen: "project-generation-center",
+		});
+		expect(resolveAppRouteDescriptor("/agent", "", { workMode: "agent" })).toMatchObject({
+			level: 2,
+			sidebarScreen: "global-agent",
+			title: "Drami",
+		});
+		expect(resolveAppRouteDescriptor("/agent/archived", "", { workMode: "agent" })).toMatchObject({
+			level: 3,
+			sidebarScreen: "global-agent-archive",
+			title: "已归档会话",
+		});
+	});
+
+	it("keeps project settings on level three and off the project list", () => {
+		expect(
+			resolveAppRouteDescriptor("/project-settings", "?projectId=project-1", {
+				workMode: "agent",
+				projectId: "project-1",
+				projectName: "测试项目",
+			}),
+		).toMatchObject({
+			level: 3,
+			sidebarScreen: "project-settings",
+			title: "测试项目",
+		});
+		expect(resolveAppRouteDescriptor("/project-settings", "", { workMode: "agent" })).toMatchObject(
+			{
+				level: 1,
+				sidebarScreen: "projects",
+				title: "项目管理",
+			},
+		);
 	});
 
 	it("uses project-settings sidebar semantics while entering and leaving project settings", () => {
 		expect(usesProjectSettingsSidebar("project", false)).toBe(true);
+		expect(usesProjectSettingsSidebar("project-asset-library", false)).toBe(true);
+		expect(usesProjectSettingsSidebar("project-settings", false)).toBe(true);
 		expect(usesProjectSettingsSidebar("settings", true)).toBe(true);
 		expect(usesProjectSettingsSidebar("projects", false)).toBe(false);
 		expect(usesProjectSettingsSidebar("settings", false)).toBe(false);
