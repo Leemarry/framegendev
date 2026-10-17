@@ -1,7 +1,6 @@
 import {
 	AudioLines,
 	ChevronDown,
-	ChevronRight,
 	Sparkles,
 	FileText,
 	Film,
@@ -41,6 +40,11 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/shared/lib/utils";
 import { openGenerationConversationCreateDialog } from "./GenerationConversationCreateDialog";
+import {
+	SidebarNavContent,
+	sidebarNavRowActiveClassName,
+	sidebarNavRowClassName,
+} from "./SidebarNavButton";
 import type { StudioTab } from "./ProjectNavigatorTypes";
 
 const GenerationWorkspace = lazy(() =>
@@ -114,18 +118,17 @@ export const GlobalToolboxButton: React.FC<GlobalToolboxButtonProps> = ({
 							aria-expanded={open}
 							className={cn(
 								variant === "navigation"
-									? "projects-root-nav"
+									? sidebarNavRowClassName
 									: "flex size-8 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-								open && "bg-ide-list-active text-ide-list-active-foreground",
+								open &&
+									(variant === "navigation"
+										? sidebarNavRowActiveClassName
+										: "bg-ide-list-active text-ide-list-active-foreground"),
 							)}
 							onClick={() => setOpen((current) => !current)}
 						>
 							{variant === "navigation" ? (
-								<>
-									<Sparkles />
-									<span className="nav-label">{label}</span>
-									<ChevronRight />
-								</>
+								<SidebarNavContent icon={<Sparkles />} label={label} />
 							) : (
 								<History className="size-4" />
 							)}

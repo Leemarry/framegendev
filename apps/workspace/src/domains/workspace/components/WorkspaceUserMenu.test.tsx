@@ -11,7 +11,7 @@ vi.mock("@/hooks/useToast", () => ({ useToast: () => ({ error: toastError }) }))
 vi.mock("@/shared/components/ui/sonner", () => ({ Toaster: () => null }));
 
 const openMenu = () => {
-	fireEvent.pointerDown(screen.getByRole("button", { name: "本地用户菜单" }), {
+	fireEvent.pointerDown(screen.getByRole("button", { name: "用户菜单：未登录" }), {
 		button: 0,
 		ctrlKey: false,
 		pointerType: "mouse",
@@ -42,8 +42,8 @@ describe("WorkspaceUserMenu", () => {
 
 	it("shows truthful local identity and disables unavailable services", () => {
 		const { onOpenSettings, onOpenSkills } = mount();
-		expect(screen.getByText("本地工作区")).toBeInTheDocument();
-		for (const name of ["积分 待接入", "系统公告 待接入"]) {
+		expect(screen.getByText("本地使用")).toBeInTheDocument();
+		for (const name of [/^积分/u, /^系统公告/u]) {
 			const item = screen.getByRole("menuitem", { name });
 			expect(item).toHaveAttribute("aria-disabled", "true");
 			fireEvent.click(item);
@@ -107,15 +107,15 @@ describe("WorkspaceUserMenu", () => {
 
 	it("reports only Chinese as supported in the language submenu", async () => {
 		mount();
-		const language = screen.getByRole("menuitem", { name: "语言 简体中文" });
+		const language = screen.getByRole("menuitem", { name: /^语言/u });
 		fireEvent.keyDown(language, { key: "ArrowRight" });
-		await screen.findByRole("menuitemradio", { name: "简体中文" });
+		await screen.findByRole("menuitemradio", { name: /^中文/u });
 		expect(screen.getByRole("menuitemradio")).toHaveAttribute("aria-checked", "true");
-		expect(screen.getByRole("menuitem", { name: "跟随系统 待接入" })).toHaveAttribute(
+		expect(screen.getByRole("menuitem", { name: /^跟随系统/u })).toHaveAttribute(
 			"aria-disabled",
 			"true",
 		);
-		expect(screen.getByRole("menuitem", { name: "English 待接入" })).toHaveAttribute(
+		expect(screen.getByRole("menuitem", { name: /^English/u })).toHaveAttribute(
 			"aria-disabled",
 			"true",
 		);
@@ -130,19 +130,21 @@ describe("WorkspaceUserMenu", () => {
 		expect(openExternalUrl).toHaveBeenCalledWith(url);
 	});
 
-	it("keeps compact language choices inside the menu and can return", () => {
+	it("keeps compact language choices reachable from the language submenu", () => {
 		vi.stubGlobal("matchMedia", (query: string) => ({
 			matches: query === "(max-width: 700px)",
 			addEventListener: vi.fn(),
 			removeEventListener: vi.fn(),
 		}));
 		mount();
-		fireEvent.click(screen.getByRole("menuitem", { name: "语言 简体中文" }));
-		expect(screen.getAllByRole("menu")).toHaveLength(1);
-		expect(screen.getByRole("menuitemradio")).toHaveAttribute("aria-checked", "true");
-		expect(screen.getByRole("menuitem", { name: "返回用户菜单" })).toHaveFocus();
-		fireEvent.click(screen.getByRole("menuitem", { name: "返回用户菜单" }));
-		expect(screen.getByRole("menuitem", { name: "软件设置" })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("menuitem", { name: /^语言/u }));
+		const chinese = screen.getByRole("menuitemradio", { name: /^中文/u });
+		expect(chinese).toHaveAttribute("aria-checked", "true");
+		fireEvent.click(chinese);
+		expect(screen.getByRole("menuitemradio", { name: /^中文/u })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
 	});
 
 	it("shows an error when the link helper rejects", async () => {

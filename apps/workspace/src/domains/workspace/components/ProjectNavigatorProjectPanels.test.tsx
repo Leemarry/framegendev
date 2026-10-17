@@ -193,7 +193,7 @@ describe("ProjectSidebarPanel", () => {
 		);
 		expect(screen.getByRole("button", { name: "打开生成历史" })).toHaveTextContent("项目生成历史");
 		expect(screen.getByRole("button", { name: "项目设置" })).toBeTruthy();
-		expect(screen.getByRole("button", { name: "本地用户菜单" })).toBeTruthy();
+		expect(screen.getByRole("button", { name: "用户菜单：未登录" })).toBeTruthy();
 		projectSidebar.unmount();
 
 		const onOpenSettings = vi.fn();
@@ -206,7 +206,7 @@ describe("ProjectSidebarPanel", () => {
 		expect(screen.getByRole("button", { name: "打开生成历史" })).toHaveTextContent("生成历史");
 		fireEvent.click(screen.getByRole("button", { name: "项目管理" }));
 		expect(onOpenProjects).toHaveBeenCalledOnce();
-		fireEvent.pointerDown(screen.getByRole("button", { name: "本地用户菜单" }), {
+		fireEvent.pointerDown(screen.getByRole("button", { name: "用户菜单：未登录" }), {
 			button: 0,
 			ctrlKey: false,
 			pointerType: "mouse",

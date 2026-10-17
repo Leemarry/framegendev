@@ -621,6 +621,7 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 										onRequestDeleteProject={requestTrashSidebarProject}
 										onRenameProject={renameSidebarProject}
 										onOpenGenerationNotification={openGenerationNotification}
+										onOpenGlobalAgent={() => navigate("/agent")}
 										onOpenProject={openProject}
 										onOpenSearch={openSearch}
 										onOpenSettings={openGlobalSettings}

@@ -8,14 +8,6 @@
 	.project-management-shell [data-sidebar-screen="projects"] {
 		background: var(--project-sidebar-surface);
 	}
-	.projects-root-recent button {
-		font-size: 16px;
-		padding-left: 10px;
-	}
-	.projects-root-recent button > svg {
-		width: 20px;
-		height: 20px;
-	}
 	.project-management-header {
 		display: flex;
 		min-height: 56px;
@@ -200,104 +192,6 @@
 	.project-card-menu:disabled {
 		cursor: wait;
 	}
-	.projects-root-sidebar {
-		padding: 4px 2px 8px;
-	}
-	.projects-root-search {
-		display: flex;
-		height: 40px;
-		width: 100%;
-		align-items: center;
-		gap: 10px;
-		padding: 0 10px;
-		border-radius: 10px;
-		background: var(--project-search-surface);
-		font-size: 16px;
-		font-weight: 600;
-	}
-	.projects-root-search svg {
-		width: 20px;
-		height: 20px;
-		flex-shrink: 0;
-	}
-	.projects-root-search kbd {
-		margin-left: auto;
-		font-size: 12px;
-		font-weight: 400;
-		color: var(--muted-foreground);
-	}
-	.projects-root-nav {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		height: 40px;
-		width: 100%;
-		border-radius: 10px;
-		padding: 0 10px;
-		font-size: 16px;
-		color: var(--ide-sidebar-foreground);
-		text-align: left;
-		cursor: pointer;
-	}
-	.projects-root-nav svg {
-		width: 20px;
-		height: 20px;
-		flex-shrink: 0;
-	}
-	.projects-root-nav .nav-label {
-		flex: 1;
-		min-width: 0;
-	}
-	.projects-root-nav > svg:last-child {
-		width: 16px;
-		height: 16px;
-	}
-	.projects-root-nav:hover {
-		background: var(--ide-list-hover);
-	}
-	.projects-root-nav[aria-current="page"] {
-		background: var(--project-navigation-active);
-		color: var(--foreground);
-		font-weight: 600;
-	}
-	.projects-root-nav:disabled {
-		cursor: not-allowed;
-	}
-	.projects-root-pending {
-		font-size: 10px;
-		color: var(--muted-foreground);
-	}
-	.projects-root-user {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin-top: 18px;
-		padding: 0 8px;
-		height: 44px;
-	}
-	.projects-root-user-trigger {
-		display: flex;
-		flex: 1;
-		min-width: 0;
-		align-items: center;
-		gap: 10px;
-		text-align: left;
-		font-size: 14px;
-		font-weight: 600;
-		cursor: pointer;
-	}
-	.projects-root-user-trigger img {
-		width: 36px;
-		height: 36px;
-		border-radius: 50%;
-	}
-	.projects-root-user-trigger > span {
-		flex: 1;
-	}
-	.projects-root-user-trigger svg {
-		width: 16px;
-		height: 16px;
-	}
 	@media (max-width: 700px) {
 		.project-management-shell aside {
 			width: 64px !important;
@@ -320,36 +214,6 @@
 			justify-content: flex-start;
 			gap: 8px;
 			margin-bottom: 12px;
-		}
-		.projects-root-search {
-			justify-content: center;
-			padding: 0;
-		}
-		.projects-root-search span,
-		.projects-root-search kbd,
-		.projects-root-recent,
-		.projects-root-nav .nav-label,
-		.projects-root-nav .projects-root-pending,
-		.projects-root-nav > svg:last-child,
-		.projects-root-user-trigger span,
-		.projects-root-user-trigger svg {
-			display: none;
-		}
-		.projects-root-nav {
-			padding: 0;
-			justify-content: center;
-		}
-		.projects-root-nav > svg:first-child {
-			display: block;
-		}
-		.projects-root-user {
-			padding: 0;
-			flex-direction: column;
-			height: auto;
-			gap: 12px;
-		}
-		.projects-root-user-trigger {
-			flex: none;
 		}
 	}
 }

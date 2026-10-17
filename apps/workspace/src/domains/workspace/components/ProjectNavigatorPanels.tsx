@@ -49,7 +49,7 @@ import { GenerationNotificationButton } from "./GenerationNotificationButton";
 import { openGenerationConversationCreateDialog } from "./GenerationConversationCreateDialog";
 import { GlobalToolboxButton } from "./GlobalToolboxDrawer";
 import { AssetLibraryButton } from "./AssetLibraryButton";
-import { WorkspaceUserMenu } from "./WorkspaceUserMenu";
+import { SidebarUserFooter } from "./ProjectNavigatorProjectPanels";
 import type { ActiveStudioTab, StudioTab } from "./ProjectNavigatorTypes";
 
 const githubRepositoryURL = "https://github.com/mediago-dev/mediago-drama";
@@ -671,12 +671,12 @@ export const SettingsSidebarPanel: React.FC<{
 						/>
 					))}
 				</div>
-				<div className="projects-root-user">
-					<WorkspaceUserMenu onOpenSettings={onOpenGlobalSettings} onOpenSkills={onOpenSkills} />
-					{onOpenGenerationNotification ? (
-						<GenerationNotificationButton onOpenNotification={onOpenGenerationNotification} />
-					) : null}
-				</div>
+				<SidebarUserFooter
+					onOpenGenerationNotification={onOpenGenerationNotification}
+					onOpenSettings={onOpenGlobalSettings}
+					onOpenSkills={onOpenSkills}
+					settingsActive
+				/>
 			</div>
 		);
 	return (

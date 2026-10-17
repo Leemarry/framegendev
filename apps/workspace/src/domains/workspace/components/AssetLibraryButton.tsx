@@ -102,6 +102,7 @@ import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import { apiResourceURL } from "@/shared/lib/api-base";
 import { cn } from "@/shared/lib/utils";
 import { AssetLibraryMetadataEditor } from "./AssetLibraryMetadataEditor";
+import { SidebarNavContent, sidebarNavRowClassName } from "./SidebarNavButton";
 import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
 
@@ -215,7 +216,7 @@ const ProjectAssetLibraryLink = ({
 	const location = useLocation();
 	return (
 		<Link
-			className="projects-root-nav"
+			className={sidebarNavRowClassName}
 			to={projectId ? `/assets?projectId=${encodeURIComponent(projectId)}` : "/assets?scope=all"}
 			state={{
 				assetReturnTo: location.pathname + location.search,
@@ -223,9 +224,7 @@ const ProjectAssetLibraryLink = ({
 			}}
 			aria-label={projectId ? "打开项目素材库" : "打开全局素材库"}
 		>
-			<LibraryBig className="size-4" />
-			<span className="nav-label">{label}</span>
-			<ChevronRight />
+			<SidebarNavContent icon={<LibraryBig />} label={label} />
 		</Link>
 	);
 };

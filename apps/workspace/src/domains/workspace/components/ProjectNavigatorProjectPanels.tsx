@@ -1,7 +1,6 @@
 import {
 	Archive,
 	ChevronLeft,
-	ChevronRight,
 	FilePlus2,
 	Folder,
 	FolderPlus,
@@ -22,6 +21,7 @@ import type { WorkspaceProject } from "@/domains/projects/api/projects";
 import type { DocumentCategory } from "@/domains/documents/stores";
 import type { GenerationSuccessNotification } from "@/domains/generation/stores/generation-notifications";
 import { Button } from "@/shared/components/ui/button";
+import { SidebarNavButton } from "./SidebarNavButton";
 import { WorkspaceUserMenu } from "./WorkspaceUserMenu";
 import {
 	ContextMenu,
@@ -56,6 +56,7 @@ export const ProjectsSidebarPanel: React.FC<{
 	onRenameProject: (project: WorkspaceProject) => void;
 	onOpenProject: (project: WorkspaceProject) => void;
 	onOpenGenerationNotification?: (notification: GenerationSuccessNotification) => void;
+	onOpenGlobalAgent?: () => void;
 	onOpenSearch: (scope: "global" | "project") => void;
 	onOpenSettings: () => void;
 	onOpenSkills: () => void;
@@ -71,6 +72,7 @@ export const ProjectsSidebarPanel: React.FC<{
 	onRequestDeleteProject,
 	onRenameProject,
 	onOpenGenerationNotification,
+	onOpenGlobalAgent,
 	onOpenProject,
 	onOpenSearch,
 	onOpenSettings,
@@ -80,21 +82,22 @@ export const ProjectsSidebarPanel: React.FC<{
 	projectAction = null,
 	projects,
 }) => (
-	<div className="projects-root-sidebar flex h-full flex-col">
-		<button
-			type="button"
-			onClick={() => onOpenSearch("global")}
-			className="projects-root-search"
-			aria-label="全局搜索"
-			title="全局搜索"
-		>
-			<Search />
-			<span>全局搜索</span>
-			<kbd>⌘K</kbd>
-		</button>
-		<div className="projects-root-recent mt-6 hidden min-h-0 flex-1 flex-col min-[701px]:flex">
-			<div className="mb-3 px-2 text-sm font-medium text-muted-foreground">最近项目</div>
-			<div className="min-h-0 flex-1 overflow-y-auto">
+	<div className="flex h-full min-h-0 flex-col">
+		<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+			<button
+				type="button"
+				onClick={() => onOpenSearch("global")}
+				className="flex h-8 w-full shrink-0 cursor-pointer items-center gap-2 rounded-sm bg-surface-interactive px-2 text-left text-sm text-ide-sidebar-foreground transition-colors hover:bg-surface-interactive-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				aria-keyshortcuts="Meta+K Control+K"
+			>
+				<Search className="size-4 shrink-0 text-muted-foreground" />
+				<span className="min-w-0 flex-1 truncate">全局搜索</span>
+				<span className="text-2xs text-muted-foreground">⌘K</span>
+			</button>
+			<section>
+				<p className="mb-1 flex h-7 items-center px-2 text-xs font-medium text-muted-foreground">
+					最近项目
+				</p>
 				{projects.length > 0 ? (
 					projects.map((project) => (
 						<ProjectsSidebarProjectItem
@@ -128,44 +131,58 @@ export const ProjectsSidebarPanel: React.FC<{
 						) : null}
 					</div>
 				) : (
-					<p className="px-2 py-1.5 text-xs text-muted-foreground">暂无项目</p>
+					<p className="px-2 py-1.5 text-xs text-muted-foreground">打开项目后会显示在这里</p>
 				)}
+			</section>
+			<div className="mt-auto space-y-0.5 pt-2">
+				<SidebarNavButton
+					active={locationPathname === "/agent"}
+					icon={<MessageCircleQuestion />}
+					label="Drami"
+					onClick={onOpenGlobalAgent}
+				/>
+				<SidebarNavButton
+					active={locationPathname === "/"}
+					icon={<LayoutList />}
+					label="项目管理"
+					onClick={onOpenProjects}
+				/>
+				<AssetLibraryButton variant="navigation" />
+				<GlobalToolboxButton variant="navigation" />
 			</div>
 		</div>
+		<SidebarUserFooter
+			onOpenGenerationNotification={onOpenGenerationNotification}
+			onOpenSettings={onOpenSettings}
+			onOpenSkills={onOpenSkills}
+			settingsActive={locationPathname.startsWith("/settings")}
+		/>
+	</div>
+);
 
-		<div className="mt-auto space-y-0.5 pt-2">
-			<button
-				type="button"
-				className="projects-root-nav"
-				disabled
-				title="Drami · 待接入"
-				aria-label="Drami（待接入）"
-			>
-				<MessageCircleQuestion />
-				<span className="nav-label">Drami</span>
-				<span className="projects-root-pending">待接入</span>
-				<ChevronRight />
-			</button>
-			<button
-				type="button"
-				className="projects-root-nav"
-				aria-current={locationPathname === "/" ? "page" : undefined}
-				aria-label="项目管理"
-				title="项目管理"
-				onClick={onOpenProjects}
-			>
-				<LayoutList />
-				<span className="nav-label">项目管理</span>
-				<ChevronRight />
-			</button>
-			<AssetLibraryButton variant="navigation" />
-			<GlobalToolboxButton variant="navigation" />
-			<div className="projects-root-user">
-				<WorkspaceUserMenu onOpenSettings={onOpenSettings} onOpenSkills={onOpenSkills} />
-				{onOpenGenerationNotification ? (
-					<GenerationNotificationButton onOpenNotification={onOpenGenerationNotification} />
-				) : null}
-			</div>
+/** SidebarUserFooter renders the account menu and generation notifications at the sidebar bottom. */
+export const SidebarUserFooter: React.FC<{
+	onOpenGenerationNotification?: (notification: GenerationSuccessNotification) => void;
+	onOpenSettings: () => void;
+	onOpenSkills: () => void;
+	settingsActive?: boolean;
+}> = ({ onOpenGenerationNotification, onOpenSettings, onOpenSkills, settingsActive = false }) => (
+	<div className="mt-auto pt-2">
+		<div className="flex items-center gap-1">
+			<WorkspaceUserMenu
+				className="flex-1"
+				onOpenSettings={onOpenSettings}
+				onOpenSkills={onOpenSkills}
+				settingsActive={settingsActive}
+			/>
+			{onOpenGenerationNotification ? (
+				<div className="flex shrink-0 items-center gap-0">
+					<GenerationNotificationButton
+						className="size-9"
+						onOpenNotification={onOpenGenerationNotification}
+					/>
+				</div>
+			) : null}
 		</div>
 	</div>
 );
@@ -196,7 +213,7 @@ const ProjectsSidebarProjectItem: React.FC<{
 				<button
 					type="button"
 					onClick={() => onOpenProject(project)}
-					className="mb-0.5 flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-base text-ide-sidebar-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground"
+					className="mb-0.5 flex h-8 w-full cursor-pointer items-center gap-2 rounded-sm px-2 text-left text-sm text-ide-sidebar-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground"
 				>
 					<Folder className="size-4 shrink-0 text-muted-foreground" />
 					<span className="min-w-0 flex-1 truncate">{project.name}</span>
@@ -441,36 +458,35 @@ const SidebarFooterActions: React.FC<{
 	onOpenSkills,
 	settingsActive,
 }) => (
-	<div className="project-sidebar-footer mt-auto pt-2">
-		<AssetLibraryButton variant="navigation" label="项目素材库" />
-		<GlobalToolboxButton variant="navigation" label="项目生成历史" projectId={projectId} />
-		<button
-			type="button"
-			className="projects-root-nav"
-			aria-current={settingsActive ? "page" : undefined}
-			onClick={onOpenSettings}
-		>
-			<SlidersHorizontal />
-			<span className="nav-label">项目设置</span>
-			<ChevronRight />
-		</button>
-		<div className="projects-root-user">
-			<WorkspaceUserMenu onOpenSettings={onOpenGlobalSettings} onOpenSkills={onOpenSkills} />
-			{onOpenGenerationNotification ? (
-				<GenerationNotificationButton onOpenNotification={onOpenGenerationNotification} />
-			) : null}
-		</div>
-	</div>
+	<>
+		<nav aria-label="项目页面" className="shrink-0 space-y-0.5 pt-2">
+			<AssetLibraryButton variant="navigation" label="项目素材库" />
+			<GlobalToolboxButton variant="navigation" label="项目生成历史" projectId={projectId} />
+			<div className="mt-1 pt-1">
+				<SidebarNavButton
+					active={settingsActive}
+					icon={<SlidersHorizontal />}
+					label="项目设置"
+					onClick={onOpenSettings}
+				/>
+			</div>
+		</nav>
+		<SidebarUserFooter
+			onOpenGenerationNotification={onOpenGenerationNotification}
+			onOpenSettings={onOpenGlobalSettings}
+			onOpenSkills={onOpenSkills}
+		/>
+	</>
 );
 
 const sidebarToolbarIconButtonClassName =
-	"flex size-7 shrink-0 items-center justify-center rounded-sm border border-border bg-ide-toolbar text-muted-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-50";
+	"flex size-7 shrink-0 items-center justify-center rounded-sm bg-ide-toolbar text-muted-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-50";
 
 const DocumentViewModeSwitcher: React.FC<{
 	mode: "category" | "directory";
 	onSelectMode: (mode: "category" | "directory") => void;
 }> = ({ mode, onSelectMode }) => (
-	<div className="flex h-7 shrink-0 items-center rounded-sm border border-border bg-ide-toolbar p-0.5">
+	<div className="flex h-7 shrink-0 items-center rounded-sm bg-ide-toolbar p-0.5">
 		<button
 			type="button"
 			className={cn(

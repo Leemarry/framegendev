@@ -70,14 +70,6 @@
 	width: 18px;
 	height: 18px;
 }
-.project-sidebar-footer .projects-root-nav {
-	height: 44px;
-	border-radius: 8px;
-}
-.project-sidebar-footer .projects-root-user,
-.project-settings-sidebar .projects-root-user {
-	margin-top: 12px;
-}
 .project-settings-back {
 	display: flex;
 	align-items: center;
@@ -164,25 +156,6 @@
 	background: var(--ide-toolbar);
 }
 @media (max-width: 700px) {
-	.project-workspace-shell .projects-root-nav {
-		justify-content: flex-start;
-		padding: 0 10px;
-	}
-	.project-workspace-shell .projects-root-nav .nav-label,
-	.project-workspace-shell .projects-root-nav > svg:last-child,
-	.project-workspace-shell .projects-root-user-trigger span,
-	.project-workspace-shell .projects-root-user-trigger svg {
-		display: block;
-	}
-	.project-workspace-shell .projects-root-user {
-		flex-direction: row;
-		height: 44px;
-		gap: 8px;
-		padding: 0 8px;
-	}
-	.project-workspace-shell .projects-root-user-trigger {
-		flex: 1;
-	}
 	.project-workspace-shell .project-writing-page {
 		padding: 16px;
 	}

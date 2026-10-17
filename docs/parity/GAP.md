@@ -70,7 +70,7 @@
 | shell | 项目卡封面/调色 | 每张卡拉 generation 的 `kind:image` 素材作封面，用 `resource-card-palette` 取色；`project-folio-label-{id}` 白字阴影，3:4 | `Projects.tsx` 卡片没有封面也没取色 | 补封面拉取和 palette 渐变，标签按有无封面切换样式 | M | ❌ |
 | shell | 项目元数据 | `GET /projects/{id}/metadata` | 无 | 后端加接口（卡片/概览用），前端 api 补上 | S | ❌ |
 | shell | 项目创建权限门 | `fa.requestProjectCreationAccess()`、`entitlement.defaultTitle:需要 Drama 会员权益` | 无 | 留钩子，标【待接入】 | S | 🅿 |
-| shell | 账户菜单：头部 | `userMenu.menuLabel:用户菜单：{{name}}{{update}}`；未登录显示 `localUse:本地使用`/`notSignedIn`；头像首字母、会员徽章、积分 | `WorkspaceUserMenu.tsx:94-140` 固定写"本地用户/本地工作区"，积分待接入 | 文案改"本地使用"，aria-label 改"用户菜单：本地使用"，补头像首字母；会员/积分维持【待接入】 | S | 🟡 |
+| shell | 账户菜单：头部 | `userMenu.menuLabel:用户菜单：{{name}}{{update}}`；未登录显示 `localUse:本地使用`/`notSignedIn`；头像首字母、会员徽章、积分 | `WorkspaceUserMenu.tsx:84-101` 触发器 `aria-label="用户菜单：未登录"`，身份区"未登录 / 本地使用"+"待接入"徽章 | 头像用通用图标而非首字母；会员徽章与积分需账户数据（🅿），本地态已真实 | S | 🟡 |
 | shell | 账户菜单：更新提示 | `updateAvailable:，有可用更新`，触发器带红点 | 无 | 接应用更新状态（桌面端），显示红点和菜单项 | S | 🚧 |
 | shell | 账户菜单：系统公告 | `GET /announcements`，SWR 每 60s；localStorage 键 `drama.announcements.last-seen.v1`；未读红点 + 弹窗"知道了" | `WorkspaceUserMenu.tsx:199` 是 disabled + 待接入 | 后端 `GET /announcements`（可返回空数组）；前端补公告弹窗和未读红点 | M | ❌ |
 | shell | 账户菜单：反馈 | 弹窗 `feedbackDescription`，二维码 + `qqGroup:QQ群：1075312237` | 现在打开 GitHub issues（:205） | 改成反馈弹窗（二维码 + 群号） | S | 🟡 |

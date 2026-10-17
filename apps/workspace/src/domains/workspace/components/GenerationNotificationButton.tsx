@@ -18,10 +18,12 @@ import { markAllGenerationNotificationsRead } from "@/domains/generation/api/gen
 import { cn } from "@/shared/lib/utils";
 
 interface GenerationNotificationButtonProps {
+	className?: string;
 	onOpenNotification: (notification: GenerationSuccessNotification) => void;
 }
 
 export const GenerationNotificationButton: React.FC<GenerationNotificationButtonProps> = ({
+	className,
 	onOpenNotification,
 }) => {
 	const notifications = useGenerationNotificationStore((state) => state.notifications);
@@ -122,8 +124,9 @@ export const GenerationNotificationButton: React.FC<GenerationNotificationButton
 				aria-label={unreadCount > 0 ? `生成通知，${unreadCount} 条未读` : "生成通知"}
 				aria-expanded={open}
 				className={cn(
-					"relative flex size-8 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+					"relative flex size-8 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 					open && "bg-ide-list-active text-ide-list-active-foreground",
+					className,
 				)}
 				onClick={() => setOpen((current) => !current)}
 			>
