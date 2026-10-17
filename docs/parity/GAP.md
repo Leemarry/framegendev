@@ -121,7 +121,7 @@
 | assets | 详情面板 | `basicInfo`；dimensions/duration/fileSize/format/addedAt/fileModifiedAt；`palette`/`copyColor`；`analyzing`/`retryAnalysis`；`sourceURL`；`folderLocation` + `changeFolder`；`technicalDetails`；评分；标签 chip；备注；自动保存 `saving/saved/saveFailed/unsaved/retrySave`；未选中时显示文件夹/视图属性 | `AssetLibraryMetadataEditor.tsx` 是表单 + 保存按钮，标签用逗号分隔 | 改成自动保存的属性面板，补主色板、媒体分析、来源网址、文件夹属性模式 | L | 🟡 |
 | assets | 用途/使用状态 | `uses`、`removedUse`、`noUses`、`projectUse`、`useKinds.*`（project-reference / generation-input / generation-output / document-binding / generation-list / selected-resource） | 有 `/references` 加"已选用/候选/用作参考/未使用"筛选 | 补 useKinds 分类展示和"已移除的用途" | S | 🟡 |
 | assets | 重新关联/修复 | `relink`、`relinkHint`、`relinkConflict`、`repair`、`missing`；`POST /assets/{id}/relink {targetAssetId,targetRevision}` | 无 | 缺失文件的重新关联流程 | M | ❌ |
-| assets | 预览 | `previous/next`、`zoomPreview/fitPreview`、`previewFailed`、`openLocalDirectory`、`export`（`<a download>`） | 有预览/下载/在文件夹中显示 | 上一个/下一个、原始尺寸切换 | S | 🟡 |
+| assets | 预览 | 官方预览器是整屏弹窗：标题 + 图片专用缩放开关（`zoomPreview` 原始尺寸 / `fitPreview` 适应窗口）、左右「上一个素材/下一个素材」、方向键切换、空格关闭、失败文案 `previewFailed`、以及「打开本地目录」 | 详情面板内提供图片/视频/音频/文本预览，补上「上一个素材」「下一个素材」（禁用态跟随列表边界）与图片「原始尺寸/适应窗口」切换（换素材自动复位），图片加载失败显示「无法预览此素材」，另有下载/重命名/收藏/复制路径/在文件夹中显示 | 仍是右侧详情面板而非独立整屏弹窗；面板内没有方向键切换与空格关闭；音频/视频失败没有专门文案 | S | 🟡 |
 | assets | 来源分组 | `sourceOptions` upload/browser/generation/other/unknown | 有（"浏览器采集（待接入）"） | 内嵌浏览器导入维持 🅿 | S | 🅿 |
 | assets | 范围侧栏 | `assetSidebar.searchProjects`、`enterProject`、`noProjectAssets` | `AssetLibraryScopes.tsx` 有项目列表，没有搜索 | 侧栏加项目搜索；顶栏加"进入项目" | S | 🟡 |
 

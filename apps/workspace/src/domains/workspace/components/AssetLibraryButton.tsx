@@ -2,6 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
 	AudioLines,
 	Check,
+	ChevronLeft,
 	ChevronRight,
 	Copy,
 	Download,
@@ -453,6 +454,14 @@ export const AssetLibraryWorkspace: React.FC<{
 				: (filteredItems.find((item) => item.key === activeKey) ?? filteredItems[0] ?? null),
 		[activeKey, error, filteredItems, isLoading],
 	);
+	const activeIndex = activeItem
+		? filteredItems.findIndex((item) => item.key === activeItem.key)
+		: -1;
+	const previousItem = activeIndex > 0 ? filteredItems[activeIndex - 1] : null;
+	const nextItem =
+		activeIndex >= 0 && activeIndex < filteredItems.length - 1
+			? filteredItems[activeIndex + 1]
+			: null;
 
 	useEffect(() => {
 		if (!open) return;
@@ -1258,6 +1267,20 @@ export const AssetLibraryWorkspace: React.FC<{
 				</div>
 				{showDetails ? (
 					<AssetLibraryPreview
+						onNext={
+							nextItem
+								? () => {
+										setActiveKey(nextItem.key);
+									}
+								: undefined
+						}
+						onPrevious={
+							previousItem
+								? () => {
+										setActiveKey(previousItem.key);
+									}
+								: undefined
+						}
 						onToggleFavorite={() =>
 							activeItem ? toggleFavorite(activeItem) : Promise.reject(new Error("请选择素材"))
 						}
@@ -1446,6 +1469,8 @@ const AssetLibraryPreview: React.FC<{
 	item: AssetLibraryItem | null;
 	onDelete: () => void;
 	onDownload: () => void;
+	onNext?: () => void;
+	onPrevious?: () => void;
 	onRename: (filename: string) => Promise<boolean>;
 	onSaveMetadata: (payload: MediaAssetMetadataUpdate) => Promise<void>;
 	onToggleFavorite: () => Promise<void>;
@@ -1455,6 +1480,8 @@ const AssetLibraryPreview: React.FC<{
 	item,
 	onDelete,
 	onDownload,
+	onNext,
+	onPrevious,
 	onRename,
 	onSaveMetadata,
 	onToggleFavorite,
@@ -1462,6 +1489,7 @@ const AssetLibraryPreview: React.FC<{
 }) => {
 	const toast = useToast();
 	const [draftName, setDraftName] = useState<string | null>(null);
+	const [zoomed, setZoomed] = useState(false);
 	const source = item ? assetLibraryItemSource(item) : "";
 	const posterSource = item ? assetLibraryItemPosterSource(item) : "";
 	const tags = item ? assetLibraryResourceTags(item) : [];
@@ -1475,6 +1503,8 @@ const AssetLibraryPreview: React.FC<{
 
 	useEffect(() => {
 		setDraftName(null);
+		// The official previewer drops its zoom level whenever the asset changes.
+		setZoomed(false);
 	}, [itemKey]);
 
 	if (!item) {
@@ -1523,6 +1553,45 @@ const AssetLibraryPreview: React.FC<{
 
 	return (
 		<aside className="flex min-h-0 flex-col gap-3 overflow-y-auto border-t border-border bg-card p-4 lg:border-l lg:border-t-0">
+			<div className="flex shrink-0 items-center gap-1">
+				<Button
+					type="button"
+					size="sm"
+					variant="ghost"
+					className="h-7 w-7 p-0"
+					disabled={!onPrevious || busy}
+					aria-label="上一个素材"
+					title="上一个素材"
+					onClick={onPrevious}
+				>
+					<ChevronLeft className="size-4" />
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					variant="ghost"
+					className="h-7 w-7 p-0"
+					disabled={!onNext || busy}
+					aria-label="下一个素材"
+					title="下一个素材"
+					onClick={onNext}
+				>
+					<ChevronRight className="size-4" />
+				</Button>
+				{item.kind === "image" && source ? (
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						className="ml-auto h-7 rounded-sm px-2 text-xs"
+						aria-label={zoomed ? "适应窗口" : "原始尺寸"}
+						title={zoomed ? "适应窗口" : "原始尺寸"}
+						onClick={() => setZoomed(!zoomed)}
+					>
+						{zoomed ? "适应窗口" : "原始尺寸"}
+					</Button>
+				) : null}
+			</div>
 			<div className="min-w-0 shrink-0">
 				{draftName === null ? (
 					<MiddleTruncatedText
@@ -1583,7 +1652,12 @@ const AssetLibraryPreview: React.FC<{
 					{formatBytes(item.sizeBytes)}
 				</p>
 			</div>
-			<div className="flex min-h-64 min-w-0 flex-1 flex-col overflow-hidden rounded-sm border border-border bg-ide-editor lg:min-h-32">
+			<div
+				className={cn(
+					"flex min-h-64 min-w-0 flex-1 flex-col rounded-sm border border-border bg-ide-editor lg:min-h-32",
+					zoomed ? "overflow-auto" : "overflow-hidden",
+				)}
+			>
 				<AssetPreviewMedia
 					error={error}
 					isTextLoading={isLoading}
@@ -1591,6 +1665,7 @@ const AssetLibraryPreview: React.FC<{
 					posterSource={posterSource}
 					source={source}
 					text={text}
+					zoomed={zoomed}
 				/>
 			</div>
 			<div className="flex shrink-0 flex-wrap items-center gap-1.5">
@@ -1780,10 +1855,33 @@ const AssetPreviewMedia: React.FC<{
 	posterSource: string;
 	source: string;
 	text?: string;
-}> = ({ error, isTextLoading, item, posterSource, source, text }) => {
+	zoomed?: boolean;
+}> = ({ error, isTextLoading, item, posterSource, source, text, zoomed = false }) => {
+	const [imageFailed, setImageFailed] = useState(false);
+
 	if (item.kind === "image" && source) {
+		if (imageFailed) {
+			return (
+				<div className="grid flex-1 place-items-center p-6 text-center">
+					<div className="grid justify-items-center gap-2">
+						<ImageIcon className="size-8 text-muted-foreground" />
+						<p className="text-sm font-medium text-foreground">无法预览此素材</p>
+						<p className="text-xs text-muted-foreground">文件可能已被移动或删除。</p>
+					</div>
+				</div>
+			);
+		}
+
 		return (
-			<img src={source} alt={item.title} className="m-auto max-h-full max-w-full object-contain" />
+			<img
+				src={source}
+				alt={item.title}
+				onError={() => setImageFailed(true)}
+				className={cn(
+					"m-auto",
+					zoomed ? "max-h-none max-w-none" : "max-h-full max-w-full object-contain",
+				)}
+			/>
 		);
 	}
 	if (item.kind === "video" && source) {

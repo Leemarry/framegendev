@@ -705,6 +705,49 @@ describe("global material scopes", () => {
 		expect(await screen.findByRole("button", { name: "预览 root.png" })).toBeInTheDocument();
 	});
 
+	it("steps through previews and toggles the image zoom", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				asset("second", "b.png", "2026-10-15T00:00:00Z"),
+				asset("first", "a.png", "2026-10-16T00:00:00Z"),
+			],
+		});
+		mount(undefined, "?projectId=project-a");
+
+		fireEvent.click(await screen.findByRole("button", { name: "预览 a.png" }));
+
+		expect(screen.getByRole("button", { name: "上一个素材" })).toBeDisabled();
+		fireEvent.click(screen.getByRole("button", { name: "下一个素材" }));
+
+		expect(screen.getByRole("img", { name: "b.png" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "下一个素材" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "上一个素材" })).toBeEnabled();
+
+		fireEvent.click(screen.getByRole("button", { name: "原始尺寸" }));
+
+		expect(screen.getByRole("button", { name: "适应窗口" })).toBeInTheDocument();
+		expect(screen.getByRole("img", { name: "b.png" })).toHaveClass("max-h-none");
+
+		fireEvent.click(screen.getByRole("button", { name: "适应窗口" }));
+
+		expect(screen.getByRole("button", { name: "原始尺寸" })).toBeInTheDocument();
+	});
+
+	it("reports an unreadable image in the preview", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [asset("broken", "a.png", "2026-10-16T00:00:00Z")],
+		});
+		mount(undefined, "?projectId=project-a");
+
+		fireEvent.click(await screen.findByRole("button", { name: "预览 a.png" }));
+
+		fireEvent.error(screen.getByRole("img", { name: "a.png" }));
+
+		expect(await screen.findByText("无法预览此素材")).toBeInTheDocument();
+	});
+
 	it("browses the trash and restores an asset", async () => {
 		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
 		vi.mocked(getMediaAssets).mockImplementation(async (filters) =>
