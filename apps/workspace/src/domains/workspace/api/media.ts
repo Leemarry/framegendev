@@ -5,6 +5,7 @@ export type MediaAssetKind = "image" | "video" | "audio" | "text";
 export interface MediaAsset {
 	usage?: { selected: boolean; candidate: boolean; reference: boolean };
 	id: string;
+	revision?: string;
 	kind: MediaAssetKind;
 	filename: string;
 	tags?: string[];
@@ -16,6 +17,7 @@ export interface MediaAsset {
 	sizeBytes: number;
 	url: string;
 	sourceUrl?: string;
+	colors?: string[];
 	projectId?: string;
 	source?: "upload" | "generation" | "toolbox" | "preview" | string;
 	conversationId?: string;
@@ -92,14 +94,43 @@ export interface MediaAssetFilters {
 }
 
 export const getMediaAssets = async (filters: MediaAssetFilters = {}) => {
-	const response = await httpClient.get<MediaAssetsResponse>(mediaAssetsPath(filters.projectId), {
-		params: {
-			includeUsage: filters.includeUsage,
-			kind: filters.kind,
-			q: filters.q,
-			status: filters.status === "trashed" ? "trashed" : undefined,
-		},
-	});
+	if (filters.includeUsage) {
+		const response = await httpClient.get<MediaAssetsResponse>(mediaAssetsPath(filters.projectId), {
+			params: { includeUsage: true, kind: filters.kind, q: filters.q, status: filters.status },
+		});
+		return response.data;
+	}
+	const params = new URLSearchParams({ limit: "100" });
+	if (filters.projectId) params.set("projectId", filters.projectId);
+	if (filters.kind && filters.kind !== "all") params.set("kind", filters.kind);
+	if (filters.q) params.set("q", filters.q);
+	if (filters.status === "trashed") params.set("status", "trashed");
+	const items: MediaAsset[] = [];
+	let cursor: string | undefined;
+	while (true) {
+		if (cursor) params.set("cursor", cursor);
+		const response = await httpClient.get<AssetCatalogPage>(`/asset-catalog/assets?${params}`);
+		items.push(...response.data.items);
+		cursor = response.data.nextCursor;
+		if (!cursor) break;
+	}
+	return { assets: items };
+};
+
+interface AssetCatalogPage {
+	items: MediaAsset[];
+	nextCursor?: string;
+	revision: string;
+}
+
+const assetCatalogAssetPath = (id: string, projectId?: string | null, action?: string) => {
+	const params = new URLSearchParams();
+	if (projectId) params.set("projectId", projectId);
+	return `/asset-catalog/assets/${encodeURIComponent(id)}${action ? `/${action}` : ""}${params.size ? `?${params}` : ""}`;
+};
+
+const getAssetCatalogAsset = async (id: string, projectId?: string | null) => {
+	const response = await httpClient.get<MediaAsset>(assetCatalogAssetPath(id, projectId));
 	return response.data;
 };
 
@@ -146,10 +177,14 @@ export const uploadMediaAsset = async (
 };
 
 export const deleteMediaAsset = async (id: string, projectId?: string) => {
-	const response = await httpClient.delete<MediaAssetsResponse>(
-		`${mediaAssetsPath(projectId)}/${encodeURIComponent(id)}`,
-	);
-	return response.data;
+	const asset = await getAssetCatalogAsset(id, projectId);
+	await httpClient.delete<{ deleted: boolean }>(assetCatalogAssetPath(id, projectId), {
+		data: {
+			expectedRevision: asset.revision ?? asset.updatedAt,
+			operationId: newCatalogOperationID(),
+		},
+	});
+	return getMediaAssets({ projectId });
 };
 
 /** Moves an asset to the trash; its files stay on disk until the trash is purged. */
@@ -162,8 +197,13 @@ export const trashMediaAsset = async (id: string, projectId?: string | null) => 
 
 /** Restores a trashed asset back into the library. */
 export const restoreMediaAsset = async (id: string, projectId?: string | null) => {
+	const asset = await getAssetCatalogAsset(id, projectId);
 	const response = await httpClient.post<MediaAsset>(
-		`${mediaAssetsPath(projectId)}/${encodeURIComponent(id)}/restore`,
+		assetCatalogAssetPath(id, projectId, "restore"),
+		{
+			expectedRevision: asset.revision ?? asset.updatedAt,
+			operationId: newCatalogOperationID(),
+		},
 	);
 	return response.data;
 };
@@ -205,6 +245,18 @@ export const useCatalogAssets = async (payload: CatalogUseRequest) => {
 	return response.data;
 };
 
+export const copyCatalogAssetToProject = async (
+	id: string,
+	sourceProjectId: string | null | undefined,
+	projectId: string,
+) => {
+	const response = await httpClient.post<MediaAsset>(
+		assetCatalogAssetPath(id, sourceProjectId, "copy-to-project"),
+		{ projectId, operationId: newCatalogOperationID() },
+	);
+	return response.data;
+};
+
 export const updateMediaAsset = async (id: string, filename: string, projectId?: string | null) => {
 	return updateMediaAssetFields(id, { filename }, projectId);
 };
@@ -229,9 +281,11 @@ export const updateMediaAssetFields = async (
 	payload: Partial<MediaAssetMetadataUpdate> & { filename?: string; folderId?: string },
 	projectId?: string | null,
 ) => {
-	const response = await httpClient.put<MediaAsset>(
-		`${mediaAssetsPath(projectId)}/${encodeURIComponent(id)}`,
-		payload,
-	);
+	const asset = await getAssetCatalogAsset(id, projectId);
+	const response = await httpClient.patch<MediaAsset>(assetCatalogAssetPath(id, projectId), {
+		...payload,
+		expectedRevision: asset.revision ?? asset.updatedAt,
+		operationId: newCatalogOperationID(),
+	});
 	return response.data;
 };

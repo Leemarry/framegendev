@@ -350,6 +350,15 @@ func (repo *MediaAssetRepository) DeleteMediaAsset(id string) (bool, error) {
 	return result.RowsAffected > 0, nil
 }
 
+// DeleteMediaAssetIfRevision deletes an asset only if its revision still matches.
+func (repo *MediaAssetRepository) DeleteMediaAssetIfRevision(id string, revision time.Time) (bool, error) {
+	result := repo.db.Where("id = ? AND updated_at = ?", strings.TrimSpace(id), revision).Delete(&domain.AssetModel{})
+	if result.Error != nil {
+		return false, fmt.Errorf("deleting media asset by revision: %w", result.Error)
+	}
+	return result.RowsAffected > 0, nil
+}
+
 // TrashMediaAsset moves a media asset to the trash without touching its files.
 func (repo *MediaAssetRepository) TrashMediaAsset(id string, trashedAt time.Time) (bool, error) {
 	result := repo.db.Model(&domain.AssetModel{}).
@@ -368,6 +377,17 @@ func (repo *MediaAssetRepository) RestoreMediaAsset(id string, restoredAt time.T
 		Updates(map[string]any{"trashed_at": nil, "updated_at": restoredAt})
 	if result.Error != nil {
 		return false, fmt.Errorf("restoring media asset: %w", result.Error)
+	}
+	return result.RowsAffected > 0, nil
+}
+
+// RestoreMediaAssetIfRevision restores a trashed asset only when its revision matches.
+func (repo *MediaAssetRepository) RestoreMediaAssetIfRevision(id string, revision time.Time, restoredAt time.Time) (bool, error) {
+	result := repo.db.Model(&domain.AssetModel{}).
+		Where("id = ? AND trashed_at IS NOT NULL AND updated_at = ?", strings.TrimSpace(id), revision).
+		Updates(map[string]any{"trashed_at": nil, "updated_at": restoredAt})
+	if result.Error != nil {
+		return false, fmt.Errorf("restoring media asset by revision: %w", result.Error)
 	}
 	return result.RowsAffected > 0, nil
 }
@@ -414,6 +434,17 @@ func (repo *MediaAssetRepository) UpdateMediaAssetMetadata(id string, updates ma
 		return fmt.Errorf("updating media asset metadata: %w", err)
 	}
 	return nil
+}
+
+// UpdateMediaAssetMetadataIfRevision atomically updates metadata only if the asset revision still matches.
+func (repo *MediaAssetRepository) UpdateMediaAssetMetadataIfRevision(id string, revision time.Time, updates map[string]any) (bool, error) {
+	result := repo.db.Model(&domain.AssetModel{}).
+		Where("id = ? AND updated_at = ?", strings.TrimSpace(id), revision).
+		Updates(updates)
+	if result.Error != nil {
+		return false, fmt.Errorf("updating media asset metadata by revision: %w", result.Error)
+	}
+	return result.RowsAffected > 0, nil
 }
 
 // UpdateMediaAssetStorage updates the physical storage metadata for an asset.

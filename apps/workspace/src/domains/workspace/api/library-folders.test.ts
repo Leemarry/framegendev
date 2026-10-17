@@ -8,9 +8,14 @@ import {
 	reparentLibraryFolder,
 } from "./library-folders";
 import {
+	copyCatalogAssetToProject,
+	deleteMediaAsset,
+	getMediaAssets,
 	getMediaAssetReferences,
 	mediaAssetReferencesPath,
 	mediaAssetsScanPath,
+	newCatalogOperationID,
+	restoreMediaAsset,
 	scanMediaAssets,
 	uploadMediaAsset,
 	updateMediaAssetFields,
@@ -57,7 +62,35 @@ it("uses encoded project/global folder routes and a creation-only parent", async
 	);
 });
 
-it("uploads with the destination in multipart and shares the scoped media patch contract", async () => {
+it("uses cursor catalog reads and revisioned, idempotent asset mutations", async () => {
+	vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-4000-8000-000000000001");
+	vi.mocked(httpClient.get)
+		.mockResolvedValueOnce({
+			data: { items: [{ id: "one" }], nextCursor: "next", revision: "r1" },
+			success: true,
+			code: 0,
+			message: "",
+		})
+		.mockResolvedValueOnce({
+			data: { items: [{ id: "two" }], revision: "r1" },
+			success: true,
+			code: 0,
+			message: "",
+		});
+	expect(await getMediaAssets({ projectId: "project/a", kind: "image" })).toEqual({
+		assets: [{ id: "one" }, { id: "two" }],
+	});
+	expect(httpClient.get).toHaveBeenNthCalledWith(
+		1,
+		"/asset-catalog/assets?limit=100&projectId=project%2Fa&kind=image",
+	);
+	expect(httpClient.get).toHaveBeenNthCalledWith(
+		2,
+		"/asset-catalog/assets?limit=100&projectId=project%2Fa&kind=image&cursor=next",
+	);
+
+	const asset = { id: "asset/a", revision: "rev-1", updatedAt: "rev-1" };
+	vi.mocked(httpClient.get).mockResolvedValue({ data: asset, success: true, code: 0, message: "" });
 	const file = new File(["bytes"], "image.png", { type: "image/png" });
 	await uploadMediaAsset(file, "project/a", "folder-a");
 	const call = vi.mocked(httpClient.post).mock.calls[0];
@@ -67,15 +100,58 @@ it("uploads with the destination in multipart and shares the scoped media patch 
 	expect(form.get("file")).toBe(file);
 	expect(form.get("folderId")).toBe("folder-a");
 	await updateMediaAssetFields("asset/a", { folderId: "" }, "project/a");
-	expect(httpClient.put).toHaveBeenCalledWith("/projects/project%2Fa/media-assets/asset%2Fa", {
-		folderId: "",
-	});
+	expect(httpClient.patch).toHaveBeenCalledWith(
+		"/asset-catalog/assets/asset%2Fa?projectId=project%2Fa",
+		{
+			folderId: "",
+			expectedRevision: "rev-1",
+			operationId: "op-00000000-0000-4000-8000-000000000001",
+		},
+	);
 	await updateMediaAssetMetadata("global", { tags: [], note: "", rating: 0 });
-	expect(httpClient.put).toHaveBeenCalledWith("/media-assets/global", {
+	expect(httpClient.patch).toHaveBeenCalledWith("/asset-catalog/assets/global", {
 		tags: [],
 		note: "",
 		rating: 0,
+		expectedRevision: "rev-1",
+		operationId: "op-00000000-0000-4000-8000-000000000001",
 	});
+
+	await restoreMediaAsset("asset/a", "project/a");
+	expect(httpClient.post).toHaveBeenLastCalledWith(
+		"/asset-catalog/assets/asset%2Fa/restore?projectId=project%2Fa",
+		{
+			expectedRevision: "rev-1",
+			operationId: "op-00000000-0000-4000-8000-000000000001",
+		},
+	);
+	vi.mocked(httpClient.get)
+		.mockResolvedValueOnce({ data: asset, success: true, code: 0, message: "" })
+		.mockResolvedValueOnce({
+			data: { items: [] },
+			success: true,
+			code: 0,
+			message: "",
+		});
+	expect(await deleteMediaAsset("asset/a", "project/a")).toEqual({ assets: [] });
+	expect(httpClient.delete).toHaveBeenCalledWith(
+		"/asset-catalog/assets/asset%2Fa?projectId=project%2Fa",
+		{
+			data: {
+				expectedRevision: "rev-1",
+				operationId: "op-00000000-0000-4000-8000-000000000001",
+			},
+		},
+	);
+	await copyCatalogAssetToProject("asset/a", "source/a", "target/b");
+	expect(httpClient.post).toHaveBeenLastCalledWith(
+		"/asset-catalog/assets/asset%2Fa/copy-to-project?projectId=source%2Fa",
+		{
+			projectId: "target/b",
+			operationId: "op-00000000-0000-4000-8000-000000000001",
+		},
+	);
+	expect(newCatalogOperationID()).toBe("op-00000000-0000-4000-8000-000000000001");
 });
 
 it("reparents folders through scoped PATCH routes including a move to root", async () => {

@@ -104,7 +104,7 @@
 | 模块 | 功能点 | 官方证据 | 我们现状 | 缺口 | 工作量 | 状态 |
 |---|---|---|---|---|---|---|
 | assets | 路由与 URL 状态 | 官方把筛选全部放 URL：`hg=['view','root','usage','minRating','includeDescendants','kind','q','resource','source','folder','sort','tag','favorite','status']`，页面用 `view==='assets'`、`root==='legacy-work'`、`minRating` 0–5 钳制、`folder` 还原目录 | `/library` 上线；新增 `library-route-state.ts` 按官方参数读写 `view`/`kind`/`q`/`tag`/`sort`/`resource`/`source`/`usage`/`minRating`/`favorite`/`includeDescendants`/`folder`（旧 `folderId` 仍可读），页面模式下 URL 即唯一状态，弹窗仍走本地状态 | `source`、`sort` 的值域还是本地（media/selected、updatedDesc…），官方是 upload/browser/…、created-desc；`root`、`status` 未接；滚动位置记录未做 | M | 🟡 |
-| assets | 数据层/API | `useCatalog`：`ci('/assets',…,{limit:100})` 加 cursor 分页（useSWRInfinite）；写操作带 `expectedRevision` 和 `operationId:'op-'+uuid` | 新增 `GET /asset-catalog/assets`，使用数据库 cursor/limit、返回 scope revision，并支持 kind/q/tag/folder/source/favorite/minRating 筛选；写操作的 revision 乐观锁和 operationId 尚未接入 | 新建 `asset-catalog` api 模块：分页、revision 乐观锁、operationId | L | 🟡 |
+| assets | 数据层/API | `useCatalog`：`ci('/assets',…,{limit:100})` 加 cursor 分页（useSWRInfinite）；`GET/PATCH/DELETE /assets/{id}`、restore 写操作用 expectedRevision 与 operationId | 新增列表和单项 GET、revision + operationId 保护的 PATCH/DELETE/restore，以及幂等 `POST /assets/{id}/copy-to-project`；列表用数据库 cursor/limit 和 scope revision，筛选支持 kind/q/tag/folder/source/favorite/minRating；前端读取并迭代所有 cursor 页 | 前端尚未改为可见范围内按需 loadMore；relink、analysis、imports/entries/facets/layout/refresh/events 尚未实现 | L | 🟡 |
 | assets | 浏览视图 | `assetHub.browseView`：directory/all/favorites/trash；`directoryBrowse`、`upOneLevel`、`openFolder`、`directoryCount`、面包屑；`U('/entries')` | 有目录浏览和"返回上级文件夹"，没有回收站视图，也没有 `/entries` | 补 view 切换（含 trash）、面包屑，改走 entries 接口 | M | 🟡 |
 | assets | 回收站 | 官方素材条目带 `status`（`ready`/`trashed`）与 `assetHub.restore`、`assetHub.remove`，回收站条目可恢复或彻底移除 | 后端加 `trashed_at` 软删除：`POST /media-assets/{id}/trash`、`.../restore`、`GET /media-assets?status=trashed`，所有列表查询排除已入回收站的行，文件保留；前端删除改为「移到回收站」，`/library?status=trashed` 显示回收站，卡片提供「恢复」与「彻底删除」 | 没有保留期与自动清理、没有批量恢复/清空；回收站视图仍复用普通筛选工具条 | M | 🟡 |
 | assets | 工作区文件根 | `root:'legacy-work'` → `assetHub.work:'工作区文件'` | 无 | 第二个根（项目工作区文件） | M | ❌ |
@@ -127,17 +127,16 @@
 
 **已对齐**：全局/项目范围切换、文件夹增删改移基础功能、收藏、评分、按类型/资源/来源/使用状态筛选、缩略图大小、在文件夹中显示、复制路径、媒体 content/poster 读取。
 
-**官方有、我们没有的接口**（官方前缀 `/api/v1/asset-catalog{path}?projectId=`；目前只有 `POST /asset-catalog/use` 已补，其余仍缺）：
+**官方有、我们尚未补齐的素材库接口**（官方前缀 `/api/v1/asset-catalog{path}?projectId=`；列表与单条 GET/PATCH/DELETE/restore/copy-to-project 已补）：
 
-- `GET /asset-catalog/assets`（cursor/limit + 上述筛选）、`GET/PATCH/DELETE /asset-catalog/assets/{id}`（expectedRevision、operationId）
-- `POST /asset-catalog/assets/{id}/restore`、`/relink`、`/copy-to-project`
+- `POST /asset-catalog/assets/{id}/relink`
 - `GET /asset-catalog/assets/{id}/analysis`（主色板/媒体信息）
 - `GET /asset-catalog/entries`、`/facets`、`/layout`
 - `GET/POST /asset-catalog/folders`、`PATCH /asset-catalog/folders/{id}`（带 revision）
 - `POST /asset-catalog/imports`（multipart，policy=keep-both，folderId）
 - `POST /asset-catalog/refresh`、`DELETE /asset-catalog/scans/{id}`、`GET /asset-catalog/events`（SSE）
 
-后端模型 `services/server/internal/domain/media_models.go` 需要扩展：`MediaAssetModel` 缺 revision、软删除状态、palette/分析字段、`location.root`；`AssetLibraryFolderModel` 缺 revision 和 role 绑定。`/api/v1/media-assets/{id}/content` 和 `/poster` 官方仍在用，我们已有。
+`AssetModel` 已有软删除与 palette 字段；revision 当前由 `updated_at` 提供，后续需要校验这与官方完整技术详情/分析接口的粒度一致。`AssetLibraryFolderModel` 仍缺 revision 和 role 绑定。`/api/v1/media-assets/{id}/content` 和 `/poster` 官方仍在用，我们已有。
 
 ---
 

@@ -26,6 +26,10 @@ func (store *MediaAssets) Update(id string, projectID string, payload MediaAsset
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
+	return store.updateLocked(id, projectID, payload, "")
+}
+
+func (store *MediaAssets) updateLocked(id string, projectID string, payload MediaAssetUpdateRequest, expectedRevision string) (MediaAsset, bool, error) {
 	model, err := store.repo.GetMediaAsset(id)
 	if repository.IsRecordNotFound(err) {
 		return MediaAsset{}, false, nil
@@ -35,6 +39,9 @@ func (store *MediaAssets) Update(id string, projectID string, payload MediaAsset
 	}
 	if domain.StringValue(model.ProjectID) != domain.CleanProjectID(projectID) {
 		return MediaAsset{}, false, nil
+	}
+	if expectedRevision != "" && domain.StringFromTime(model.UpdatedAt) != expectedRevision {
+		return MediaAsset{}, false, ErrAssetCatalogRevisionConflict
 	}
 
 	updates := make(map[string]any)
@@ -101,7 +108,16 @@ func (store *MediaAssets) Update(id string, projectID string, payload MediaAsset
 		return invalid("at least one metadata field is required")
 	}
 	updates["updated_at"] = domain.TimeFromString(timestamp.NowRFC3339Nano())
-	if err := store.repo.UpdateMediaAssetMetadata(model.ID, updates); err != nil {
+	if expectedRevision == "" {
+		err = store.repo.UpdateMediaAssetMetadata(model.ID, updates)
+	} else {
+		var updated bool
+		updated, err = store.repo.UpdateMediaAssetMetadataIfRevision(model.ID, model.UpdatedAt, updates)
+		if err == nil && !updated {
+			return MediaAsset{}, false, ErrAssetCatalogRevisionConflict
+		}
+	}
+	if err != nil {
 		return MediaAsset{}, false, err
 	}
 	model, err = store.repo.GetMediaAsset(model.ID)
