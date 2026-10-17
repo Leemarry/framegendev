@@ -123,7 +123,7 @@
 | assets | 重新关联/修复 | `relink`、`relinkHint`、`relinkConflict`、`repair`、`missing`；`POST /assets/{id}/relink {targetAssetId,targetRevision}` | 无 | 缺失文件的重新关联流程 | M | ❌ |
 | assets | 预览 | 官方预览器是整屏弹窗：标题 + 图片专用缩放开关（`zoomPreview` 原始尺寸 / `fitPreview` 适应窗口）、左右「上一个素材/下一个素材」、方向键切换、空格关闭、失败文案 `previewFailed`、以及「打开本地目录」 | 详情面板内提供图片/视频/音频/文本预览，补上「上一个素材」「下一个素材」（禁用态跟随列表边界）与图片「原始尺寸/适应窗口」切换（换素材自动复位），图片加载失败显示「无法预览此素材」，另有下载/重命名/收藏/复制路径/在文件夹中显示 | 仍是右侧详情面板而非独立整屏弹窗；面板内没有方向键切换与空格关闭；音频/视频失败没有专门文案 | S | 🟡 |
 | assets | 来源分组 | `sourceOptions` upload/browser/generation/other/unknown | 有（"浏览器采集（待接入）"） | 内嵌浏览器导入维持 🅿 | S | 🅿 |
-| assets | 范围侧栏 | `assetSidebar.searchProjects`、`enterProject`、`noProjectAssets` | `AssetLibraryScopes.tsx` 有项目列表，没有搜索 | 侧栏加项目搜索；顶栏加"进入项目" | S | 🟡 |
+| assets | 范围侧栏 | `assetSidebar.searchProjects:'搜索项目'`、`noMatchingProjects:'没有匹配的项目'`、`enterProject:'进入项目'`、`noProjectAssets:'暂无项目素材'` | `AssetLibraryScopes.tsx` 有桌面项目列表与移动端下拉，新增项目搜索框（按名称过滤、无结果时显示「没有匹配的项目」），两处列表都跟随过滤 | 顶栏「进入项目」入口未单独提供；`loadFailed` 文案仍是自定义的「项目范围加载失败」 | S | 🟡 |
 
 **已对齐**：全局/项目范围切换、文件夹增删改移基础功能、收藏、评分、按类型/资源/来源/使用状态筛选、缩略图大小、在文件夹中显示、复制路径、媒体 content/poster 读取。
 
