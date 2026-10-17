@@ -851,6 +851,83 @@ describe("global material scopes", () => {
 		await waitFor(() => expect(trashMediaAsset).toHaveBeenCalledWith("root", "project-a"));
 	});
 
+	it("selects several assets with ctrl and applies one bulk action", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				asset("bulk-a", "A.png", "2026-10-15T10:00:00Z"),
+				asset("bulk-b", "B.png", "2026-10-15T11:00:00Z"),
+			],
+		});
+		vi.mocked(updateMediaAssetFields).mockImplementation(async (id) => ({
+			...asset(id, "x.png", "2026-10-15T10:00:00Z"),
+			favorite: true,
+		}));
+		mount();
+		fireEvent.click(await screen.findByRole("button", { name: "预览 A.png" }));
+		fireEvent.click(screen.getByRole("button", { name: "预览 B.png" }), { ctrlKey: true });
+
+		const panel = await screen.findByRole("complementary", { name: "批量操作" });
+		expect(within(panel).getByText("已选择 2 项")).toBeInTheDocument();
+		expect(
+			within(panel).getByText("以下操作应用于全部选中素材。其他不同的属性保持各自的值。"),
+		).toBeInTheDocument();
+
+		fireEvent.click(within(panel).getByRole("button", { name: "切换收藏" }));
+
+		await waitFor(() => expect(updateMediaAssetFields).toHaveBeenCalledTimes(2));
+		const ids = vi
+			.mocked(updateMediaAssetFields)
+			.mock.calls.map((call) => call[0])
+			.sort();
+		expect(ids).toEqual(["bulk-a", "bulk-b"]);
+		expect(vi.mocked(updateMediaAssetFields).mock.calls[0][1]).toEqual({ favorite: true });
+		await waitFor(() =>
+			expect(screen.queryByRole("complementary", { name: "批量操作" })).not.toBeInTheDocument(),
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "预览 A.png" }));
+		expect(await screen.findByRole("button", { name: "预览 A.png" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		expect(screen.getByRole("button", { name: "预览 B.png" })).toHaveAttribute(
+			"aria-pressed",
+			"false",
+		);
+	});
+
+	it("confirms a bulk trash and keeps the failed items selected", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				asset("bulk-a", "A.png", "2026-10-15T10:00:00Z"),
+				asset("bulk-b", "B.png", "2026-10-15T11:00:00Z"),
+			],
+		});
+		vi.mocked(trashMediaAsset).mockImplementation(async (id) => {
+			if (id === "bulk-b") throw new Error("已被占用");
+			return asset(id, "x.png", "2026-10-15T10:00:00Z");
+		});
+		mount();
+		fireEvent.click(await screen.findByRole("button", { name: "预览 A.png" }));
+		fireEvent.click(screen.getByRole("button", { name: "预览 B.png" }), { ctrlKey: true });
+
+		const panel = await screen.findByRole("complementary", { name: "批量操作" });
+		fireEvent.click(within(panel).getByRole("button", { name: "移入回收站" }));
+
+		const confirm = await screen.findByRole("alertdialog");
+		expect(within(confirm).getByText("将 2 项素材移入回收站？")).toBeInTheDocument();
+		fireEvent.click(within(confirm).getByRole("button", { name: "移入回收站" }));
+
+		await waitFor(() => expect(trashMediaAsset).toHaveBeenCalledTimes(2));
+		await waitFor(() =>
+			expect(screen.queryByRole("complementary", { name: "批量操作" })).not.toBeInTheDocument(),
+		);
+		expect(await screen.findByRole("button", { name: "预览 B.png" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+	});
+
 	it("switches URL scopes and resets directory while preserving the return state", async () => {
 		vi.mocked(getLibraryFolders).mockImplementation(async (projectId) => ({
 			folders: projectId ? [folder("parent", "角色")] : [],

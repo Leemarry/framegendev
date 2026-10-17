@@ -46,6 +46,7 @@ import { generationAssetSource } from "@/domains/generation/hooks/useGenerationW
 import { selectedGenerationResourceDescriptorMap } from "@/domains/generation/lib/selected-resources";
 import {
 	fetchTextAsset,
+	formatBytes,
 	truncateTextPreview,
 } from "@/domains/documents/components/project-asset-preview.helpers";
 import {
@@ -108,11 +109,18 @@ import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import { apiResourceURL } from "@/shared/lib/api-base";
 import { cn } from "@/shared/lib/utils";
 import { AssetLibraryMetadataEditor } from "./AssetLibraryMetadataEditor";
+import { AssetLibraryBulkPanel } from "./AssetLibraryBulkPanel";
 import { AssetLibraryUseDialog } from "./AssetLibraryUseDialog";
 import { SidebarNavContent, sidebarNavRowClassName } from "./SidebarNavButton";
 import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
 import { libraryScrollKey } from "@/domains/workspace/lib/library-scroll";
+import {
+	applyLibraryTagDiff,
+	type LibrarySelectionModifiers,
+	librarySelectionClick,
+	selectAllLibraryKeys,
+} from "@/domains/workspace/lib/library-selection";
 import {
 	type LibraryRouteController,
 	useLibraryFilters,
@@ -300,6 +308,9 @@ export const AssetLibraryWorkspace: React.FC<{
 		patchFilters({ provenance: value });
 	const [uploading, setUploading] = useState<"media" | null>(null);
 	const [useForCreationAssets, setUseForCreationAssets] = useState<MediaAsset[] | null>(null);
+	const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set<string>());
+	const [bulkBusy, setBulkBusy] = useState(false);
+	const selectionAnchorRef = useRef(-1);
 	const [importQueue, setImportQueue] = useState<ImportQueueEntry[]>([]);
 	const [importing, setImporting] = useState(false);
 	const patchImportEntry = (id: string, patch: Partial<ImportQueueEntry>) =>
@@ -516,6 +527,18 @@ export const AssetLibraryWorkspace: React.FC<{
 		activeIndex >= 0 && activeIndex < filteredItems.length - 1
 			? filteredItems[activeIndex + 1]
 			: null;
+	const selectedItems = useMemo(
+		() => filteredItems.filter((item) => selectedKeys.has(item.key)),
+		[filteredItems, selectedKeys],
+	);
+	const bulkAssets = useMemo(
+		() =>
+			selectedItems
+				.map((item) => item.mediaAsset)
+				.filter((asset): asset is MediaAsset => Boolean(asset)),
+		[selectedItems],
+	);
+	const bulkSelectionActive = bulkAssets.length > 1;
 
 	useEffect(() => {
 		if (!open) return;
@@ -551,6 +574,19 @@ export const AssetLibraryWorkspace: React.FC<{
 		previousFolderIdRef.current = folderId;
 		patchFiltersRef.current({ browseScope: "directory" });
 	}, [folderId]);
+
+	useEffect(() => {
+		setSelectedKeys(new Set<string>());
+		selectionAnchorRef.current = -1;
+	}, [libraryScrollStorageKey]);
+	useEffect(() => {
+		setSelectedKeys((previous) => {
+			if (!previous.size) return previous;
+			const visible = new Set(filteredItems.map((item) => item.key));
+			const next = new Set([...previous].filter((key) => visible.has(key)));
+			return next.size === previous.size ? previous : next;
+		});
+	}, [filteredItems]);
 
 	useEffect(() => {
 		if (!activeItem) {
@@ -796,6 +832,104 @@ export const AssetLibraryWorkspace: React.FC<{
 		}
 	};
 
+	const selectOnly = (key: string) => {
+		selectionAnchorRef.current = filteredItems.findIndex((item) => item.key === key);
+		setSelectedKeys(new Set([key]));
+	};
+
+	const selectItem = (item: AssetLibraryItem, modifiers: LibrarySelectionModifiers) => {
+		const result = librarySelectionClick({
+			anchorIndex: selectionAnchorRef.current,
+			index: filteredItems.findIndex((entry) => entry.key === item.key),
+			key: item.key,
+			keys: filteredItems.map((entry) => entry.key),
+			modifiers,
+			selected: selectedKeys,
+		});
+		selectionAnchorRef.current = result.anchorIndex;
+		setSelectedKeys(result.selected);
+		if (result.selected.size > 1) setShowDetails(true);
+	};
+
+	const runBulkAssetAction = async (
+		successLabel: string,
+		apply: (asset: MediaAsset) => Promise<unknown>,
+	) => {
+		if (bulkBusy || !bulkAssets.length) return;
+		setBulkBusy(true);
+		const failed: string[] = [];
+		for (const item of selectedItems) {
+			const asset = item.mediaAsset;
+			if (!asset) continue;
+			try {
+				await apply(asset);
+			} catch {
+				failed.push(item.key);
+			}
+		}
+		setBulkBusy(false);
+		await Promise.all([mutateMediaAssets(), mutateSelectedAssets()]);
+		setSelectedKeys(new Set(failed));
+		if (failed.length) {
+			toast.error("操作失败，请重试", {
+				description: `${failed.length} 项未完成，已保持选中。`,
+			});
+			return;
+		}
+		toast.success(successLabel, { description: `共 ${selectedItems.length} 项` });
+	};
+
+	const bulkToggleFavorite = async () => {
+		const favorite = !bulkAssets.every((asset) => asset.favorite);
+		await runBulkAssetAction(favorite ? "已收藏所选素材" : "已取消收藏", (asset) =>
+			updateMediaAssetFields(asset.id, { favorite }, asset.projectId || undefined),
+		);
+	};
+
+	const bulkTrash = async () => {
+		const confirmed = await confirmDialog({
+			confirmIcon: <Trash2 className="size-4" />,
+			confirmLabel: "移入回收站",
+			description: "移入回收站后，相关用途仍会保留，可随时恢复。",
+			title: `将 ${bulkAssets.length} 项素材移入回收站？`,
+			variant: "destructive",
+		});
+		if (!confirmed) return;
+		await runBulkAssetAction("已移入回收站", (asset) =>
+			trashMediaAsset(asset.id, asset.projectId || undefined),
+		);
+	};
+
+	const bulkRestore = async () => {
+		await runBulkAssetAction("素材已恢复", (asset) =>
+			restoreMediaAsset(asset.id, asset.projectId || undefined),
+		);
+	};
+
+	const bulkMove = async (destination: string) => {
+		const folderName = destination
+			? ((folderControls?.folders ?? []).find((folder) => folder.id === destination)?.name ??
+				"文件夹")
+			: "素材库根目录";
+		await runBulkAssetAction(`已将 ${bulkAssets.length} 项素材移至「${folderName}」`, (asset) =>
+			updateMediaAssetFields(asset.id, { folderId: destination }, asset.projectId || undefined),
+		);
+	};
+
+	const bulkApplyTags = async (added: string[], removed: string[]) => {
+		await runBulkAssetAction("已更新标签", (asset) =>
+			updateMediaAssetMetadata(
+				asset.id,
+				{
+					tags: applyLibraryTagDiff(asset.tags, added, removed),
+					note: asset.note ?? "",
+					rating: asset.rating ?? 0,
+				},
+				asset.projectId || undefined,
+			),
+		);
+	};
+
 	const moveActiveItem = (offset: number) => {
 		if (filteredItems.length === 0) return;
 		const currentIndex = activeItem
@@ -806,6 +940,7 @@ export const AssetLibraryWorkspace: React.FC<{
 		const next = filteredItems[nextIndex];
 		if (!next || next.key === activeItem?.key) return;
 		setActiveKey(next.key);
+		selectOnly(next.key);
 		scrollAssetCardIntoView(gridRef.current, next.key);
 	};
 
@@ -817,6 +952,18 @@ export const AssetLibraryWorkspace: React.FC<{
 				"input, textarea, [contenteditable='true'], [role='combobox'], [role='listbox']",
 			)
 		) {
+			return;
+		}
+		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
+			event.preventDefault();
+			selectionAnchorRef.current = filteredItems.length ? 0 : -1;
+			setSelectedKeys(selectAllLibraryKeys(filteredItems.map((item) => item.key)));
+			return;
+		}
+		if (isPage && event.key === "Escape" && selectedKeys.size > 1) {
+			event.preventDefault();
+			selectionAnchorRef.current = -1;
+			setSelectedKeys(new Set<string>());
 			return;
 		}
 		if (event.key === "Delete" || event.key === "Backspace") {
@@ -1405,6 +1552,8 @@ export const AssetLibraryWorkspace: React.FC<{
 									active={item.key === activeItem?.key}
 									busy={busyKey === item.key}
 									item={item}
+									selected={selectedKeys.has(item.key)}
+									onSelect={(modifiers) => selectItem(item, modifiers)}
 									onDelete={() =>
 										trashMode && item.sourceType === "media"
 											? void purgeItem(item)
@@ -1418,6 +1567,7 @@ export const AssetLibraryWorkspace: React.FC<{
 									}
 									onPreview={() => {
 										setActiveKey(item.key);
+										selectOnly(item.key);
 										if (isPage) setShowDetails(true);
 									}}
 								/>
@@ -1426,63 +1576,95 @@ export const AssetLibraryWorkspace: React.FC<{
 					)}
 				</div>
 				{showDetails ? (
-					<AssetLibraryPreview
-						onNext={
-							nextItem
-								? () => {
-										setActiveKey(nextItem.key);
-									}
-								: undefined
-						}
-						onPrevious={
-							previousItem
-								? () => {
-										setActiveKey(previousItem.key);
-									}
-								: undefined
-						}
-						onUseForCreation={
-							activeItem?.mediaAsset
-								? () => {
-										const asset = activeItem?.mediaAsset;
-										if (asset) setUseForCreationAssets([asset]);
-									}
-								: undefined
-						}
-						onToggleFavorite={() =>
-							activeItem ? toggleFavorite(activeItem) : Promise.reject(new Error("请选择素材"))
-						}
-						onSaveMetadata={(payload) =>
-							activeItem
-								? saveMetadata(activeItem, payload)
-								: Promise.reject(new Error("请选择素材"))
-						}
-						busy={Boolean(activeItem && busyKey === activeItem.key)}
-						folderActions={
-							folderControls &&
-							activeItem?.mediaAsset &&
-							(activeItem.mediaAsset.projectId || "") === selectedProjectId &&
-							!folderUnavailable ? (
-								<AssetLibraryMove
-									key={`move:${activeItem.key}:${activeItem.mediaAsset.folderId || ""}`}
-									asset={activeItem.mediaAsset}
-									folders={folderControls.folders}
-									busy={Boolean(busyKey)}
-									onMove={(id) => moveItem(activeItem, id)}
-								/>
-							) : undefined
-						}
-						item={activeItem}
-						onDelete={() => {
-							if (activeItem) void deleteItem(activeItem);
-						}}
-						onDownload={() => {
-							if (activeItem) void downloadItem(activeItem);
-						}}
-						onRename={(filename) =>
-							activeItem ? renameItem(activeItem, filename) : Promise.resolve(false)
-						}
-					/>
+					bulkSelectionActive ? (
+						<aside
+							aria-label="批量操作"
+							className="flex min-h-0 flex-col gap-3 overflow-y-auto border-t border-border bg-card p-4 lg:border-l lg:border-t-0"
+						>
+							<AssetLibraryBulkPanel
+								assets={bulkAssets}
+								busy={bulkBusy}
+								trashMode={trashMode}
+								onApplyTags={(added, removed) => void bulkApplyTags(added, removed)}
+								onToggleFavorite={() => void bulkToggleFavorite()}
+								onTrash={() => void bulkTrash()}
+								onRestore={() => void bulkRestore()}
+								folderActions={
+									folderControls &&
+									bulkAssets.every((asset) => (asset.projectId || "") === selectedProjectId) &&
+									!folderUnavailable ? (
+										<AssetLibraryMove
+											key={`bulk-move:${bulkAssets[0].folderId || ""}`}
+											asset={bulkAssets[0]}
+											folders={folderControls.folders}
+											busy={bulkBusy}
+											onMove={bulkMove}
+										/>
+									) : undefined
+								}
+							/>
+						</aside>
+					) : (
+						<AssetLibraryPreview
+							onNext={
+								nextItem
+									? () => {
+											setActiveKey(nextItem.key);
+											selectOnly(nextItem.key);
+										}
+									: undefined
+							}
+							onPrevious={
+								previousItem
+									? () => {
+											setActiveKey(previousItem.key);
+											selectOnly(previousItem.key);
+										}
+									: undefined
+							}
+							onUseForCreation={
+								activeItem?.mediaAsset
+									? () => {
+											const asset = activeItem?.mediaAsset;
+											if (asset) setUseForCreationAssets([asset]);
+										}
+									: undefined
+							}
+							onToggleFavorite={() =>
+								activeItem ? toggleFavorite(activeItem) : Promise.reject(new Error("请选择素材"))
+							}
+							onSaveMetadata={(payload) =>
+								activeItem
+									? saveMetadata(activeItem, payload)
+									: Promise.reject(new Error("请选择素材"))
+							}
+							busy={Boolean(activeItem && busyKey === activeItem.key)}
+							folderActions={
+								folderControls &&
+								activeItem?.mediaAsset &&
+								(activeItem.mediaAsset.projectId || "") === selectedProjectId &&
+								!folderUnavailable ? (
+									<AssetLibraryMove
+										key={`move:${activeItem.key}:${activeItem.mediaAsset.folderId || ""}`}
+										asset={activeItem.mediaAsset}
+										folders={folderControls.folders}
+										busy={Boolean(busyKey)}
+										onMove={(id) => moveItem(activeItem, id)}
+									/>
+								) : undefined
+							}
+							item={activeItem}
+							onDelete={() => {
+								if (activeItem) void deleteItem(activeItem);
+							}}
+							onDownload={() => {
+								if (activeItem) void downloadItem(activeItem);
+							}}
+							onRename={(filename) =>
+								activeItem ? renameItem(activeItem, filename) : Promise.resolve(false)
+							}
+						/>
+					)
 				) : null}
 			</div>
 			{isPage ? (
@@ -1551,7 +1733,9 @@ const AssetLibraryCard: React.FC<{
 	onDownload: () => void;
 	onPreview: () => void;
 	onRestore?: () => void;
-}> = ({ active, busy, item, onDelete, onDownload, onPreview, onRestore }) => {
+	onSelect: (modifiers: LibrarySelectionModifiers) => void;
+	selected: boolean;
+}> = ({ active, busy, item, onDelete, onDownload, onPreview, onRestore, onSelect, selected }) => {
 	const thumbnailSource = assetLibraryItemThumbnailSource(item);
 	const kindTag = assetLibraryKindTag(item);
 	const resourceTags = assetLibraryResourceTags(item);
@@ -1561,14 +1745,32 @@ const AssetLibraryCard: React.FC<{
 		<article
 			data-asset-key={item.key}
 			className={cn(
-				"min-w-0 overflow-hidden rounded-sm border bg-card transition-colors",
+				"relative min-w-0 overflow-hidden rounded-sm border bg-card transition-colors",
 				active ? "border-primary" : "border-border hover:border-input",
 			)}
 		>
+			{selected ? (
+				<span
+					aria-hidden="true"
+					className="pointer-events-none absolute inset-0 z-10 rounded ring-2 ring-inset ring-primary"
+				/>
+			) : null}
 			<button
 				type="button"
 				className="block w-full min-w-0 text-left"
-				onClick={onPreview}
+				aria-pressed={selected}
+				onClick={(event) => {
+					if (event.metaKey || event.ctrlKey || event.shiftKey) {
+						event.preventDefault();
+						onSelect({
+							ctrl: event.ctrlKey,
+							meta: event.metaKey,
+							shift: event.shiftKey,
+						});
+						return;
+					}
+					onPreview();
+				}}
 				aria-label={`预览 ${item.title}`}
 			>
 				<div className="relative aspect-[4/3] bg-ide-toolbar">
@@ -2402,19 +2604,6 @@ const mediaAssetSourceLabel = (source: string) => {
 	if (source === "preview") return "预览";
 	if (source === "imported") return "导入";
 	return source;
-};
-
-const formatBytes = (bytes: number) => {
-	if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-	const units = ["B", "KB", "MB", "GB"];
-	let value = bytes;
-	let index = 0;
-	while (value >= 1024 && index < units.length - 1) {
-		value /= 1024;
-		index += 1;
-	}
-	const precision = index === 0 ? 0 : value >= 10 ? 1 : 2;
-	return `${value.toFixed(precision)} ${units[index]}`;
 };
 
 const formatDateTime = (value: string) => {
