@@ -84,4 +84,26 @@ describe("AssetLibraryBulkPanel", () => {
 			expect(screen.getByRole("button", { name })).toBeDisabled();
 		}
 	});
+
+	it("only offers the comparison action when exactly two images are selected", () => {
+		const onCompare = vi.fn();
+		const { unmount } = render(
+			<AssetLibraryBulkPanel
+				assets={[asset({ id: "a" }), asset({ id: "b" })]}
+				busy={false}
+				trashMode={false}
+				onCompare={onCompare}
+				{...handlers()}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "比较两张图片" }));
+		expect(onCompare).toHaveBeenCalledTimes(1);
+		unmount();
+
+		render(
+			<AssetLibraryBulkPanel assets={[asset()]} busy={false} trashMode={false} {...handlers()} />,
+		);
+		expect(screen.queryByRole("button", { name: "比较两张图片" })).not.toBeInTheDocument();
+	});
 });

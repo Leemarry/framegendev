@@ -12,6 +12,7 @@ export interface AssetLibraryBulkPanelProps {
 	busy: boolean;
 	folderActions?: React.ReactNode;
 	onApplyTags: (added: string[], removed: string[]) => void;
+	onCompare?: () => void;
 	onRestore: () => void;
 	onToggleFavorite: () => void;
 	onTrash: () => void;
@@ -37,6 +38,7 @@ export function AssetLibraryBulkPanel({
 	busy,
 	folderActions,
 	onApplyTags,
+	onCompare,
 	onRestore,
 	onToggleFavorite,
 	onTrash,
@@ -88,6 +90,18 @@ export function AssetLibraryBulkPanel({
 				</Button>
 			</section>
 			<div className="grid gap-2 border-t border-border pt-3">
+				{onCompare ? (
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						className="w-full"
+						disabled={busy}
+						onClick={onCompare}
+					>
+						比较两张图片
+					</Button>
+				) : null}
 				{folderActions}
 				<Button
 					type="button"

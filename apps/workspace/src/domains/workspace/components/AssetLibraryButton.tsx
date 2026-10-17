@@ -110,6 +110,7 @@ import { apiResourceURL } from "@/shared/lib/api-base";
 import { cn } from "@/shared/lib/utils";
 import { AssetLibraryMetadataEditor } from "./AssetLibraryMetadataEditor";
 import { AssetLibraryBulkPanel } from "./AssetLibraryBulkPanel";
+import { AssetLibraryCompareDialog } from "./AssetLibraryCompareDialog";
 import { AssetLibraryUseDialog } from "./AssetLibraryUseDialog";
 import { SidebarNavContent, sidebarNavRowClassName } from "./SidebarNavButton";
 import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
@@ -310,6 +311,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const [useForCreationAssets, setUseForCreationAssets] = useState<MediaAsset[] | null>(null);
 	const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set<string>());
 	const [bulkBusy, setBulkBusy] = useState(false);
+	const [compareAssets, setCompareAssets] = useState<[MediaAsset, MediaAsset] | null>(null);
 	const selectionAnchorRef = useRef(-1);
 	const [importQueue, setImportQueue] = useState<ImportQueueEntry[]>([]);
 	const [importing, setImporting] = useState(false);
@@ -539,6 +541,10 @@ export const AssetLibraryWorkspace: React.FC<{
 		[selectedItems],
 	);
 	const bulkSelectionActive = bulkAssets.length > 1;
+	const comparableAssets =
+		bulkAssets.length === 2 && bulkAssets.every((asset) => asset.kind === "image")
+			? ([bulkAssets[0], bulkAssets[1]] as [MediaAsset, MediaAsset])
+			: null;
 
 	useEffect(() => {
 		if (!open) return;
@@ -1586,6 +1592,7 @@ export const AssetLibraryWorkspace: React.FC<{
 								busy={bulkBusy}
 								trashMode={trashMode}
 								onApplyTags={(added, removed) => void bulkApplyTags(added, removed)}
+								onCompare={comparableAssets ? () => setCompareAssets(comparableAssets) : undefined}
 								onToggleFavorite={() => void bulkToggleFavorite()}
 								onTrash={() => void bulkTrash()}
 								onRestore={() => void bulkRestore()}
@@ -1685,6 +1692,9 @@ export const AssetLibraryWorkspace: React.FC<{
 						void mutateSelectedAssets();
 					}}
 				/>
+			) : null}
+			{compareAssets ? (
+				<AssetLibraryCompareDialog assets={compareAssets} onClose={() => setCompareAssets(null)} />
 			) : null}
 		</>
 	);

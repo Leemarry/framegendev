@@ -928,6 +928,33 @@ describe("global material scopes", () => {
 		);
 	});
 
+	it("compares exactly two selected images side by side", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				asset("cmp-a", "正面.png", "2026-10-15T10:00:00Z"),
+				asset("cmp-b", "侧面.png", "2026-10-15T11:00:00Z"),
+			],
+		});
+		mount();
+		fireEvent.click(await screen.findByRole("button", { name: "预览 正面.png" }));
+		fireEvent.click(screen.getByRole("button", { name: "预览 侧面.png" }), { ctrlKey: true });
+
+		const panel = await screen.findByRole("complementary", { name: "批量操作" });
+		fireEvent.click(within(panel).getByRole("button", { name: "比较两张图片" }));
+
+		const dialog = await screen.findByRole("dialog", { name: "比较两张图片" });
+		expect(within(dialog).getByRole("img", { name: "正面.png" })).toBeInTheDocument();
+		expect(within(dialog).getByRole("img", { name: "侧面.png" })).toBeInTheDocument();
+
+		fireEvent.click(within(dialog).getByRole("button", { name: "原始尺寸" }));
+		expect(within(dialog).getByRole("button", { name: "适应窗口" })).toBeInTheDocument();
+
+		fireEvent.click(within(dialog).getByRole("button", { name: "关闭" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("dialog", { name: "比较两张图片" })).not.toBeInTheDocument(),
+		);
+	});
+
 	it("switches URL scopes and resets directory while preserving the return state", async () => {
 		vi.mocked(getLibraryFolders).mockImplementation(async (projectId) => ({
 			folders: projectId ? [folder("parent", "角色")] : [],
