@@ -110,14 +110,14 @@
 | assets | 工作区文件根 | `root:'legacy-work'` → `assetHub.work:'工作区文件'` | 无 | 第二个根（项目工作区文件） | M | ❌ |
 | assets | 文件夹树 | FolderTree `ke/Ae` 递归懒加载（`B('/folders')`），`onDropAssets` 用 dnd-kit；`B('/layout')` 返回 `folderRoles`（13 种）；`newSubfolder`、`folderActions`、`searchFolders`、`chooseFolderHint` | `AssetLibraryFolders.tsx` 有增/改/删/移，一次全量加载 | 补预设角色文件夹（layout 接口）、拖素材进文件夹、移动对话框里的文件夹搜索、子文件夹快捷新建 | M | 🟡 |
 | assets | 新建文件夹对话框 | `POST /folders {name,parentId,operationId}`；`PATCH` 带 `expectedRevision` | `AssetLibraryFolderNameDialog` 已有 | 只差 revision / operationId | S | 🟡 |
-| assets | 导入 | 官方素材库有「导入队列」区块：标题 `importQueue`、`importProgress`（已导入 {{done}} / {{total}} 项）状态行、「清除已完成」、每行 `<progress>` 进度条 + 状态文案（`importStatus` 等待导入/正在导入/已导入/导入失败）、失败行带「重试」 | 文件选择支持多选，逐项顺序上传；队列区显示汇总进度、每行进度条与状态、失败行给出错误与「重试」、「清除已完成」移除成功项；上传走 `onUploadProgress` 真实百分比 | 队列不跨页面留存（刷新即清空）；不做并发上传与取消；导入关联目标（`ImportTarget`）尚未接入 | M | 🟡 |
-| assets | 导入关联目标 | `ImportTarget-DpUcK9iS.js`：`creationTarget.label:'关联文档 / 分镜（可选）'`，选项 libraryOnly | 无 | 新组件 ImportTarget，导入时可加入章节候选 | S | ❌ |
+| assets | 导入 | 官方素材库有「导入队列」区块：标题 `importQueue`、`importProgress`（已导入 {{done}} / {{total}} 项）状态行、「清除已完成」、每行 `<progress>` 进度条 + 状态文案（`importStatus` 等待导入/正在导入/已导入/导入失败）、失败行带「重试」 | 文件选择支持多选，逐项顺序上传；队列区显示汇总进度、每行进度条与状态、失败行给出错误与「重试」、「清除已完成」移除成功项；上传走 `onUploadProgress` 真实百分比。官方的关联目标（`ImportTarget`）只出现在「用于创作」，已按该位置实现（见下一行） | 队列不跨页面留存（刷新即清空）；不做并发上传与取消；导入队列内不提供章节绑定（与官方一致） | M | 🟡 |
+| assets | 导入关联目标 | `ImportTarget-DpUcK9iS.js`：受控组件（`projectId`/`value`/`onChange`/`onValidity`/`disabled`），选项取自项目文档 section 资源，`creationTarget.label:'关联文档 / 分镜（可选）'`、`libraryOnly`、`loading/unavailable/hint/failed` | `components/ImportTarget.tsx`：拉 `GET /projects/{id}/workspace/resources`，只保留同时有 documentId+sectionId 的资源；首项「仅保存到素材库」；已选值失效时显示禁用的「上次关联已不可用，请重新选择」（加载中为「正在核对上次关联…」），通过 `onValidity` 上报；读取失败给 `role=alert` 的「读取关联目标失败，可以选择“仅保存到素材库”后继续。」；无项目时渲染空 | 未做跨项目文档的全局搜索（官方也只列当前项目） | S | ✅ |
 | assets | 刷新/扫描/事件 | `POST /refresh`、`DELETE /scans/{id}`、`xi=EventSource(ci('/events'))` 推送；`refreshing:'正在同步…'`、`synced` | 有 `/media-assets/scan`，同步调用 | 后台扫描任务、SSE 事件、取消扫描 | M | 🟡 |
 | assets | 搜索/排序/筛选 | 官方空状态在有多条件时给「清除筛选」，一次清掉 `q`/`kind`/`tag`/`minRating`/`source`/`resource`/`usage`；筛选条件全在 URL | 选项基本齐（类型、来源、用途、资源类型、评分、收藏、标签），空状态已补「清除筛选」，一次重置全部筛选（含收藏与记录来源）| 已选筛选项没有 chip 汇总条；标签候选取自本地数据而非服务端 `tags` | S | 🟡 |
 | assets | 偏好持久化 | 官方把视图偏好写进 URL/存储，`mg` 存 picker 过滤器、位置与滚动位置 | `thumbnailSize` 走 `library-preferences.v1`（zustand persist，120–300 钳制，默认 190）；`sort`、`view`、详情开关已随「路由与 URL 状态」进 URL | 滚动位置与 picker 上次选择未记录 | S | 🟡 |
 | assets | 多选/批量 | `selected:'已选择 {{count}} 项'`、`bulkHint`、`commonTags`；批量 move/favorite/trash/restore；`selectedTray` | 单选 | 多选（Ctrl/Shift）、批量操作、批量属性面板 | L | ❌ |
 | assets | 比较 | `compare:'比较两张图片'`，正好选中 2 张图片时可用；`zoomPreview/fitPreview` | 无 | 新增比较对话框 | S | ❌ |
-| assets | 用于创作 | 官方 `vt` 对话框：选目标项目（`assetHub.chooseProject`，有来源项目时锁定）→ 图片/视频才显示 ImportTarget（关联文档/分镜）→ `useHint` 说明 → 提交 `POST /asset-catalog/use`，body `{operationId, sourceProjectId, projectId, target?{documentId,sectionId}, assetIds[]}`，响应 `{items[{...,error?}]}`，逐项错误用 `role=status` 列表展示、全成功才关闭；失败保留原 payload（同一 `operationId` 重试即幂等）；非图片/视频显示 `copyOnlyHint` | 无 | 先补后端 `POST /asset-catalog/use`（幂等 operationId + 逐项结果），再做对话框并把 ImportTarget 接成受控字段 | M | ❌ |
+| assets | 用于创作 | 官方 `vt` 对话框：选目标项目（`assetHub.chooseProject`，有来源项目时锁定）→ 图片/视频才显示 ImportTarget（关联文档/分镜）→ `useHint` 说明 → 提交 `POST /asset-catalog/use`，body `{operationId, sourceProjectId, projectId, target?{documentId,sectionId}, assetIds[]}`，响应 `{items[{...,error?}]}`，逐项错误用 `role=status` 列表展示、全成功才关闭；失败保留原 payload（同一 `operationId` 重试即幂等）；非图片/视频显示 `copyOnlyHint` | 后端 `POST /asset-catalog/use`（项目前缀等价路由同名）：校验 operationId/projectId/assetIds，target 解析为章节并只接受 character/scene/storyboard/prop；每个素材复制进目标项目（同 content_hash 复用、已属该项目的直接复用），图片/视频再写入 `project_selected_assets` 候选；逐项 `{sourceId,assetId,added,error?}`，来源项目不符与已入回收站都给逐项错误；operationId 结果写进 `asset_catalog_operations` 表，重放返回首次响应。前端 `AssetLibraryUseDialog.tsx`：目标项目下拉（素材属项目时锁定）、图片/视频才出 ImportTarget、其余显示 copyOnlyHint、逐项结果 `role=status`、全成功才关闭、失败保留 payload 用同一 operationId 重试，文案照官方中文 | 多选未做，一次只提交当前预览的 1 个素材；没有跨项目「已保存」toast；「仅保存到素材库」时不做章节校验 | M | 🟡 |
 | assets | 详情面板 | `basicInfo`；dimensions/duration/fileSize/format/addedAt/fileModifiedAt；`palette`/`copyColor`；`analyzing`/`retryAnalysis`；`sourceURL`；`folderLocation` + `changeFolder`；`technicalDetails`；评分；标签 chip；备注；自动保存 `saving/saved/saveFailed/unsaved/retrySave`；未选中时显示文件夹/视图属性 | `AssetLibraryMetadataEditor.tsx` 是表单 + 保存按钮，标签用逗号分隔 | 改成自动保存的属性面板，补主色板、媒体分析、来源网址、文件夹属性模式 | L | 🟡 |
 | assets | 用途/使用状态 | `uses`、`removedUse`、`noUses`、`projectUse`、`useKinds.*`（project-reference / generation-input / generation-output / document-binding / generation-list / selected-resource） | 有 `/references` 加"已选用/候选/用作参考/未使用"筛选 | 补 useKinds 分类展示和"已移除的用途" | S | 🟡 |
 | assets | 重新关联/修复 | `relink`、`relinkHint`、`relinkConflict`、`repair`、`missing`；`POST /assets/{id}/relink {targetAssetId,targetRevision}` | 无 | 缺失文件的重新关联流程 | M | ❌ |
@@ -127,7 +127,7 @@
 
 **已对齐**：全局/项目范围切换、文件夹增删改移基础功能、收藏、评分、按类型/资源/来源/使用状态筛选、缩略图大小、在文件夹中显示、复制路径、媒体 content/poster 读取。
 
-**官方有、我们没有的接口**（官方前缀 `/api/v1/asset-catalog{path}?projectId=`，`routes.go` 里一个都没有）：
+**官方有、我们没有的接口**（官方前缀 `/api/v1/asset-catalog{path}?projectId=`；目前只有 `POST /asset-catalog/use` 已补，其余仍缺）：
 
 - `GET /asset-catalog/assets`（cursor/limit + 上述筛选）、`GET/PATCH/DELETE /asset-catalog/assets/{id}`（expectedRevision、operationId）
 - `POST /asset-catalog/assets/{id}/restore`、`/relink`、`/copy-to-project`
@@ -136,7 +136,6 @@
 - `GET/POST /asset-catalog/folders`、`PATCH /asset-catalog/folders/{id}`（带 revision）
 - `POST /asset-catalog/imports`（multipart，policy=keep-both，folderId）
 - `POST /asset-catalog/refresh`、`DELETE /asset-catalog/scans/{id}`、`GET /asset-catalog/events`（SSE）
-- `POST /asset-catalog/use`
 
 后端模型 `services/server/internal/domain/media_models.go` 需要扩展：`MediaAssetModel` 缺 revision、软删除状态、palette/分析字段、`location.root`；`AssetLibraryFolderModel` 缺 revision 和 role 绑定。`/api/v1/media-assets/{id}/content` 和 `/poster` 官方仍在用，我们已有。
 
