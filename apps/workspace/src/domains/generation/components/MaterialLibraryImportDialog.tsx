@@ -13,6 +13,8 @@ import { cn } from "@/shared/lib/utils";
 export interface MaterialLibraryImportDialogProps {
 	assetKind?: MaterialImportAssetKind;
 	confirming?: boolean;
+	confirmLabel?: string;
+	description?: string;
 	mediaAssets: MediaAsset[];
 	onConfirmSelection: (assets: MediaAsset[]) => Promise<void> | void;
 	onOpenChange: (open: boolean) => void;
@@ -61,6 +63,8 @@ export const MaterialLibraryImportDialog: React.FC<MaterialLibraryImportDialogPr
 	assetKind = "image",
 	mediaAssets,
 	confirming = false,
+	confirmLabel,
+	description,
 	onConfirmSelection,
 	onOpenChange,
 	onRefreshAssets,
@@ -157,7 +161,7 @@ export const MaterialLibraryImportDialog: React.FC<MaterialLibraryImportDialogPr
 			open={open}
 			title="从素材库中选择"
 			titleId="generation-material-import-title"
-			description={kindCopy.description}
+			description={description ?? kindCopy.description}
 			className="max-h-[min(42rem,calc(100vh-2rem))]"
 			closeDisabled={confirming || isUploading}
 			onOpenChange={onOpenChange}
@@ -221,7 +225,7 @@ export const MaterialLibraryImportDialog: React.FC<MaterialLibraryImportDialogPr
 							disabled={confirming || isUploading}
 							onClick={confirmSelection}
 						>
-							{confirming ? kindCopy.confirmingLabel : kindCopy.confirmLabel}
+							{confirming ? kindCopy.confirmingLabel : (confirmLabel ?? kindCopy.confirmLabel)}
 						</DialogDismissButton>
 					</div>
 				</>

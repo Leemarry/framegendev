@@ -1,4 +1,4 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DocumentSectionGeneratorProps } from "@/domains/documents/components/DocumentSectionGenerator";
 import type { MarkdownSectionContext } from "@/domains/documents/components/MarkdownHybridEditor";
@@ -8,6 +8,7 @@ import { VideoGenerationDialog } from "@/shared/components/generation-dialogs/Vi
 const mocks = vi.hoisted(() => ({
 	DocumentSectionGenerator: vi.fn(() => null),
 	MediaGenerationWorkspace: vi.fn(() => null),
+	WorkflowGenerationSurface: vi.fn(() => <div>工作流测试画布</div>),
 }));
 
 vi.mock("@/domains/documents/components/DocumentSectionGenerator", () => ({
@@ -29,7 +30,36 @@ const section: MarkdownSectionContext = {
 	prompt: "动作。",
 };
 
+vi.mock("@/domains/generation/components/WorkflowGenerationSurface", () => ({
+	WorkflowGenerationSurface: mocks.WorkflowGenerationSurface,
+}));
+
 describe("VideoGenerationDialog", () => {
+	it("opens workflow from timeline request context without a separate section prop", () => {
+		render(
+			<VideoGenerationDialog
+				open
+				onOpenChange={vi.fn()}
+				workspaceProps={{
+					historyScopeId: "timeline",
+					initialPrompt: "镜头推进",
+					projectId: "project-timeline",
+					notificationTarget: {
+						kind: "document-section",
+						projectId: "project-timeline",
+						documentId: section.documentId,
+						section,
+					},
+				}}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("switch", { name: "工作流" }));
+		expect(screen.getByText("工作流测试画布")).toBeInTheDocument();
+		expect(mocks.WorkflowGenerationSurface).toHaveBeenLastCalledWith(
+			expect.objectContaining({ projectId: "project-timeline", section }),
+			undefined,
+		);
+	});
 	afterEach(() => {
 		cleanup();
 		vi.clearAllMocks();

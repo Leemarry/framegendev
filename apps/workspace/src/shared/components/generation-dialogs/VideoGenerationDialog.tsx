@@ -1,6 +1,6 @@
 import type React from "react";
 import { useEffect, useState } from "react";
-import { Images, Workflow } from "lucide-react";
+import { Images } from "lucide-react";
 import type { GenerationAsset, SelectedGenerationAsset } from "@/domains/generation/api/generation";
 import { GenerationModalShell } from "@/domains/documents/components/GenerationModalShell";
 import { DocumentSectionGenerator } from "@/domains/documents/components/DocumentSectionGenerator";
@@ -73,18 +73,24 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 		if (!open) setWorkflowOpen(false);
 	}, [open]);
 
-	const activeSection = section ?? lastSection;
+	const activeSection = section ?? workspaceProps?.notificationTarget?.section ?? lastSection;
 	const workflowToggle = activeSection ? (
 		<Button
 			type="button"
-			variant={workflowOpen ? "default" : "outline"}
+			variant="ghost"
 			size="sm"
 			className="h-8 shrink-0 px-2.5 text-xs"
 			onClick={() => setWorkflowOpen((value) => !value)}
-			aria-pressed={workflowOpen}
+			role="switch"
+			aria-checked={workflowOpen}
 		>
-			<Workflow className="size-4" />
 			<span>工作流</span>
+			<span
+				aria-hidden="true"
+				className={`flex h-5 w-9 items-center rounded-full p-0.5 ${workflowOpen ? "justify-end bg-primary" : "bg-muted"}`}
+			>
+				<span className="size-4 rounded-full bg-foreground" />
+			</span>
 		</Button>
 	) : null;
 
@@ -94,9 +100,9 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 				open={open}
 				title={title ?? "生成视频"}
 				titleId={titleId}
+				headerActions={workflowToggle}
 				titleAside={
 					<div className="flex items-center gap-2">
-						{workflowToggle}
 						<GlobalToolboxButton
 							kind="video"
 							projectId={projectId ?? workspaceProps.projectId}
@@ -107,7 +113,10 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 				onOpenChange={onOpenChange}
 			>
 				{workflowOpen && activeSection ? (
-					<WorkflowGenerationSurface projectId={projectId} section={activeSection} />
+					<WorkflowGenerationSurface
+						projectId={projectId ?? workspaceProps.projectId}
+						section={activeSection}
+					/>
 				) : (
 					<MediaGenerationWorkspace {...workspaceProps} kind="video" />
 				)}
@@ -122,9 +131,9 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 			open={open}
 			title={title ?? `生成视频素材 · ${activeSection.headingText}`}
 			titleId={titleId}
+			headerActions={workflowToggle}
 			titleAside={
 				<div className="flex items-center gap-2">
-					{workflowToggle}
 					<Button
 						type="button"
 						variant="outline"

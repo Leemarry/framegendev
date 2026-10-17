@@ -36,6 +36,7 @@ export const GenerationModalShell: React.FC<{
 	contentClassName?: string;
 	contentLayerClassName?: string;
 	titleAside?: React.ReactNode;
+	headerActions?: React.ReactNode;
 	onOpenChange: (open: boolean) => void;
 	open: boolean;
 	title: React.ReactNode;
@@ -49,6 +50,7 @@ export const GenerationModalShell: React.FC<{
 	open,
 	title,
 	titleAside,
+	headerActions,
 }) => (
 	<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
 		<DialogPrimitive.Portal>
@@ -83,6 +85,7 @@ export const GenerationModalShell: React.FC<{
 							</DialogPrimitive.Title>
 							{titleAside ? <div className="max-w-full shrink-0">{titleAside}</div> : null}
 						</div>
+						{headerActions}
 						<DialogClose asChild>
 							<Button
 								type="button"
