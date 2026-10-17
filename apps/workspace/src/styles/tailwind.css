@@ -84,6 +84,12 @@
 	--color-error-surface: var(--error-surface);
 	--color-error-border: var(--error-border);
 	--color-error-foreground: var(--error-foreground);
+	--color-divider: var(--divider);
+	--color-divider-subtle: var(--divider-subtle);
+	--color-surface-interactive: var(--surface-interactive);
+	--color-surface-section: var(--surface-section);
+	--color-surface-inset: var(--surface-inset);
+	--color-surface-raised: var(--surface-raised);
 
 	--color-ide-titlebar: var(--ide-titlebar);
 	--color-ide-titlebar-foreground: var(--ide-titlebar-foreground);

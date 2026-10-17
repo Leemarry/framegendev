@@ -320,6 +320,11 @@
 
 		--surface-subtle: color-mix(in srgb, var(--slate-50) 84%, transparent);
 		--surface-raised: var(--slate-0);
+		--surface-interactive: var(--slate-50);
+		--surface-section: var(--slate-0);
+		--surface-inset: var(--slate-100);
+		--divider: var(--slate-200);
+		--divider-subtle: color-mix(in srgb, var(--slate-200) 62%, transparent);
 		--text-muted: var(--muted-foreground);
 		--app-background-image: linear-gradient(
 			180deg,
@@ -461,6 +466,11 @@
 
 		--surface-subtle: color-mix(in srgb, var(--ink-800) 78%, transparent);
 		--surface-raised: var(--ink-800);
+		--surface-interactive: var(--ink-750);
+		--surface-section: var(--ink-700);
+		--surface-inset: var(--ink-900);
+		--divider: var(--ink-700);
+		--divider-subtle: color-mix(in srgb, var(--ink-700) 72%, transparent);
 		--text-muted: var(--muted-foreground);
 		--app-background-image: linear-gradient(
 			180deg,

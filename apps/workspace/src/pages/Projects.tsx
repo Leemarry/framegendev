@@ -380,19 +380,31 @@ export const Projects: React.FC = () => {
 	};
 
 	return (
-		<div className="project-management-page flex h-full min-h-0 flex-col overflow-hidden bg-ide-editor text-ide-editor-foreground">
+		<div className="flex h-full min-h-0 flex-col overflow-hidden bg-ide-editor text-ide-editor-foreground">
 			<header
-				className="project-management-header"
+				className="relative flex h-11 shrink-0 items-center justify-between gap-3 border-b border-divider-subtle bg-ide-toolbar px-3 text-ide-toolbar-foreground"
 				data-desktop-drag-region
 				onPointerDown={startWindowDrag}
 			>
-				<h1>项目管理</h1>
-				<div className="project-management-tabs" aria-label="项目状态" data-desktop-no-drag>
+				<h1 className="min-w-0 truncate text-sm font-semibold">项目管理</h1>
+				<div
+					className="inline-grid grid-cols-3 rounded-sm border border-divider-subtle bg-surface-interactive p-0.5"
+					aria-label="项目状态"
+					data-desktop-no-drag
+					data-testid="project-management-tabs"
+					role="group"
+				>
 					{projectTabs.map((tab) => (
 						<button
 							key={tab.status}
 							type="button"
 							aria-pressed={activeTab === tab.status}
+							className={cn(
+								"h-7 min-w-16 cursor-pointer rounded-sm px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+								activeTab === tab.status
+									? "bg-surface-section text-foreground shadow-sm"
+									: "text-muted-foreground hover:bg-ide-list-hover hover:text-foreground",
+							)}
 							onClick={() => setActiveTab(tab.status)}
 						>
 							{tab.label}
@@ -400,27 +412,32 @@ export const Projects: React.FC = () => {
 					))}
 				</div>
 			</header>
-			<div className="project-management-body">
+			<div className="min-h-0 flex-1 overflow-auto px-5 py-4">
 				{activeTab === "active" ? (
-					<div className="project-management-toolbar">
-						<button
+					<div className="mb-3 flex items-center justify-end gap-2">
+						<Button
 							type="button"
+							variant="ghost"
+							size="sm"
 							disabled={isOpeningDirectory}
 							onClick={() => void importProject()}
 							aria-label="导入项目"
+							title="导入 .mediago-project 项目包"
 						>
-							<Upload />
+							<Upload className="size-4" />
 							<span>导入项目</span>
-						</button>
-						<button
+						</Button>
+						<Button
 							type="button"
+							variant="ghost"
+							size="sm"
 							disabled={isOpeningDirectory}
 							onClick={() => void openExistingDirectory()}
 							aria-label="打开已有项目目录"
 						>
-							<FolderOpen />
+							<FolderOpen className="size-4" />
 							<span>打开已有项目目录</span>
-						</button>
+						</Button>
 					</div>
 				) : null}
 				{isLoading && projects.length === 0 ? (
@@ -440,8 +457,9 @@ export const Projects: React.FC = () => {
 					/>
 				) : null}
 				{!isLoading && !error && projects.length === 0 && activeTab !== "active" ? (
-					<div className="project-management-empty">
+					<div className="flex min-h-full flex-col items-center justify-center gap-6 pt-12 text-center">
 						<img
+							className="size-[220px] object-contain"
 							src={
 								activeTab === "archived" ? "/parity/archive-empty.png" : "/parity/trash-empty.png"
 							}
@@ -449,24 +467,40 @@ export const Projects: React.FC = () => {
 							width="220"
 							height="220"
 						/>
-						<p>{meta.emptyTitle}</p>
+						<p className="text-sm font-semibold text-foreground">{meta.emptyTitle}</p>
 					</div>
 				) : null}
 				{projects.length > 0 || (!isLoading && !error && activeTab === "active") ? (
-					<div className="project-management-grid">
+					<div
+						className="mx-auto grid w-full max-w-7xl grid-cols-[repeat(auto-fill,minmax(min(100%,10.5rem),11.5rem))] justify-start gap-x-4 gap-y-6"
+						data-testid="project-management-grid"
+					>
 						{activeTab === "active" ? (
-							<button
-								type="button"
-								className="project-create-card"
-								aria-label="创建新项目"
-								disabled={isCreating}
-								onClick={() => void createNewProject()}
-							>
-								<span className="project-create-icon">
-									{isCreating ? <Loader2 className="animate-spin" /> : <SquarePen />}
-								</span>
-								<span>创建新项目</span>
-							</button>
+							<div className="relative min-w-0" data-testid="project-create-card">
+								<button
+									type="button"
+									aria-busy={isCreating}
+									className="relative flex aspect-[3/4] w-full cursor-pointer flex-col overflow-hidden rounded-md border border-divider-subtle bg-gradient-to-br from-surface-raised via-surface-inset to-info-surface text-foreground shadow-sm transition-[background-color,border-color,box-shadow] duration-200 hover:border-border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-wait motion-reduce:transition-none"
+									aria-label="创建新项目"
+									disabled={isCreating}
+									onClick={() => void createNewProject()}
+								>
+									<span
+										aria-hidden="true"
+										className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-primary/10 to-transparent"
+									/>
+									<span className="relative flex size-full flex-col items-center justify-center px-5 text-center">
+										<span className="grid size-12 place-items-center rounded-full border border-primary/25 bg-primary/10 text-primary shadow-sm">
+											{isCreating ? (
+												<Loader2 className="size-5 animate-spin" />
+											) : (
+												<SquarePen className="size-5" />
+											)}
+										</span>
+										<span className="mt-4 text-sm font-semibold">创建新项目</span>
+									</span>
+								</button>
+							</div>
 						) : null}
 						{projects.map((project) => (
 							<ProjectManagementRow
@@ -545,70 +579,108 @@ const ProjectManagementRow: React.FC<{
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
-				<article className="project-management-card" aria-busy={busy}>
-					{canOpen ? (
-						<button
-							type="button"
-							className="project-card-open"
-							aria-label={project.name}
-							disabled={hasAction}
-							onClick={() => onOpen(project)}
-						>
-							<span className="project-card-caption">
-								<strong title={project.name}>{project.name}</strong>
-								<time>{timestamp}</time>
-							</span>
-						</button>
-					) : (
-						<div className="project-card-caption project-card-inactive">
-							<strong title={project.name}>{project.name}</strong>
-							<time>{timestamp}</time>
-							<div className="mt-3 flex flex-wrap gap-2">
-								<Button type="button" variant="secondary" onClick={onRestore} disabled={hasAction}>
-									<RotateCcw />
-									<span>恢复</span>
-								</Button>
-								{activeTab === "trashed" ? (
-									<Button
-										type="button"
-										variant="destructive"
-										onClick={onRequestPermanentDelete}
-										disabled={hasAction}
-									>
-										<Trash2 />
-										<span>永久删除</span>
-									</Button>
-								) : null}
-							</div>
-						</div>
-					)}
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
+				<div className="relative min-w-0">
+					<article
+						aria-busy={busy}
+						className="group relative flex aspect-[3/4] min-w-0 flex-col overflow-hidden rounded-md border border-divider-subtle bg-surface-raised text-foreground shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-border hover:shadow-md motion-reduce:transition-none"
+					>
+						{canOpen ? (
 							<button
 								type="button"
-								className="project-card-menu"
-								aria-label={`项目操作：${project.name}`}
-								title="项目操作"
+								className="relative z-[1] flex flex-1 cursor-pointer flex-col text-left disabled:cursor-wait"
+								aria-label={project.name}
 								disabled={hasAction}
+								onClick={() => onOpen(project)}
 							>
-								{busy ? <Loader2 className="animate-spin" /> : <MoreVertical />}
+								<span
+									aria-hidden="true"
+									className="pointer-events-none absolute inset-0 bg-surface-interactive"
+								/>
+								<span className="pointer-events-none absolute bottom-3 left-5 right-3 z-[3]">
+									<strong
+										className="line-clamp-2 min-w-0 text-sm font-semibold leading-5"
+										title={project.name}
+									>
+										{project.name}
+									</strong>
+									<time className="mt-1 block truncate text-xs text-muted-foreground">
+										{timestamp}
+									</time>
+								</span>
 							</button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							{menuActions.map(({ label, icon: Icon, run, destructive, disabled }) => (
-								<DropdownMenuItem
-									key={label}
-									disabled={hasAction || disabled}
-									onSelect={run}
-									className={destructive ? "text-destructive" : undefined}
+						) : (
+							<>
+								<span
+									aria-hidden="true"
+									className="pointer-events-none absolute inset-0 bg-surface-interactive"
+								/>
+								<div className="absolute bottom-3 left-5 right-3 z-[3]">
+									<strong
+										className="line-clamp-2 min-w-0 text-sm font-semibold leading-5"
+										title={project.name}
+									>
+										{project.name}
+									</strong>
+									<time className="mt-1 block truncate text-xs text-muted-foreground">
+										{timestamp}
+									</time>
+									<div className="mt-3 flex flex-wrap gap-2">
+										<Button
+											type="button"
+											variant="secondary"
+											onClick={onRestore}
+											disabled={hasAction}
+										>
+											<RotateCcw />
+											<span>恢复</span>
+										</Button>
+										{activeTab === "trashed" ? (
+											<Button
+												type="button"
+												variant="destructive"
+												onClick={onRequestPermanentDelete}
+												disabled={hasAction}
+											>
+												<Trash2 />
+												<span>永久删除</span>
+											</Button>
+										) : null}
+									</div>
+								</div>
+							</>
+						)}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									className="absolute right-2 top-2 z-[4] grid size-7 place-items-center rounded-sm border border-divider-subtle bg-ide-toolbar text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait"
+									aria-label={`项目操作：${project.name}`}
+									title="项目操作"
+									disabled={hasAction}
 								>
-									<Icon />
-									<span>{label}</span>
-								</DropdownMenuItem>
-							))}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</article>
+									{busy ? (
+										<Loader2 className="size-4 animate-spin" />
+									) : (
+										<MoreVertical className="size-4" />
+									)}
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								{menuActions.map(({ label, icon: Icon, run, destructive, disabled }) => (
+									<DropdownMenuItem
+										key={label}
+										disabled={hasAction || disabled}
+										onSelect={run}
+										className={destructive ? "text-destructive" : undefined}
+									>
+										<Icon />
+										<span>{label}</span>
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</article>
+				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				{menuActions.map(({ label, icon: Icon, run, destructive, disabled }) => (

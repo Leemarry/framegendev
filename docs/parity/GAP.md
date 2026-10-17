@@ -67,7 +67,7 @@
 | shell | 项目卡：在新窗口中打开 | `actions.openInNewWindow:在新窗口中打开`、`openWindowFailed:无法打开项目窗口` | `Projects.tsx:151` 已有 `openProjectWindow` | 核对菜单文案和失败提示 | S | 🟡 |
 | shell | 打开已有项目目录 | `projects-CRxAboE1.js`：`POST /projects/reopen {directory}`（timeout 120s）单步完成；返回 `{project,assets:{issues,unresolvedLinks}}`，有问题时 warning `reopenNeedsRepair` | `domains/projects/api/projects.ts:104-115` 分两步 `/projects/open/preview` + `/projects/open` + fingerprint | 后端加 `/projects/reopen`（或改造 open）返回 assets 修复信息；前端改单步 + 修复提示 | M | ❌ |
 | shell | 项目导入/导出 | `GET /projects/{id}/export` 返回 blob 下载；`POST /projects/import` 用 `application/octet-stream`，上限 2 GiB，扩展名 `.mediago-project`，类型名"MediaGo 项目归档" | `projects.ts:118-145` 用 JSON 传本地路径，扩展名 zip | 改二进制上传/下载流式接口（浏览器端也能用）；扩展名和文案改"项目归档"；加 2 GiB 校验 | M | 🟡 |
-| shell | 项目卡封面/调色 | 每张卡拉 generation 的 `kind:image` 素材作封面，用 `resource-card-palette` 取色；`project-folio-label-{id}` 白字阴影，3:4 | `Projects.tsx` 卡片没有封面也没取色 | 补封面拉取和 palette 渐变，标签按有无封面切换样式 | M | ❌ |
+| shell | 项目卡封面/调色 | 每张卡拉 generation 的 `kind:image` 素材作封面，用 `resource-card-palette` 取色；`project-folio-label-{id}` 白字阴影，3:4 | 卡片框架已用官方类名（`aspect-[3/4] rounded-md border border-divider-subtle bg-surface-raised`），但没有封面图和取色 | 补封面拉取和 palette 渐变，标签按有无封面切换样式 | M | ❌ |
 | shell | 项目元数据 | `GET /projects/{id}/metadata` | 无 | 后端加接口（卡片/概览用），前端 api 补上 | S | ❌ |
 | shell | 项目创建权限门 | `fa.requestProjectCreationAccess()`、`entitlement.defaultTitle:需要 Drama 会员权益` | 无 | 留钩子，标【待接入】 | S | 🅿 |
 | shell | 账户菜单：头部 | `userMenu.menuLabel:用户菜单：{{name}}{{update}}`；未登录显示 `localUse:本地使用`/`notSignedIn`；头像首字母、会员徽章、积分 | `WorkspaceUserMenu.tsx:84-101` 触发器 `aria-label="用户菜单：未登录"`，身份区"未登录 / 本地使用"+"待接入"徽章 | 头像用通用图标而非首字母；会员徽章与积分需账户数据（🅿），本地态已真实 | S | 🟡 |
@@ -77,6 +77,8 @@
 | shell | 账户菜单：帮助 | `N_="https://github.com/mediago-dev/mediago-drama"` | 打开 repositoryUrl | 核对 URL 是否一致 | S | 🟡 |
 | shell | 账户菜单：语言 | `languageModes:{system:跟随系统,zhCN:中文,en:English}`，有 i18n 运行时 | `:46-53` 中文固定，另外两项待接入；全项目没有 i18n | 文案改"中文"；真正切换语言要引入 i18n（全局 L），否则保留【待接入】 | S / L | 🟡 |
 | shell | 侧栏底部 | `nC`：用户菜单（flex-1）+ 通知按钮 size-9；全局底部是 Drami/项目管理/素材库/生成历史 | `ProjectNavigatorProjectPanels.tsx:135-170` | 结构已对齐；只剩 Drami 启用和两个按钮改走路由（见上） | - | ✅ |
+| shell | 表面/分隔线 token | 官方用 `divider`、`divider-subtle`、`surface-interactive`、`surface-section`、`surface-inset`、`surface-raised` 作 Tailwind 主题色 | 之前全缺（`bg-surface-interactive` 等类静默失效，无色无边框）；现已补 | `tokens.css` 补明暗两套变量并映射进 `tailwind.css` 的 `@theme inline` | S | 🟡 |
+| shell | 项目管理页版式 | `oc` 页头 `h-11 border-b border-divider-subtle bg-ide-toolbar px-3`；Tab 容器 `inline-grid grid-cols-3 rounded-sm border border-divider-subtle bg-surface-interactive p-0.5`，按钮 `h-7 min-w-16 px-3 text-xs`，选中 `bg-surface-section shadow-sm`；网格 `grid-cols-[repeat(auto-fill,minmax(min(100%,10.5rem),11.5rem))] gap-x-4 gap-y-6`；创建卡 `aspect-[3/4] rounded-md border border-divider-subtle bg-gradient-to-br from-surface-raised via-surface-inset to-info-surface` | `pages/Projects.tsx` 已按官方类名重写，`styles/projects.css` 整份删除（仅 `.project-management-shell` 三条并入 `workspace-shell.css`） | 无（封面与取色见「项目卡封面/调色」）；未做运行时截图核对，按证据分层记 🟡 | - | 🟡 |
 
 **已对齐（无需再动）**：`/`、`/projects`、`/toolbox/*`（7 条）、`/settings`、`/prompt-pack-editor`、404；项目管理页三个 Tab（项目/归档/垃圾箱）、创建卡、重命名/归档/移到垃圾箱/恢复/永久删除及确认文案、空状态插图、归档时间戳；全局搜索 ⌘K、最近项目及其菜单；项目页导航（项目素材库/项目生成历史/项目设置）；分组/目录视图切换；深色模式；技能包管理；软件设置。
 

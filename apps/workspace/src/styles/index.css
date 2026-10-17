@@ -2,7 +2,6 @@
 
 @import "./reset.css" layer(reset);
 @import "./tokens.css";
-@import "./projects.css";
 @import "./user-menu.css";
 @import "./workspace-shell.css";
 @import "./asset-library.css";

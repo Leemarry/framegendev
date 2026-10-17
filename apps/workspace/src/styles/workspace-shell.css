@@ -1,3 +1,12 @@
+.project-management-shell {
+	--ide-sidebar: var(--project-sidebar-surface);
+}
+.project-management-shell .native-sidebar-panel {
+	background: var(--project-sidebar-surface);
+}
+.project-management-shell [data-sidebar-screen="projects"] {
+	background: var(--project-sidebar-surface);
+}
 .project-workspace-shell {
 	--ide-sidebar: var(--project-sidebar-surface);
 	position: relative;
@@ -156,6 +165,9 @@
 	background: var(--ide-toolbar);
 }
 @media (max-width: 700px) {
+	.project-management-shell aside {
+		width: 64px !important;
+	}
 	.project-workspace-shell .project-writing-page {
 		padding: 16px;
 	}
