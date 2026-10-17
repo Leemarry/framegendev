@@ -243,7 +243,9 @@ describe("project material library page", () => {
 		await screen.findByRole("heading", { name: "这里还没有素材" });
 		const file = new File(["bytes"], "fixture.png", { type: "image/png" });
 		fireEvent.change(screen.getByLabelText("上传素材"), { target: { files: [file] } });
-		await waitFor(() => expect(uploadMediaAsset).toHaveBeenCalledWith(file, "project-a", ""));
+		await waitFor(() =>
+			expect(uploadMediaAsset).toHaveBeenCalledWith(file, "project-a", "", expect.any(Function)),
+		);
 		fireEvent.click(screen.getByRole("button", { name: "返回项目" }));
 		expect(screen.getByLabelText("当前路径")).toHaveTextContent("/projects?projectId=project-a");
 	});
@@ -511,7 +513,14 @@ describe("material folder workflows", () => {
 		);
 		const file = new File(["bytes"], "fixture.png", { type: "image/png" });
 		fireEvent.change(screen.getByLabelText("上传素材"), { target: { files: [file] } });
-		await waitFor(() => expect(uploadMediaAsset).toHaveBeenCalledWith(file, "project-a", "child"));
+		await waitFor(() =>
+			expect(uploadMediaAsset).toHaveBeenCalledWith(
+				file,
+				"project-a",
+				"child",
+				expect.any(Function),
+			),
+		);
 		expect(updateMediaAssetFields).not.toHaveBeenCalled();
 		fireEvent.click(screen.getByRole("button", { name: "返回上级文件夹" }));
 		expect(screen.getByLabelText("当前路径")).toHaveTextContent("folder=parent");
@@ -686,7 +695,14 @@ describe("global material scopes", () => {
 		);
 		const file = new File(["bytes"], "fixture.png", { type: "image/png" });
 		fireEvent.change(screen.getByLabelText("上传素材"), { target: { files: [file] } });
-		await waitFor(() => expect(uploadMediaAsset).toHaveBeenCalledWith(file, null, "global-folder"));
+		await waitFor(() =>
+			expect(uploadMediaAsset).toHaveBeenCalledWith(
+				file,
+				null,
+				"global-folder",
+				expect.any(Function),
+			),
+		);
 	});
 	it("clears every active filter from the empty state", async () => {
 		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
@@ -746,6 +762,48 @@ describe("global material scopes", () => {
 		fireEvent.error(screen.getByRole("img", { name: "a.png" }));
 
 		expect(await screen.findByText("无法预览此素材")).toBeInTheDocument();
+	});
+
+	it("imports several files through the queue and retries a failed one", async () => {
+		vi.mocked(getLibraryFolders).mockResolvedValue({ folders: [] });
+		vi.mocked(getMediaAssets).mockResolvedValue({ assets: [] });
+		const first = new File(["a"], "a.png", { type: "image/png" });
+		const second = new File(["b"], "b.png", { type: "image/png" });
+		vi.mocked(uploadMediaAsset)
+			.mockRejectedValueOnce(new Error("网络中断"))
+			.mockResolvedValue(asset("uploaded", "a.png", "2026-10-16T00:00:00Z"));
+		mount(undefined, "?projectId=project-a");
+		await screen.findByText("这里还没有素材");
+
+		fireEvent.change(screen.getByLabelText("上传素材"), { target: { files: [first, second] } });
+
+		await waitFor(() => expect(vi.mocked(uploadMediaAsset).mock.calls.length).toBe(2));
+		expect(vi.mocked(uploadMediaAsset).mock.calls[0][0]).toBe(first);
+		expect(vi.mocked(uploadMediaAsset).mock.calls[1][0]).toBe(second);
+
+		const queue = await screen.findByRole("region", { name: "导入队列" });
+		expect(within(queue).getByText("已导入 1 / 2 项")).toBeInTheDocument();
+		expect(within(queue).getByText("网络中断")).toBeInTheDocument();
+		expect(within(queue).getByText("已导入")).toBeInTheDocument();
+
+		fireEvent.click(within(queue).getByRole("button", { name: "重试" }));
+
+		await waitFor(() => expect(vi.mocked(uploadMediaAsset).mock.calls.length).toBe(3));
+		await waitFor(() =>
+			expect(
+				within(screen.getByRole("region", { name: "导入队列" })).getByText("已导入 2 / 2 项"),
+			).toBeInTheDocument(),
+		);
+
+		fireEvent.click(
+			within(screen.getByRole("region", { name: "导入队列" })).getByRole("button", {
+				name: "清除已完成",
+			}),
+		);
+
+		await waitFor(() =>
+			expect(screen.queryByRole("region", { name: "导入队列" })).not.toBeInTheDocument(),
+		);
 	});
 
 	it("browses the trash and restores an asset", async () => {

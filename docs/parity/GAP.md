@@ -110,7 +110,7 @@
 | assets | 工作区文件根 | `root:'legacy-work'` → `assetHub.work:'工作区文件'` | 无 | 第二个根（项目工作区文件） | M | ❌ |
 | assets | 文件夹树 | FolderTree `ke/Ae` 递归懒加载（`B('/folders')`），`onDropAssets` 用 dnd-kit；`B('/layout')` 返回 `folderRoles`（13 种）；`newSubfolder`、`folderActions`、`searchFolders`、`chooseFolderHint` | `AssetLibraryFolders.tsx` 有增/改/删/移，一次全量加载 | 补预设角色文件夹（layout 接口）、拖素材进文件夹、移动对话框里的文件夹搜索、子文件夹快捷新建 | M | 🟡 |
 | assets | 新建文件夹对话框 | `POST /folders {name,parentId,operationId}`；`PATCH` 带 `expectedRevision` | `AssetLibraryFolderNameDialog` 已有 | 只差 revision / operationId | S | 🟡 |
-| assets | 导入 | `POST /imports` multipart，`policy=keep-both`，带 `folderId`，`onUploadProgress`；导入队列 `importQueue/importProgress/clearCompleted/importStatus.*`，失败可 retry；`importDestination` | `uploadMediaAsset` 单文件，无进度、无队列 | 多文件队列、进度条、单项重试、目标文件夹提示、同名 keep-both | M | ❌ |
+| assets | 导入 | 官方素材库有「导入队列」区块：标题 `importQueue`、`importProgress`（已导入 {{done}} / {{total}} 项）状态行、「清除已完成」、每行 `<progress>` 进度条 + 状态文案（`importStatus` 等待导入/正在导入/已导入/导入失败）、失败行带「重试」 | 文件选择支持多选，逐项顺序上传；队列区显示汇总进度、每行进度条与状态、失败行给出错误与「重试」、「清除已完成」移除成功项；上传走 `onUploadProgress` 真实百分比 | 队列不跨页面留存（刷新即清空）；不做并发上传与取消；导入关联目标（`ImportTarget`）尚未接入 | M | 🟡 |
 | assets | 导入关联目标 | `ImportTarget-DpUcK9iS.js`：`creationTarget.label:'关联文档 / 分镜（可选）'`，选项 libraryOnly | 无 | 新组件 ImportTarget，导入时可加入章节候选 | S | ❌ |
 | assets | 刷新/扫描/事件 | `POST /refresh`、`DELETE /scans/{id}`、`xi=EventSource(ci('/events'))` 推送；`refreshing:'正在同步…'`、`synced` | 有 `/media-assets/scan`，同步调用 | 后台扫描任务、SSE 事件、取消扫描 | M | 🟡 |
 | assets | 搜索/排序/筛选 | 官方空状态在有多条件时给「清除筛选」，一次清掉 `q`/`kind`/`tag`/`minRating`/`source`/`resource`/`usage`；筛选条件全在 URL | 选项基本齐（类型、来源、用途、资源类型、评分、收藏、标签），空状态已补「清除筛选」，一次重置全部筛选（含收藏与记录来源）| 已选筛选项没有 chip 汇总条；标签候选取自本地数据而非服务端 `tags` | S | 🟡 |

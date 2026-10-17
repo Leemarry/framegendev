@@ -295,6 +295,12 @@ export const AssetLibraryWorkspace: React.FC<{
 	const setProvenanceFilter = (value: AssetLibraryProvenanceFilter) =>
 		patchFilters({ provenance: value });
 	const [uploading, setUploading] = useState<"media" | null>(null);
+	const [importQueue, setImportQueue] = useState<ImportQueueEntry[]>([]);
+	const [importing, setImporting] = useState(false);
+	const patchImportEntry = (id: string, patch: Partial<ImportQueueEntry>) =>
+		setImportQueue((previous) =>
+			previous.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
+		);
 	const [refreshing, setRefreshing] = useState(false);
 	const [refreshError, setRefreshError] = useState<unknown>(null);
 	const sort = filters.sort;
@@ -507,26 +513,70 @@ export const AssetLibraryWorkspace: React.FC<{
 	}, [activeItem, activeKey]);
 
 	const uploadMediaFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.currentTarget.files?.[0] ?? null;
+		const files = Array.from(event.currentTarget.files ?? []);
 		event.currentTarget.value = "";
-		if (!file || uploading || folderUnavailable) return;
+		if (!files.length || importing || folderUnavailable) return;
 
+		const entries: ImportQueueEntry[] = files.map((file, index) => ({
+			file,
+			filename: file.name,
+			id: `${Date.now()}-${index}-${file.name}`,
+			progress: 0,
+			status: "queued",
+		}));
+		setImportQueue((previous) => [...previous, ...entries]);
+		await runImportQueue(entries);
+	};
+
+	const runImportQueue = async (entries: ImportQueueEntry[]) => {
+		setImporting(true);
 		setUploading("media");
-		try {
-			const asset = folderControls
-				? await uploadMediaAsset(file, selectedProjectId || null, folderId)
-				: await uploadMediaAsset(file, selectedProjectId || null);
-			await mutateMediaAssets();
-			setActiveKey(`media:${asset.id}`);
+		let succeeded = 0;
+
+		for (const entry of entries) {
+			patchImportEntry(entry.id, { error: undefined, progress: 0, status: "uploading" });
+			try {
+				const onProgress = (percent: number) => patchImportEntry(entry.id, { progress: percent });
+				const asset = folderControls
+					? await uploadMediaAsset(entry.file, selectedProjectId || null, folderId, onProgress)
+					: await uploadMediaAsset(entry.file, selectedProjectId || null, undefined, onProgress);
+
+				patchImportEntry(entry.id, { progress: 100, status: "succeeded" });
+				setActiveKey(`media:${asset.id}`);
+				succeeded += 1;
+			} catch (err) {
+				patchImportEntry(entry.id, {
+					error: errorMessage(err, "媒体素材上传失败。"),
+					status: "failed",
+				});
+			}
+		}
+
+		await mutateMediaAssets();
+		setImporting(false);
+		setUploading(null);
+
+		if (succeeded > 0) {
 			toast.success(projectMode ? "媒体素材已上传" : "素材已上传", {
-				description: asset.filename || file.name,
+				description: `共 ${succeeded} 个文件`,
 			});
-		} catch (err) {
-			toast.error("上传失败", { description: errorMessage(err, "媒体素材上传失败。") });
-		} finally {
-			setUploading(null);
+		}
+		const failed = entries.length - succeeded;
+		if (failed > 0) {
+			toast.error("上传失败", {
+				description: `${failed} 个文件未导入，可在导入队列中重试。`,
+			});
 		}
 	};
+
+	const retryImport = (id: string) => {
+		const entry = importQueue.find((item) => item.id === id);
+		if (!entry || importing) return;
+		void runImportQueue([entry]);
+	};
+
+	const clearCompletedImports = () =>
+		setImportQueue((previous) => previous.filter((entry) => entry.status !== "succeeded"));
 
 	const deleteItem = async (item: AssetLibraryItem) => {
 		if (busyKey) return;
@@ -740,7 +790,8 @@ export const AssetLibraryWorkspace: React.FC<{
 			aria-label="上传素材"
 			accept="image/*,video/*,audio/*,text/*,.txt,.md,.json"
 			className="sr-only"
-			disabled={Boolean(uploading) || folderUnavailable}
+			multiple
+			disabled={importing || folderUnavailable}
 			onChange={(event) => void uploadMediaFile(event)}
 		/>
 	);
@@ -748,13 +799,70 @@ export const AssetLibraryWorkspace: React.FC<{
 		<Button
 			type="button"
 			size="sm"
-			disabled={Boolean(uploading) || folderUnavailable}
+			disabled={importing || folderUnavailable}
 			onClick={() => mediaUploadRef.current?.click()}
 		>
-			{uploading ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
+			{importing ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
 			{isPage ? "导入文件" : "上传"}
 		</Button>
 	);
+	const importQueuePanel =
+		importQueue.length > 0 ? (
+			<section
+				aria-label="导入队列"
+				className="shrink-0 overflow-y-auto border-b border-border bg-ide-toolbar px-3 py-2"
+			>
+				<div className="flex items-center justify-between gap-2">
+					<p className="text-xs font-medium" role="status">
+						已导入 {importQueue.filter((entry) => entry.status === "succeeded").length} /{" "}
+						{importQueue.length} 项
+					</p>
+					<Button
+						type="button"
+						size="sm"
+						variant="ghost"
+						disabled={importing}
+						onClick={clearCompletedImports}
+					>
+						清除已完成
+					</Button>
+				</div>
+				{importQueue.map((entry) => (
+					<div key={entry.id} className="flex items-center gap-2 py-1 text-xs">
+						<span className="min-w-0 flex-1 truncate" title={entry.filename}>
+							{entry.filename}
+						</span>
+						{entry.status === "uploading" ? (
+							<progress
+								aria-label={entry.filename}
+								max={100}
+								value={entry.progress}
+								className="w-20"
+							/>
+						) : null}
+						<span
+							className={
+								entry.error ? "max-w-64 truncate text-error-foreground" : "text-muted-foreground"
+							}
+							title={entry.error}
+						>
+							{entry.error ?? importStatusLabels[entry.status]}
+						</span>
+						{entry.status === "failed" ? (
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								disabled={importing}
+								onClick={() => retryImport(entry.id)}
+							>
+								重试
+							</Button>
+						) : null}
+					</div>
+				))}
+			</section>
+		) : null;
 	const refresh = async () => {
 		if (refreshing) return;
 		setRefreshing(true);
@@ -1190,6 +1298,7 @@ export const AssetLibraryWorkspace: React.FC<{
 							))}
 						</div>
 					) : null}
+					{importQueuePanel}
 					{isLoading ? (
 						<div className="grid min-h-56 place-items-center border border-border bg-card">
 							<div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1988,6 +2097,24 @@ type AssetLibraryTag = {
 	className: string;
 	key: string;
 	label: string;
+};
+
+type ImportQueueStatus = "queued" | "uploading" | "succeeded" | "failed";
+
+interface ImportQueueEntry {
+	error?: string;
+	file: File;
+	filename: string;
+	id: string;
+	progress: number;
+	status: ImportQueueStatus;
+}
+
+const importStatusLabels: Record<ImportQueueStatus, string> = {
+	failed: "导入失败",
+	queued: "等待导入",
+	succeeded: "已导入",
+	uploading: "正在导入",
 };
 
 const AssetCornerTags: React.FC<{ tags: AssetLibraryTag[] }> = ({ tags }) => {

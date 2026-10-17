@@ -120,6 +120,7 @@ export const uploadMediaAsset = async (
 	file: File,
 	projectId?: string | null,
 	folderId?: string,
+	onProgress?: (percent: number) => void,
 ) => {
 	const formData = new FormData();
 	formData.append("file", file);
@@ -129,6 +130,13 @@ export const uploadMediaAsset = async (
 		headers: {
 			"Content-Type": "multipart/form-data",
 		},
+		onUploadProgress: onProgress
+			? (event) => {
+					const total = event.total ?? 0;
+					if (total <= 0) return;
+					onProgress(Math.min(100, Math.round((event.loaded / total) * 100)));
+				}
+			: undefined,
 	});
 	return response.data;
 };
