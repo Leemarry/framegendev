@@ -88,6 +88,18 @@ export const studioTabPath = (
 	return query ? `/toolbox/${tab}?${query}` : `/toolbox/${tab}`;
 };
 
+/** historyPath points at the generation history pages, project scoped when a project id is given. */
+export const historyPath = (
+	tab: "image" | "text" | "video" | "audio",
+	options: { conversationId?: string | null; projectId?: string | null } = {},
+) => {
+	const params = new URLSearchParams();
+	if (options.conversationId) params.set("conversation", options.conversationId);
+	if (options.projectId) params.set("projectId", options.projectId);
+	const query = params.toString();
+	return query ? `/history/${tab}?${query}` : `/history/${tab}`;
+};
+
 export const settingsPath = (projectId?: string | null) => {
 	if (!projectId) return "/settings";
 	const params = new URLSearchParams();

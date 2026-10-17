@@ -44,6 +44,27 @@ const StudioVideoUnderstand = lazy(() =>
 const StudioAudioTranscribe = lazy(() =>
 	import("@/pages/Studio").then((module) => ({ default: module.StudioAudioTranscribe })),
 );
+const GenerationHistoryHome = lazy(() =>
+	import("@/pages/GenerationHistory").then((module) => ({ default: module.GenerationHistoryHome })),
+);
+const GenerationHistoryImage = lazy(() =>
+	import("@/pages/GenerationHistory").then((module) => ({
+		default: module.GenerationHistoryImage,
+	})),
+);
+const GenerationHistoryVideo = lazy(() =>
+	import("@/pages/GenerationHistory").then((module) => ({
+		default: module.GenerationHistoryVideo,
+	})),
+);
+const GenerationHistoryText = lazy(() =>
+	import("@/pages/GenerationHistory").then((module) => ({ default: module.GenerationHistoryText })),
+);
+const GenerationHistoryAudio = lazy(() =>
+	import("@/pages/GenerationHistory").then((module) => ({
+		default: module.GenerationHistoryAudio,
+	})),
+);
 
 function RootShell() {
 	const mode = useWorkModeStore((state) => state.mode);
@@ -94,6 +115,11 @@ const routes: RouteObject[] = [
 	{ path: "/toolbox/novel-understand", element: <StudioNovelUnderstand /> },
 	{ path: "/toolbox/video-understand", element: <StudioVideoUnderstand /> },
 	{ path: "/toolbox/audio-transcribe", element: <StudioAudioTranscribe /> },
+	{ path: "/history", element: <GenerationHistoryHome /> },
+	{ path: "/history/image", element: <GenerationHistoryImage /> },
+	{ path: "/history/video", element: <GenerationHistoryVideo /> },
+	{ path: "/history/text", element: <GenerationHistoryText /> },
+	{ path: "/history/audio", element: <GenerationHistoryAudio /> },
 	{ path: "/agent", element: <LegacyWorkspaceRouteRedirect /> },
 	{ path: "/studio/*", element: <LegacyWorkspaceRouteRedirect /> },
 	{ path: "/settings", element: <SettingsRoute fallback={<Settings />} /> },
