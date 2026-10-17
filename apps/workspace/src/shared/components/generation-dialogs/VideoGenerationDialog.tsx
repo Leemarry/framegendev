@@ -1,6 +1,6 @@
 import type React from "react";
 import { useEffect, useState } from "react";
-import { Images } from "lucide-react";
+import { Images, Workflow } from "lucide-react";
 import type { GenerationAsset, SelectedGenerationAsset } from "@/domains/generation/api/generation";
 import { GenerationModalShell } from "@/domains/documents/components/GenerationModalShell";
 import { DocumentSectionGenerator } from "@/domains/documents/components/DocumentSectionGenerator";
@@ -11,6 +11,7 @@ import {
 } from "@/domains/generation/components/MediaGenerationWorkspace";
 import { GlobalToolboxButton } from "@/domains/workspace/components/GlobalToolboxDrawer";
 import { Button } from "@/shared/components/ui/button";
+import { WorkflowGenerationSurface } from "@/domains/generation/components/WorkflowGenerationSurface";
 
 type VideoWorkspaceProps = Omit<MediaGenerationWorkspaceProps, "kind">;
 
@@ -61,6 +62,7 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 }) => {
 	const [lastSection, setLastSection] = useState<MarkdownSectionContext | null>(section ?? null);
 	const [materialLibraryOpen, setMaterialLibraryOpen] = useState(false);
+	const [workflowOpen, setWorkflowOpen] = useState(false);
 
 	useEffect(() => {
 		if (section) setLastSection(section);
@@ -68,7 +70,23 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 
 	useEffect(() => {
 		if (!open) setMaterialLibraryOpen(false);
+		if (!open) setWorkflowOpen(false);
 	}, [open]);
+
+	const activeSection = section ?? lastSection;
+	const workflowToggle = activeSection ? (
+		<Button
+			type="button"
+			variant={workflowOpen ? "default" : "outline"}
+			size="sm"
+			className="h-8 shrink-0 px-2.5 text-xs"
+			onClick={() => setWorkflowOpen((value) => !value)}
+			aria-pressed={workflowOpen}
+		>
+			<Workflow className="size-4" />
+			<span>工作流</span>
+		</Button>
+	) : null;
 
 	if (workspaceProps) {
 		return (
@@ -77,20 +95,26 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 				title={title ?? "生成视频"}
 				titleId={titleId}
 				titleAside={
-					<GlobalToolboxButton
-						kind="video"
-						projectId={projectId ?? workspaceProps.projectId}
-						variant="inline"
-					/>
+					<div className="flex items-center gap-2">
+						{workflowToggle}
+						<GlobalToolboxButton
+							kind="video"
+							projectId={projectId ?? workspaceProps.projectId}
+							variant="inline"
+						/>
+					</div>
 				}
 				onOpenChange={onOpenChange}
 			>
-				<MediaGenerationWorkspace {...workspaceProps} kind="video" />
+				{workflowOpen && activeSection ? (
+					<WorkflowGenerationSurface projectId={projectId} section={activeSection} />
+				) : (
+					<MediaGenerationWorkspace {...workspaceProps} kind="video" />
+				)}
 			</GenerationModalShell>
 		);
 	}
 
-	const activeSection = section ?? lastSection;
 	if (!activeSection) return null;
 
 	return (
@@ -100,6 +124,7 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 			titleId={titleId}
 			titleAside={
 				<div className="flex items-center gap-2">
+					{workflowToggle}
 					<Button
 						type="button"
 						variant="outline"
@@ -115,23 +140,27 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 			}
 			onOpenChange={onOpenChange}
 		>
-			<DocumentSectionGenerator
-				kind="video"
-				materialLibraryImportOpen={materialLibraryOpen}
-				projectId={projectId}
-				resolveLatestSection={resolveLatestSection}
-				section={activeSection}
-				selectedAssetKeys={selectedAssetKeys}
-				selectedGenerationAssets={selectedGenerationAssets}
-				viewMode="history"
-				onAssetSelectionPersisted={onAssetSelectionPersisted}
-				onGenerationComplete={onGenerationComplete ?? noop}
-				onGenerationError={onGenerationError ?? noop}
-				onGenerationStart={onGenerationStart ?? noop}
-				onMaterialLibraryImportOpenChange={setMaterialLibraryOpen}
-				onOpenReferenceGeneration={onOpenReferenceGeneration}
-				onToggleAsset={onToggleAsset}
-			/>
+			{workflowOpen ? (
+				<WorkflowGenerationSurface projectId={projectId} section={activeSection} />
+			) : (
+				<DocumentSectionGenerator
+					kind="video"
+					materialLibraryImportOpen={materialLibraryOpen}
+					projectId={projectId}
+					resolveLatestSection={resolveLatestSection}
+					section={activeSection}
+					selectedAssetKeys={selectedAssetKeys}
+					selectedGenerationAssets={selectedGenerationAssets}
+					viewMode="history"
+					onAssetSelectionPersisted={onAssetSelectionPersisted}
+					onGenerationComplete={onGenerationComplete ?? noop}
+					onGenerationError={onGenerationError ?? noop}
+					onGenerationStart={onGenerationStart ?? noop}
+					onMaterialLibraryImportOpenChange={setMaterialLibraryOpen}
+					onOpenReferenceGeneration={onOpenReferenceGeneration}
+					onToggleAsset={onToggleAsset}
+				/>
+			)}
 		</GenerationModalShell>
 	);
 };
