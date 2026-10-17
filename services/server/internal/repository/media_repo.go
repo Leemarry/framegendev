@@ -86,10 +86,13 @@ func (repo *MediaAssetRepository) GetMediaAsset(id string) (domain.AssetModel, e
 	return model, nil
 }
 
-// ListProjectSelectedAssetReferences returns project selection rows that reference one media asset.
+// ListProjectSelectedAssetReferences returns every project selection row that
+// references one media asset, including rows the project removed again so
+// callers can report them as removed usages instead of hiding them.
 func (repo *MediaAssetRepository) ListProjectSelectedAssetReferences(assetID string) ([]domain.ProjectSelectedAssetModel, error) {
 	models := []domain.ProjectSelectedAssetModel{}
-	if err := repo.db.Where("asset_id = ?", strings.TrimSpace(assetID)).
+	if err := repo.db.Unscoped().
+		Where("asset_id = ?", strings.TrimSpace(assetID)).
 		Order("updated_at DESC").
 		Find(&models).Error; err != nil {
 		return nil, fmt.Errorf("listing project selected asset references: %w", err)

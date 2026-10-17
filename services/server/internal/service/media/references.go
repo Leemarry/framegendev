@@ -18,6 +18,13 @@ const MediaAssetReferenceSourceSelection = "selection"
 // body as an inline markdown image.
 const MediaAssetReferenceSourceDocument = "document"
 
+// MediaAssetUseKindSelectedResource marks a usage stored as a project creative
+// selection. It mirrors the official `assetHub.useKinds.selected-resource` label.
+const MediaAssetUseKindSelectedResource = "selected-resource"
+
+// MediaAssetUseKindDocumentBinding marks a usage embedded in a document body.
+const MediaAssetUseKindDocumentBinding = "document-binding"
+
 // DocumentAssetReferenceSource reads document-body media asset usage for one
 // project. It is satisfied by the document service and defined here, in the
 // consumer, per Go interface convention.
@@ -27,12 +34,16 @@ type DocumentAssetReferenceSource interface {
 
 // MediaAssetReference describes one project-level usage of a media asset.
 type MediaAssetReference struct {
+	ID            string `json:"id"`
 	ProjectID     string `json:"projectId"`
 	ProjectName   string `json:"projectName"`
+	Kind          string `json:"kind"`
+	Label         string `json:"label,omitempty"`
 	DocumentID    string `json:"documentId,omitempty"`
 	ResourceTitle string `json:"resourceTitle,omitempty"`
 	ResourceType  string `json:"resourceType,omitempty"`
 	Source        string `json:"source"`
+	Removed       bool   `json:"removed,omitempty"`
 	SortOrder     int    `json:"sortOrder"`
 	CreatedAt     string `json:"createdAt"`
 	UpdatedAt     string `json:"updatedAt"`
@@ -83,6 +94,10 @@ func (store *MediaAssets) ListAssetReferences(assetID string) (MediaAssetReferen
 		if references[i].ProjectID != references[j].ProjectID {
 			return references[i].ProjectID < references[j].ProjectID
 		}
+		if references[i].Removed != references[j].Removed {
+			// Removed usages stay visible but always sort after the live ones.
+			return !references[i].Removed
+		}
 		if references[i].SortOrder != references[j].SortOrder {
 			return references[i].SortOrder < references[j].SortOrder
 		}
@@ -117,10 +132,15 @@ func (store *MediaAssets) selectionAssetReferences(assetID string) ([]MediaAsset
 	references := make([]MediaAssetReference, 0, len(selected))
 	for _, model := range selected {
 		references = append(references, MediaAssetReference{
+			ID:            model.ID,
 			ProjectID:     model.ProjectID,
+			Kind:          MediaAssetUseKindSelectedResource,
+			Label:         domain.StringValue(model.ResourceTitle),
+			DocumentID:    domain.StringValue(model.SourceDocumentID),
 			ResourceTitle: domain.StringValue(model.ResourceTitle),
 			ResourceType:  model.ResourceType,
 			Source:        MediaAssetReferenceSourceSelection,
+			Removed:       model.DeletedAt.Valid,
 			SortOrder:     model.SortOrder,
 			CreatedAt:     domain.StringFromTime(model.CreatedAt),
 			UpdatedAt:     domain.StringFromTime(model.UpdatedAt),
@@ -152,7 +172,10 @@ func (store *MediaAssets) documentAssetReferences(assetID string) ([]MediaAssetR
 				continue
 			}
 			references = append(references, MediaAssetReference{
+				ID:            fmt.Sprintf("document:%s:%s:%s", project.ID, entry.DocumentID, assetID),
 				ProjectID:     project.ID,
+				Kind:          MediaAssetUseKindDocumentBinding,
+				Label:         entry.DocumentTitle,
 				DocumentID:    entry.DocumentID,
 				ResourceTitle: entry.DocumentTitle,
 				ResourceType:  entry.DocumentCategory,

@@ -48,8 +48,12 @@ const mediaAssetsPath = (projectId?: string | null) => {
 export const mediaAssetsKey = mediaAssetsPath();
 
 export interface MediaAssetReference {
+	id?: string;
 	projectId: string;
 	projectName: string;
+	kind?: string;
+	label?: string;
+	removed?: boolean;
 	documentId?: string;
 	resourceTitle?: string;
 	resourceType?: string;

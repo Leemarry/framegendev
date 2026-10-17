@@ -111,21 +111,30 @@ func TestListAssetReferencesReportsProjectUsages(t *testing.T) {
 	if !found {
 		t.Fatal("ListAssetReferences() found = false, want true for an existing asset")
 	}
-	if len(response.References) != 2 {
-		t.Fatalf("references = %#v, want two live project selections", response.References)
+	if len(response.References) != 3 {
+		t.Fatalf("references = %#v, want two live and one removed project selection", response.References)
 	}
 
 	first := response.References[0]
-	if first.ProjectID != "project-a" || first.ProjectName != "项目甲" ||
+	if first.ID != "selected-a" || first.Kind != MediaAssetUseKindSelectedResource ||
+		first.ProjectID != "project-a" || first.ProjectName != "项目甲" ||
+		first.Label != "主角" || first.Removed ||
 		first.ResourceTitle != "主角" || first.ResourceType != "character" || first.SortOrder != 1 ||
 		first.Source != MediaAssetReferenceSourceSelection {
 		t.Fatalf("first reference = %#v, want project-a selection with resolved name", first)
 	}
 	second := response.References[1]
-	if second.ProjectID != "project-b" || second.ProjectName != "项目乙" ||
+	if second.ID != "selected-b" || second.Kind != MediaAssetUseKindSelectedResource ||
+		second.ProjectID != "project-b" || second.ProjectName != "项目乙" ||
+		second.Label != "场景" || second.Removed ||
 		second.ResourceTitle != "场景" || second.ResourceType != "scene" || second.SortOrder != 3 ||
 		second.Source != MediaAssetReferenceSourceSelection {
 		t.Fatalf("second reference = %#v, want project-b selection with resolved name", second)
+	}
+	removed := response.References[2]
+	if removed.ID != "selected-deleted" || !removed.Removed ||
+		removed.Kind != MediaAssetUseKindSelectedResource {
+		t.Fatalf("third reference = %#v, want the removed project-b selection last", removed)
 	}
 
 	unreferenced, err := store.SaveReader(t.Context(), strings.NewReader("lonely bytes"), "lonely.txt", "text/plain", "")
@@ -209,11 +218,14 @@ func TestListAssetReferencesIncludesDocumentBodyUsages(t *testing.T) {
 	}
 
 	selection := response.References[0]
-	if selection.ProjectID != "project-a" || selection.Source != MediaAssetReferenceSourceSelection {
+	if selection.ID != "selected-a" || selection.Kind != MediaAssetUseKindSelectedResource ||
+		selection.ProjectID != "project-a" || selection.Source != MediaAssetReferenceSourceSelection {
 		t.Fatalf("selection reference = %#v, want project-a selection", selection)
 	}
 	document := response.References[1]
-	if document.ProjectID != "project-b" || document.ProjectName != "项目乙" ||
+	if document.ID != "document:project-b:characters:"+asset.ID ||
+		document.Kind != MediaAssetUseKindDocumentBinding || document.Label != "角色设定" ||
+		document.ProjectID != "project-b" || document.ProjectName != "项目乙" ||
 		document.ResourceTitle != "角色设定" || document.ResourceType != "character" ||
 		document.Source != MediaAssetReferenceSourceDocument || document.DocumentID != "characters" {
 		t.Fatalf("document reference = %#v, want project-b document usage", document)

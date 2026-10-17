@@ -295,8 +295,18 @@ func TestMediaAssetRepositoryListsReferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListProjectSelectedAssetReferences() error = %v", err)
 	}
-	if len(selected) != 1 || selected[0].ID != "selected-alpha" {
-		t.Fatalf("selected references = %#v, want only the live alpha row", selected)
+	if len(selected) != 2 {
+		t.Fatalf("selected references = %#v, want the live and the removed row", selected)
+	}
+	removedByID := map[string]bool{}
+	for _, row := range selected {
+		removedByID[row.ID] = row.DeletedAt.Valid
+	}
+	if removedByID["selected-alpha"] {
+		t.Fatalf("selected-alpha deleted = true, want a live row")
+	}
+	if !removedByID["selected-deleted"] {
+		t.Fatalf("selected-deleted deleted = false, want the soft deleted row")
 	}
 
 	empty, err := repo.ListProjectSelectedAssetReferences("asset-unreferenced")

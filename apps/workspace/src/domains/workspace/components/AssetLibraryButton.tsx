@@ -115,6 +115,11 @@ import { AssetLibraryUseDialog } from "./AssetLibraryUseDialog";
 import { SidebarNavContent, sidebarNavRowClassName } from "./SidebarNavButton";
 import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
+import {
+	mediaReferenceKindLabel,
+	mediaReferencePath,
+	mediaReferenceTitle,
+} from "@/domains/workspace/lib/library-references";
 import { libraryScrollKey } from "@/domains/workspace/lib/library-scroll";
 import {
 	applyLibraryTagDiff,
@@ -2212,42 +2217,43 @@ const AssetLibraryReferences: React.FC<{ assetId: string; projectId?: string }> 
 	return (
 		<div className="shrink-0 grid gap-1 border-t border-border pt-3">
 			<p className="text-xs font-medium text-foreground">
-				引用{references.length > 0 ? `（${references.length}）` : ""}
+				用途{references.length > 0 ? `（${references.length}）` : ""}
 			</p>
 			{isLoading ? (
 				<p className="flex items-center gap-1.5 text-xs text-muted-foreground">
 					<Loader2 className="size-3 animate-spin" />
-					<span>正在读取引用</span>
+					<span>正在读取用途</span>
 				</p>
 			) : error ? (
-				<p className="text-xs text-error-foreground">{errorMessage(error, "读取引用失败。")}</p>
+				<p className="text-xs text-error-foreground">{errorMessage(error, "读取用途失败。")}</p>
 			) : references.length === 0 ? (
-				<p className="text-xs text-muted-foreground">未被任何项目引用</p>
+				<p className="text-xs text-muted-foreground">尚未用于项目</p>
 			) : (
 				<ul className="grid gap-1">
-					{references.map((reference, index) => (
-						<li
-							key={`${reference.projectId}:${reference.source ?? ""}:${reference.resourceType ?? ""}:${index}`}
-							className="flex min-w-0 items-center gap-1.5 text-xs"
-						>
-							<span className="min-w-0 flex-1 truncate text-foreground" title={reference.projectId}>
-								{reference.projectName || reference.projectId}
-							</span>
-							{reference.source === "document" || reference.source === "selection" ? (
-								<span className="shrink-0 rounded border border-border px-1 text-[10px] text-muted-foreground">
-									{reference.source === "document" ? "文档" : "选入资源"}
-								</span>
-							) : null}
-							{reference.resourceType || reference.resourceTitle ? (
-								<span
-									className="shrink-0 max-w-28 truncate text-muted-foreground"
-									title={reference.resourceTitle || reference.resourceType}
-								>
-									{reference.resourceTitle || reference.resourceType}
-								</span>
-							) : null}
-						</li>
-					))}
+					{references.map((reference, index) => {
+						const title = mediaReferenceTitle(reference);
+						const path = mediaReferencePath(reference);
+						return (
+							<li
+								key={reference.id || `${reference.projectId}:${index}`}
+								className="min-w-0 break-words text-xs text-muted-foreground"
+								title={reference.projectId}
+							>
+								{path ? (
+									<Link className="text-primary underline underline-offset-2" to={path}>
+										{title}
+									</Link>
+								) : (
+									<span className="text-foreground">{title}</span>
+								)}
+								{` · ${mediaReferenceKindLabel(reference.kind)}`}
+								{reference.projectName && reference.projectName !== title
+									? ` · ${reference.projectName}`
+									: ""}
+								{reference.removed ? " · 已移除的用途" : ""}
+							</li>
+						);
+					})}
 				</ul>
 			)}
 		</div>

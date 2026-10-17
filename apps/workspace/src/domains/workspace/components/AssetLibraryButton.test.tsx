@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -725,11 +726,10 @@ describe("AssetLibraryButton", () => {
 		await screen.findByRole("dialog", { name: "全局素材库" });
 		fireEvent.click(await screen.findByRole("button", { name: "预览 hero.png" }));
 
-		expect(await screen.findByText("引用（2）")).toBeTruthy();
-		expect(screen.getByText("项目甲")).toBeTruthy();
-		expect(screen.getByText("主角")).toBeTruthy();
-		expect(screen.getByText("项目乙")).toBeTruthy();
-		expect(screen.getByText("场景")).toBeTruthy();
+		expect(await screen.findByText("用途（2）")).toBeTruthy();
+		const uses = screen.getByRole("list");
+		expect(uses).toHaveTextContent("主角 · 已选资源 · 项目甲");
+		expect(uses).toHaveTextContent("场景 · 已选资源 · 项目乙");
 		expect(getMediaAssetReferences).toHaveBeenCalledWith("media-a", "project-a");
 	});
 
@@ -741,6 +741,8 @@ describe("AssetLibraryButton", () => {
 		vi.mocked(getMediaAssetReferences).mockResolvedValue({
 			references: [
 				reference({
+					id: "selected-a",
+					kind: "selected-resource",
 					projectId: "project-a",
 					projectName: "项目甲",
 					resourceTitle: "主角",
@@ -748,6 +750,8 @@ describe("AssetLibraryButton", () => {
 					source: "selection",
 				}),
 				reference({
+					id: "document:project-b:characters",
+					kind: "document-binding",
 					projectId: "project-b",
 					projectName: "项目乙",
 					resourceTitle: "角色设定",
@@ -762,10 +766,42 @@ describe("AssetLibraryButton", () => {
 		await screen.findByRole("dialog", { name: "全局素材库" });
 		fireEvent.click(await screen.findByRole("button", { name: "预览 hero.png" }));
 
-		expect(await screen.findByText("引用（2）")).toBeTruthy();
-		expect(screen.getByText("文档")).toBeTruthy();
-		expect(screen.getByText("角色设定")).toBeTruthy();
+		expect(await screen.findByText("用途（2）")).toBeTruthy();
+		const uses = screen.getByRole("list");
+		expect(uses).toHaveTextContent("角色设定 · 文档使用 · 项目乙");
+		expect(uses).toHaveTextContent("主角 · 已选资源 · 项目甲");
 		expect(getMediaAssetReferences).toHaveBeenCalledWith("media-a", "project-a");
+	});
+
+	it("links live document usages and marks removed usages", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [mediaAsset({ filename: "hero.png", id: "media-a", projectId: "project-a" })],
+		});
+		vi.mocked(getMediaAssetReferences).mockResolvedValue({
+			references: [
+				reference({
+					documentId: "characters",
+					id: "document:project-b:characters",
+					kind: "document-binding",
+					label: "角色设定",
+					projectId: "project-b",
+					projectName: "项目乙",
+					resourceTitle: "角色设定",
+					source: "document",
+				}),
+				reference({ id: "selected-removed", removed: true }),
+			],
+		});
+
+		renderAssetLibraryButton("/");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "全局素材库" });
+		fireEvent.click(await screen.findByRole("button", { name: "预览 hero.png" }));
+
+		const link = await screen.findByRole("link", { name: "角色设定" });
+		expect(link).toHaveAttribute("href", "/projects?projectId=project-b&documentId=characters");
+		expect(screen.getByRole("list")).toHaveTextContent("主角 · 已选资源 · 项目甲 · 已移除的用途");
+		expect(screen.queryByRole("link", { name: "主角" })).not.toBeInTheDocument();
 	});
 
 	it("reports the empty reference state for an unselected media asset", async () => {
@@ -778,7 +814,7 @@ describe("AssetLibraryButton", () => {
 		await screen.findByRole("dialog", { name: "全局素材库" });
 		fireEvent.click(await screen.findByRole("button", { name: "预览 lonely.png" }));
 
-		expect(await screen.findByText("未被任何项目引用")).toBeTruthy();
+		expect(await screen.findByText("尚未用于项目")).toBeTruthy();
 	});
 
 	it("surfaces the reference request failure instead of a fake success", async () => {
@@ -793,16 +829,18 @@ describe("AssetLibraryButton", () => {
 		fireEvent.click(await screen.findByRole("button", { name: "预览 broken.png" }));
 
 		expect(await screen.findByText("读取引用失败。")).toBeTruthy();
-		expect(screen.queryByText("未被任何项目引用")).not.toBeInTheDocument();
+		expect(screen.queryByText("尚未用于项目")).not.toBeInTheDocument();
 	});
 });
 
 const renderAssetLibraryButton = (initialEntry: string) => {
 	window.history.pushState(null, "", initialEntry);
 	return render(
-		<SWRConfig value={{ provider: () => new Map() }}>
-			<AssetLibraryButton />
-		</SWRConfig>,
+		<MemoryRouter initialEntries={[initialEntry]}>
+			<SWRConfig value={{ provider: () => new Map() }}>
+				<AssetLibraryButton />
+			</SWRConfig>
+		</MemoryRouter>,
 	);
 };
 
@@ -879,10 +917,13 @@ const workspaceProject = (overrides: { id: string; name: string }) => ({
 
 const reference = (overrides: Partial<MediaAssetReference> = {}): MediaAssetReference => ({
 	createdAt: "2026-06-01T10:00:00Z",
+	id: "selected-a",
+	kind: "selected-resource",
 	projectId: "project-a",
 	projectName: "项目甲",
 	resourceTitle: "主角",
 	resourceType: "character",
+	source: "selection",
 	sortOrder: 0,
 	updatedAt: "2026-06-01T10:30:00Z",
 	...overrides,
