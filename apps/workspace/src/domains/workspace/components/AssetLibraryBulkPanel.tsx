@@ -16,6 +16,7 @@ export interface AssetLibraryBulkPanelProps {
 	onRestore: () => void;
 	onToggleFavorite: () => void;
 	onTrash: () => void;
+	onUse?: () => void;
 	trashMode: boolean;
 }
 
@@ -42,6 +43,7 @@ export function AssetLibraryBulkPanel({
 	onRestore,
 	onToggleFavorite,
 	onTrash,
+	onUse,
 	trashMode,
 }: AssetLibraryBulkPanelProps) {
 	const commonTags = commonLibraryTags(assets);
@@ -90,6 +92,11 @@ export function AssetLibraryBulkPanel({
 				</Button>
 			</section>
 			<div className="grid gap-2 border-t border-border pt-3">
+				{onUse ? (
+					<Button type="button" size="sm" className="w-full" disabled={busy} onClick={onUse}>
+						用于创作
+					</Button>
+				) : null}
 				{onCompare ? (
 					<Button
 						type="button"

@@ -1593,6 +1593,7 @@ export const AssetLibraryWorkspace: React.FC<{
 								trashMode={trashMode}
 								onApplyTags={(added, removed) => void bulkApplyTags(added, removed)}
 								onCompare={comparableAssets ? () => setCompareAssets(comparableAssets) : undefined}
+								onUse={bulkAssets.length ? () => setUseForCreationAssets(bulkAssets) : undefined}
 								onToggleFavorite={() => void bulkToggleFavorite()}
 								onTrash={() => void bulkTrash()}
 								onRestore={() => void bulkRestore()}

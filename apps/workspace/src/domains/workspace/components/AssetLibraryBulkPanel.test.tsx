@@ -106,4 +106,21 @@ describe("AssetLibraryBulkPanel", () => {
 		);
 		expect(screen.queryByRole("button", { name: "比较两张图片" })).not.toBeInTheDocument();
 	});
+
+	it("submits the whole selection when using the assets for creation", () => {
+		const onUse = vi.fn();
+		render(
+			<AssetLibraryBulkPanel
+				assets={[asset({ id: "a" }), asset({ id: "b" })]}
+				busy={false}
+				trashMode={false}
+				onUse={onUse}
+				{...handlers()}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "用于创作" }));
+
+		expect(onUse).toHaveBeenCalledTimes(1);
+	});
 });

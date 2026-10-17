@@ -38,6 +38,8 @@ vi.mock("@/domains/projects/api/projects", () => ({
 vi.mock("@/domains/workspace/api/workspace", () => ({
 	workspaceDocumentsKey: (id: string) => `/documents/${id}`,
 	getWorkspaceDocuments: vi.fn(async () => ({ documents: [] })),
+	workspaceDocumentResourcesKey: (id: string) => `/document-resources/${id}`,
+	getWorkspaceDocumentResources: vi.fn(async () => ({ resources: [] })),
 }));
 vi.mock("@/domains/generation/api/generation", () => ({
 	selectedGenerationAssetsQueryKey: (id: string) => `/selected/${id}`,
@@ -953,6 +955,28 @@ describe("global material scopes", () => {
 		await waitFor(() =>
 			expect(screen.queryByRole("dialog", { name: "比较两张图片" })).not.toBeInTheDocument(),
 		);
+	});
+
+	it("uses every selected asset for creation in one dialog", async () => {
+		vi.mocked(getMediaAssets).mockResolvedValue({
+			assets: [
+				asset("use-a", "A.png", "2026-10-15T10:00:00Z"),
+				asset("use-b", "B.png", "2026-10-15T11:00:00Z"),
+			],
+		});
+		mount();
+		fireEvent.click(await screen.findByRole("button", { name: "预览 A.png" }));
+		fireEvent.click(screen.getByRole("button", { name: "预览 B.png" }), { ctrlKey: true });
+
+		const panel = await screen.findByRole("complementary", { name: "批量操作" });
+		fireEvent.click(within(panel).getByRole("button", { name: "用于创作" }));
+
+		const dialog = await screen.findByRole("alertdialog", { name: "用于创作" });
+		expect(
+			within(dialog).getByText(
+				"将 2 项素材保存到目标项目，可加入章节候选列表。已有选用结果保持不变。",
+			),
+		).toBeInTheDocument();
 	});
 
 	it("switches URL scopes and resets directory while preserving the return state", async () => {
