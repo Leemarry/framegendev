@@ -91,6 +91,14 @@ func (store *MediaAssets) Scan(ctx context.Context, projectID string, folderID s
 			if existing.SizeBytes != file.SizeBytes {
 				updates["size_bytes"] = file.SizeBytes
 			}
+			if file.Kind == MediaKindImage && existing.Source == MediaSourceImported && (existing.SizeBytes != file.SizeBytes ||
+				(len(libraryTagsFromJSON(existing.ColorsJSON)) == 0 && existing.MetadataStatus != MetadataStatusFailed)) {
+				metadata := enrichImageMetadata(MediaAsset{FilePath: file.AbsolutePath})
+				updates["width"] = metadata.Width
+				updates["height"] = metadata.Height
+				updates["colors_json"] = imagePaletteJSON(metadata.Colors)
+				updates["metadata_status"] = metadata.MetadataStatus
+			}
 			// Only scan-imported assets take their display name from the file on
 			// disk. Uploaded/generated assets keep the storage name `<assetId>.<ext>`
 			// on disk while `filename` holds the user-facing title, so comparing the
@@ -128,6 +136,13 @@ func (store *MediaAssets) Scan(ctx context.Context, projectID string, folderID s
 			StorageStatus:   StorageStatusReady,
 			CreatedAt:       domain.TimeFromString(now),
 			UpdatedAt:       domain.TimeFromString(now),
+		}
+		if file.Kind == MediaKindImage {
+			metadata := enrichImageMetadata(MediaAsset{FilePath: file.AbsolutePath})
+			model.Width = metadata.Width
+			model.Height = metadata.Height
+			model.ColorsJSON = imagePaletteJSON(metadata.Colors)
+			model.MetadataStatus = metadata.MetadataStatus
 		}
 		if err := store.repo.CreateMediaAsset(model); err != nil {
 			return result, err

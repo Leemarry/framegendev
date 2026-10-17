@@ -3,6 +3,7 @@ package media
 import (
 	"bytes"
 	"image"
+	"image/color"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
@@ -57,6 +58,37 @@ func TestImageDimensionsPersistOnImport(t *testing.T) {
 	}
 }
 
+func TestImagePalettePersistsOnImport(t *testing.T) {
+	root := t.TempDir()
+	store := newTestMediaAssets(t, filepath.Join(root, "app.db"), filepath.Join(root, "library"))
+	img := image.NewRGBA(image.Rect(0, 0, 20, 10))
+	for y := 0; y < 10; y++ {
+		for x := 0; x < 20; x++ {
+			if x < 15 {
+				img.Set(x, y, color.RGBA{R: 255, A: 255})
+			} else {
+				img.Set(x, y, color.RGBA{B: 255, A: 255})
+			}
+		}
+	}
+	var data bytes.Buffer
+	if err := png.Encode(&data, img); err != nil {
+		t.Fatal(err)
+	}
+	asset, err := store.SaveReader(t.Context(), &data, "palette.png", "image/png", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"#ff0000", "#0000ff"}
+	if !reflect.DeepEqual(asset.Colors, want) {
+		t.Fatalf("colors = %v, want %v", asset.Colors, want)
+	}
+	persisted, ok, err := store.Get(asset.ID)
+	if err != nil || !ok || !reflect.DeepEqual(persisted.Colors, want) {
+		t.Fatalf("persisted colors = %v, ok=%v error=%v, want %v", persisted.Colors, ok, err, want)
+	}
+}
+
 func TestListBackfillsImageDimensionsWithoutChangingIdentity(t *testing.T) {
 	root := t.TempDir()
 	store := newTestMediaAssets(t, filepath.Join(root, "app.db"), filepath.Join(root, "library"))
@@ -76,7 +108,7 @@ func TestListBackfillsImageDimensionsWithoutChangingIdentity(t *testing.T) {
 		t.Fatalf("List() = %#v, %v", assets, err)
 	}
 	backfilled := assets[0]
-	if backfilled.Width != 17 || backfilled.Height != 29 || backfilled.MetadataStatus != MetadataStatusReady || backfilled.ID != asset.ID || backfilled.ContentHash != asset.ContentHash || backfilled.UpdatedAt != asset.UpdatedAt {
+	if backfilled.Width != 17 || backfilled.Height != 29 || backfilled.MetadataStatus != MetadataStatusReady || len(backfilled.Colors) == 0 || backfilled.ID != asset.ID || backfilled.ContentHash != asset.ContentHash || backfilled.UpdatedAt != asset.UpdatedAt {
 		t.Fatalf("backfilled image = %#v", backfilled)
 	}
 	for range 2 {

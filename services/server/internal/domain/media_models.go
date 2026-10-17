@@ -25,6 +25,7 @@ type AssetModel struct {
 	DurationSeconds float64   `gorm:"column:duration_seconds;not null;default:0"`
 	Source          string    `gorm:"column:source;not null;default:'';index:assets_source_idx"`
 	SourceURL       string    `gorm:"column:source_url;not null;default:'';index:assets_source_url_idx"`
+	ColorsJSON      string    `gorm:"column:colors_json;not null;default:'[]'"`
 	MetadataStatus  string    `gorm:"column:metadata_status;not null;default:''"`
 	StorageStatus   string    `gorm:"column:storage_status;not null;default:'ready';index:assets_storage_status_idx"`
 	TrashedAt       *time.Time `gorm:"column:trashed_at;index:assets_trashed_at_idx"`

@@ -70,6 +70,7 @@ type MediaAsset struct {
 	SizeBytes         int64    `json:"sizeBytes"`
 	URL               string   `json:"url"`
 	SourceURL         string   `json:"sourceUrl,omitempty"`
+	Colors            []string `json:"colors,omitempty"`
 	ContentHash       string   `json:"-"`
 	ProjectID         string   `json:"projectId,omitempty"`
 	Source            string   `json:"source,omitempty"`
@@ -655,6 +656,7 @@ func (store *MediaAssets) SaveLinkedAssetWithOptions(kind string, assetURL strin
 		MIMEType:      asset.MIMEType,
 		URL:           asset.URL,
 		SourceURL:     asset.SourceURL,
+		ColorsJSON:    imagePaletteJSON(asset.Colors),
 		ProjectID:     domain.StringPtr(asset.ProjectID),
 		Source:        asset.Source,
 		StorageStatus: asset.StorageStatus,
@@ -826,6 +828,7 @@ func (store *MediaAssets) saveBytesWithKind(data []byte, kind string, filename s
 		URL:             asset.URL,
 		SourceURL:       asset.SourceURL,
 		ContentHash:     asset.ContentHash,
+		ColorsJSON:      imagePaletteJSON(asset.Colors),
 		ProjectID:       domain.StringPtr(asset.ProjectID),
 		Source:          asset.Source,
 		DurationSeconds: asset.DurationSeconds,
@@ -1066,8 +1069,9 @@ func (store *MediaAssets) backfillListedMetadata(assets []MediaAsset) ([]MediaAs
 }
 
 func (store *MediaAssets) shouldAttemptMetadataBackfill(asset MediaAsset) bool {
-	needsImageDimensions := asset.Kind == MediaKindImage && strings.TrimSpace(asset.FilePath) != "" && (asset.Width <= 0 || asset.Height <= 0)
-	if !needsImageDimensions && !store.needsVideoMetadataBackfill(asset) {
+	needsImageMetadata := asset.Kind == MediaKindImage && strings.TrimSpace(asset.FilePath) != "" &&
+		(asset.Width <= 0 || asset.Height <= 0 || len(asset.Colors) == 0)
+	if !needsImageMetadata && !store.needsVideoMetadataBackfill(asset) {
 		return false
 	}
 
@@ -1112,6 +1116,7 @@ func (store *MediaAssets) mediaAssetMetadataUpdates(asset MediaAsset) map[string
 		"duration_seconds": asset.DurationSeconds,
 		"width":            asset.Width,
 		"height":           asset.Height,
+		"colors_json":      imagePaletteJSON(asset.Colors),
 		"poster_rel_path":  store.mediaAssetDBRelPath(asset.ProjectID, asset.PosterPath),
 		"poster_url":       asset.PosterURL,
 		"metadata_status":  asset.MetadataStatus,
@@ -1140,6 +1145,7 @@ func (store *MediaAssets) mediaAssetRecordFromModel(model mediaAssetModel) Media
 		SizeBytes:       model.SizeBytes,
 		URL:             model.URL,
 		SourceURL:       model.SourceURL,
+		Colors:          libraryTagsFromJSON(model.ColorsJSON),
 		ContentHash:     model.ContentHash,
 		ProjectID:       domain.StringValue(model.ProjectID),
 		Source:          model.Source,
