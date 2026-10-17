@@ -1,5 +1,0 @@
-# Design
-
-The pure generation projection resolves global relative paths through WorkspacePathsFor("") even when MediaAssets uses a configured root or a custom MediaDir. Pass the existing app wiring's workspaceState.Dir and mediaDir into GenerationTaskService via optional GenerationTaskPaths, preserving existing callers. Thread this context through existing task/list/selection projection helpers. The same helper resolves global and relative-project fallback paths; fully qualified project paths and absolute/empty media paths retain behavior. No second repository lookup, mutable global root or persisted-path rewrite.
-
-GenerationTaskService's root is immutable after construction. Existing constructor callers without the optional root retain their previous default behavior; production app wiring always supplies its verified workspace. This changes output projection only, so complete stored records/timestamps and actual media hash must be preserved. Native Electron copy/dialog behavior is unchanged and cannot be claimed accepted from browser HTTP checks.

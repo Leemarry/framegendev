@@ -13,9 +13,6 @@ export default defineConfig({
 	clearScreen: false,
 	envPrefix: ["VITE_"],
 	plugins: [tailwindcss(), react()],
-	optimizeDeps: {
-		include: ["cookie"],
-	},
 	server: {
 		host: false,
 		port: process.env.PORT ? Number(process.env.PORT) : undefined,
@@ -29,25 +26,6 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@": path.resolve(templateDir, "src"),
-			cookie: path.resolve(templateDir, "src/shims/cookie.ts"),
-			"set-cookie-parser": path.resolve(templateDir, "src/shims/set-cookie-parser.ts"),
-			"@tiptap/core/jsx-runtime": path.resolve(
-				templateDir,
-				"node_modules/@tiptap/core/jsx-runtime/index.js",
-			),
-			"@tiptap/core/jsx-dev-runtime": path.resolve(
-				templateDir,
-				"node_modules/@tiptap/core/jsx-dev-runtime/index.js",
-			),
-			"@tiptap/core": path.resolve(templateDir, "src/shims/tiptap-core.ts"),
-			"use-sync-external-store/shim/index.js": path.resolve(
-				templateDir,
-				"src/shims/use-sync-external-store.ts",
-			),
-			"use-sync-external-store/shim/with-selector.js": path.resolve(
-				templateDir,
-				"src/shims/use-sync-external-store-with-selector.ts",
-			),
 			"@components": path.resolve(templateDir, "src/components"),
 			"@lib": path.resolve(templateDir, "src/lib"),
 			"@pages": path.resolve(templateDir, "src/pages"),

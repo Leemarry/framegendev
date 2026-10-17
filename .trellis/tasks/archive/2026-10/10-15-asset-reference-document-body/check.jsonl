@@ -1,3 +1,0 @@
-{"file":".trellis/spec/backend/quality-guidelines.md","reason":"后端完整质量门"}
-{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"前端质量门和真实页面验收"}
-{"file":".trellis/spec/guides/project-workflow.md","reason":"检查失败和历史证据不得混淆"}

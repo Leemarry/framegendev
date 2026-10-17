@@ -1,3 +1,0 @@
-{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"前端质量门与视觉/交互/功能验收"}
-{"file":".trellis/spec/backend/quality-guidelines.md","reason":"后端 Windows check/test/race/build 质量门"}
-{"file":".trellis/spec/guides/project-workflow.md","reason":"失败检查、隔离数据与交接记录"}

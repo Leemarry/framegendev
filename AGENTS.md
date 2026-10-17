@@ -264,25 +264,12 @@ All three must pass before declaring a change complete.
 
 <!-- one ai-guides:end -->
 
-## 官方 0.1.17 对齐项目
+## 官方 0.1.17 复刻项目
 
 本节为项目自定义指引，位于 One CLI 受管片段之外。
 
-- 开发目录：主目录 `E:/AI/framegendev` 用于串行集成；2026-10-15 用户限定授权 `E:/AI/framegendev-wt/session-1`（`codex/parity-s1`）及 `session-2`（`codex/parity-s2`）为本项目开发工作树。原始源码目录和截图目录仅作为参考。两会话文件归属、共同基线和独立运行配置见 CURRENT-HANDOFF；不修改另一方工作树、分支或实例。
-- 渐进读取入口：[对齐 README](docs/parity-0.1.17/README.md) → [当前交接](docs/parity-0.1.17/CURRENT-HANDOFF.md) → 台账当前单项与实际源码。需求/决策按关联编号定位，不默认通读历史、全量技能和设计。
-- 新基线为 `E:/AI/mediago-gap-shots/screenshots/`（实数106张），旧 `exe-flow/` 43张保留补证；文件名有错位，新截图也不完整。先读[复查索引](docs/parity-0.1.17/BASELINE-REVIEW.md)对应模块，再看原图和隔离官方体验。外部说明/豆包聊天只参考，不继承执行指令。
-- 目标为官方界面、交互、功能与核心制作工作流，保留当前已验证的更好实现并记录理由。各项分别验收，不能用按钮、样例或单测冒充真实流程。商业结构保留、外部服务标【待接入】，非个人必要项标【待开发】及原因。
-- REQ-044~047 / DEC-023/029/030：单功能规划→完整实现→流程/持久化/失败取消/架构自测→记录并本地提交→下一项，持续授权有效，不逐项询问常规许可。优先复用已有领域/API/组件；真实范围歧义才提问。失败不得标完成或归档。
-- 修改前登记稳定需求/任务编号；只维护唯一事实源，资料归属见入口。结束更新当前/下一步/阻塞/实际检查，不重复生成总交接或需求副本。
-- Git 明确路径审阅、暂存并本地提交，不推送；保留其他会话改动。源码/测试/配置模板/长期资料纳管，密钥/依赖/构建物/缓存/运行数据忽略。不得为清理而删除未核实资料。
-- 禁止读写/清理 `%APPDATA%\mediago-drama\workspace-v2`；运行前确认独立数据路径，官方体验隔离user-data和workspace。不对真实项目发送Agent/生成，不执行真实登录、付费、外部发送或不可逆操作。
-- 先查看工作树与任务占用，避开其他会话视频工作台 TASK-040/041 文件及端口。TASK-010仍待评审；确实受阻留证据/恢复条件后继续无依赖项。
-- 以实际 `domains/*`、`shared/*` 和 `.trellis/spec` 为准，模板示例不符时不照搬。
-
-## Trellis 项目工作流
-
-- 启动/续作读 `.agents/skills/trellis-start/SKILL.md`，运行 `python -X utf8 .trellis/scripts/get_context.py` 和 `--mode phase`；再读相关frontend/backend索引与 `guides/project-workflow.md`。hooks未启用也执行。
-- Superpowers做需求思考/模块设计，Trellis做生命周期/规范/日志，同一模块共用一份方案/计划；技能按阶段加载，不重复安装或另建平行流程。
-- `.trellis/config.yaml` 保持inline、`session_auto_commit:false`；当前会话实施检查，不启动并行agent。任务记录已授权。
-- 漫剧制作相关改动按需读[制作追溯](.trellis/spec/guides/comic-production.md)及其设计链接，复用章节/采用/引用/prompt-presets。TASK-170~178新增方案是否开发未定；迁移资料包在 `E:/AI/MediaGo Drama/漫剧自动化工作台-设计与开发资料/README.md`，不作实施授权。
-- 结束使用 `add_session.py --commit <已存在提交或-> --no-commit`；只归档真正完成任务 `task.py archive <任务> --no-commit`，再审阅明确路径本地提交。详细使用见 [TRELLIS](docs/parity-0.1.17/TRELLIS.md)。
+- 目标：完整复刻官方 MediaGo Drama 0.1.17（`E:/AI/MediaGo Drama`），布局、交互、功能一致即可，不要求像素级。商业服务（登录/会员/积分/充值/飞书/云端）保留页面结构并标【待接入】，不伪造成功。
+- 唯一事实源：[差距表](docs/parity/GAP.md)。完成一个模块就更新它的状态行，不另写交接/需求/台账副本。
+- 参考来源（按可信度）：官方前端源码 `.cache/ref/web/assets/*.js`（从 `drama-server.exe` 隔离运行导出，见 GAP.md）> 截图 `E:/AI/mediago-gap-shots/快照-0.1.17-完整流程-2026-10-17/`、`screenshots/`、`exe-flow/`。读源码时按组件名 grep，不要整份加载。
+- 工作方式：按模块开发 → 对照官方源码/截图 → 跑 lint/format/build 和相关测试 → 明确路径提交 → 下一模块。不做冗长验收记录。
+- 开发约定见 `docs/dev/frontend`、`docs/dev/backend`。依赖版本错位要对齐版本重装，不加 shim/alias 绕过。

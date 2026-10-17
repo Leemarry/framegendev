@@ -1,5 +1,0 @@
-{"file":".trellis/spec/backend/index.md","reason":"Backend service and route conventions"}
-{"file":".trellis/spec/backend/error-handling.md","reason":"Safe HTTP error mapping and cancellation"}
-{"file":".trellis/spec/frontend/index.md","reason":"Workspace feature ownership"}
-{"file":".trellis/spec/frontend/type-safety.md","reason":"Typed API and IPC boundaries"}
-{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Transfer contract crosses service, HTTP and UI"}

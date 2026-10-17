@@ -25,26 +25,7 @@ describe("SettingsSidebarPanel", () => {
 		expect(onSelectTab).toHaveBeenCalledWith("shortcuts");
 	});
 
-	it("keeps existing API key settings reachable alongside model access", () => {
-		const onSelectTab = vi.fn();
-
-		render(
-			<SettingsSidebarPanel
-				activeTab="appearance"
-				isProjectSettings={false}
-				onBack={vi.fn()}
-				onSelectTab={onSelectTab}
-			/>,
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "模型接入" }));
-		expect(onSelectTab).toHaveBeenCalledWith("model-access");
-
-		fireEvent.click(screen.getByRole("button", { name: "API 密钥" }));
-		expect(onSelectTab).toHaveBeenCalledWith("api-keys");
-	});
-
-	it("shows the Codex access settings entry for Codex", () => {
+	it("routes API key and Codex access through the merged model access page", () => {
 		const onSelectTab = vi.fn();
 
 		render(
@@ -57,9 +38,10 @@ describe("SettingsSidebarPanel", () => {
 			/>,
 		);
 
-		fireEvent.click(screen.getByRole("button", { name: "Codex 接入" }));
-
-		expect(onSelectTab).toHaveBeenCalledWith("codex-access");
+		fireEvent.click(screen.getByRole("button", { name: "模型接入" }));
+		expect(onSelectTab).toHaveBeenCalledWith("model-access");
+		expect(screen.queryByRole("button", { name: "API 密钥" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Codex 接入" })).toBeNull();
 	});
 
 	it("shows Codex skills for every agent backend and selects its own tab", () => {
@@ -90,8 +72,8 @@ describe("SettingsSidebarPanel", () => {
 		expect(screen.getByRole("button", { name: "Codex 技能" })).toBeInTheDocument();
 	});
 
-	it("orders Codex skills after relay when present and before agent instructions", () => {
-		const { rerender } = render(
+	it("lists Codex skills before agent instructions at the end of generation config", () => {
+		render(
 			<SettingsSidebarPanel
 				activeAgentBackendId="codex"
 				activeTab="appearance"
@@ -100,30 +82,13 @@ describe("SettingsSidebarPanel", () => {
 				onSelectTab={vi.fn()}
 			/>,
 		);
-		const codexGroup = screen.getByText("生成配置").closest("section");
+		const group = screen.getByText("生成配置").closest("section");
 		expect(
-			within(codexGroup as HTMLElement)
+			within(group as HTMLElement)
 				.getAllByRole("button")
 				.map((button) => button.textContent)
-				.slice(-4),
-		).toEqual(["API 密钥", "Codex 接入", "Codex 技能", "智能体指令"]);
-
-		rerender(
-			<SettingsSidebarPanel
-				activeAgentBackendId="opencode"
-				activeTab="appearance"
-				isProjectSettings={false}
-				onBack={vi.fn()}
-				onSelectTab={vi.fn()}
-			/>,
-		);
-		const otherGroup = screen.getByText("生成配置").closest("section");
-		expect(
-			within(otherGroup as HTMLElement)
-				.getAllByRole("button")
-				.map((button) => button.textContent)
-				.slice(-3),
-		).toEqual(["API 密钥", "Codex 技能", "智能体指令"]);
+				.slice(-2),
+		).toEqual(["Codex 技能", "智能体指令"]);
 	});
 
 	it("shows the app updates settings entry", () => {

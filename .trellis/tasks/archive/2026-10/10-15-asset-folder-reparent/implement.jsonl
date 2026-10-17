@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "后端目录结构/handler-service-repository 边界"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "错误码与 envelope 格式"}
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "repository 事务/唯一性/迁移"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "前端组件规范/命名/tokens"}
-{"file": ".trellis/spec/guides/project-workflow.md", "reason": "Trellis 项目工作流"}

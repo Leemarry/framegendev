@@ -1,4 +1,0 @@
-{"file":".trellis/spec/backend/directory-structure.md","reason":"复用服务与消费者侧接口边界"}
-{"file":".trellis/spec/backend/error-handling.md","reason":"读取失败真实传播"}
-{"file":".trellis/spec/frontend/component-guidelines.md","reason":"来源标注与主题布局"}
-{"file":".trellis/spec/guides/project-workflow.md","reason":"隔离验收与单项提交"}

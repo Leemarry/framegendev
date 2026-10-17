@@ -1,5 +1,0 @@
-# Design
-
-Existing task-source hydration and upsert resolve a task by ID without comparing its ProjectID against the destination. Selection writes task asset/title/resource before storing the project row; deselection can mirror changes into the same foreign source. Reuse the existing generation project matching rule (empty task project is global). Validate under the current GenerationTaskService mutex immediately after decoding the source task, before all writes. A package-local source mismatch error propagates through the workflow as404 for both select and deselect; repository/API shapes stay unchanged. Missing task direct fallback is preserved. No shared transport, media storage, route or frontend changes.
-
-Files: generation_tasks_service.go (shared select/deselect guard), generation_runtime_tasks.go (existing status mapping), generation_tasks_service_test.go (complete-record no-write regression). This does not claim atomicity for unrelated DB failures or finish all TASK030/150 adoption workflows.

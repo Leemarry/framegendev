@@ -1,9 +1,0 @@
-# Resource Panel Composition
-
-Use URL resourcePanel=open in the documents domain, like documentMode. Header action and WritingWorkspace read the same location; update only that query parameter with route state preserved. No new shared store or session2 navigation edit. Opening resources hides comments via the existing documents action, matching actual official behavior. Render only in a matching storyboard document context and document mode. Keep WritingEditor mounted in its existing layout. The panel is controlled by its caller and contains a close icon; responsive flex stacks it below the editor on narrow screens.
-
-Reuse StoryboardTimelinePanel's group/track projection, existing UI tokens, lucide and SWR resolved-episode key. Require matching projectId/documentId and a clean document. Hide cached groups during loading/revalidation/error; expose an explicit retry. Revalidate when document updatedAt changes using the existing episode pattern. No document/episode writes or generation controls. Preserve existing track summaries as a useful local inspection, while official group generation/adoption/reference controls remain unverified and outside this bounded reconnection.
-
-Actual empty-state acceptance found the API's generic Markdown fallback produces a12-second preview section even without H2. Resource summaries use existing listDocumentSections to distinguish authored groups, leaving backend/NLE fallback unchanged. Check available documentUpdatedAt as well as identity. Plain-colon fixture narration/caption/duration is not independently parsed by the existing service; this parser limitation remains outside the reconnection.
-
-Files: DocumentHeaderActions.tsx/test (entry), WritingWorkspace.tsx/test (composition), StoryboardTimelinePanel.tsx/test (safe reads), relevant state spec and own task records. No backend/API/shared primitive/dependency edits.

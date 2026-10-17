@@ -263,3 +263,7 @@ pnpm build         # tsc -b && vite build  (runs typecheck)
 All three must pass before declaring a change complete.
 
 <!-- one ai-guides:end -->
+
+## 官方 0.1.17 复刻项目
+
+项目自定义指引见 `AGENTS.md` 末尾「官方 0.1.17 复刻项目」一节；唯一事实源为 `docs/parity/GAP.md`。官方前端参考源码用 `python scripts/parity/export-official-web.py` 导出到 `.cache/ref/web`。
