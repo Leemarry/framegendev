@@ -1,4 +1,4 @@
-import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, act } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DocumentSectionGeneratorProps } from "@/domains/documents/components/DocumentSectionGenerator";
 import type { MarkdownSectionContext } from "@/domains/documents/components/MarkdownHybridEditor";
@@ -35,6 +35,60 @@ vi.mock("@/domains/generation/components/WorkflowGenerationSurface", () => ({
 }));
 
 describe("VideoGenerationDialog", () => {
+	it("keeps the target rail across modes and resets an open library when the shot changes", () => {
+		const select = vi.fn();
+		const targets = [
+			{ id: "a", title: "分镜甲" },
+			{ id: "b", title: "分镜乙" },
+		];
+		const props = {
+			open: true,
+			onOpenChange: vi.fn(),
+			targets,
+			onSelectTarget: select,
+			activeTargetId: "a",
+			section,
+			workspaceProps: { historyScopeId: "a", initialPrompt: "甲提示词" },
+		};
+		const { rerender } = render(<VideoGenerationDialog {...props} />);
+		expect(screen.getByRole("button", { name: "视频工作台" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "切换到素材：分镜甲" })).toHaveAttribute(
+			"aria-current",
+			"true",
+		);
+		fireEvent.click(screen.getByRole("button", { name: "切换到素材：分镜乙" }));
+		expect(select).toHaveBeenCalledWith("b");
+		const workspace = () =>
+			(
+				mocks.MediaGenerationWorkspace.mock.calls as unknown as Array<
+					[MediaGenerationWorkspaceProps]
+				>
+			).at(-1)![0];
+		act(() => workspace().onMaterialLibraryImportOpenChange?.(true));
+		expect(workspace().materialLibraryImportOpen).toBe(true);
+		rerender(
+			<VideoGenerationDialog
+				{...props}
+				activeTargetId="b"
+				section={{ ...section, blockId: "second" }}
+				workspaceProps={{ historyScopeId: "b", initialPrompt: "乙提示词" }}
+			/>,
+		);
+		expect(workspace()).toMatchObject({
+			historyScopeId: "b",
+			initialPrompt: "乙提示词",
+			materialLibraryImportOpen: false,
+		});
+		fireEvent.click(screen.getByRole("switch", { name: "工作流" }));
+		expect(screen.getByRole("button", { name: "切换到素材：分镜乙" })).toHaveAttribute(
+			"aria-current",
+			"true",
+		);
+		expect(screen.getByText("工作流测试画布")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("switch", { name: "工作流" }));
+		expect(screen.getByRole("region", { name: "生成素材" })).toBeInTheDocument();
+	});
+
 	it("opens workflow from timeline request context without a separate section prop", () => {
 		render(
 			<VideoGenerationDialog
@@ -87,6 +141,8 @@ describe("VideoGenerationDialog", () => {
 			historyScopeId: "timeline-video",
 			initialPrompt: "镜头推进",
 			kind: "video",
+			showMaterialLibraryImportCard: true,
+			viewMode: "history",
 		});
 		expect(mocks.DocumentSectionGenerator).not.toHaveBeenCalled();
 	});

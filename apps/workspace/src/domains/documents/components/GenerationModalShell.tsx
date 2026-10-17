@@ -37,6 +37,7 @@ export const GenerationModalShell: React.FC<{
 	contentLayerClassName?: string;
 	titleAside?: React.ReactNode;
 	headerActions?: React.ReactNode;
+	rightPane?: React.ReactNode;
 	onOpenChange: (open: boolean) => void;
 	open: boolean;
 	title: React.ReactNode;
@@ -51,6 +52,7 @@ export const GenerationModalShell: React.FC<{
 	title,
 	titleAside,
 	headerActions,
+	rightPane,
 }) => (
 	<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
 		<DialogPrimitive.Portal>
@@ -98,7 +100,17 @@ export const GenerationModalShell: React.FC<{
 							</Button>
 						</DialogClose>
 					</header>
-					<div className="min-h-0 flex-1">{children}</div>
+					<div className="flex min-h-0 flex-1 overflow-hidden">
+						<div className="min-h-0 min-w-0 flex-1">{children}</div>
+						{rightPane && (
+							<aside
+								aria-label="生成素材列表"
+								className="h-full w-[23%] min-w-32 shrink-0 overflow-y-auto border-l border-border bg-ide-panel"
+							>
+								{rightPane}
+							</aside>
+						)}
+					</div>
 				</section>
 			</DialogPrimitive.Content>
 		</DialogPrimitive.Portal>

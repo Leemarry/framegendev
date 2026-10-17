@@ -865,6 +865,17 @@ export const EpisodeTimelineView: React.FC<EpisodeTimelineViewProps> = ({
 				/>
 			</main>
 			<VideoGenerationDialog
+				activeTargetId={selectedClip?.id}
+				targets={episode.tracks
+					.filter((track) => track.type === "video")
+					.flatMap((track) =>
+						track.clips.map((clip) => ({
+							id: clip.id,
+							title: clip.title,
+							thumbnailUrl: clip.thumbnailUrl ?? clip.posterUrl,
+						})),
+					)}
+				onSelectTarget={handleTimelineClipGenerate}
 				open={episodeVideoRequest.open}
 				title={episodeVideoRequest.title}
 				titleId={episodeVideoGenerationTitleId}

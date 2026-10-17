@@ -50,6 +50,32 @@ vi.mock("@/domains/generation/components/GenerationWorkspace", () => ({
 }));
 
 describe("GlobalToolboxButton", () => {
+	it("opens the project video workbench with conversation actions from the generation header", async () => {
+		vi.mocked(getGenerationConversations).mockResolvedValue({ conversations: [] });
+		render(
+			<SWRConfig value={{ provider: () => new Map() }}>
+				<GlobalToolboxButton
+					variant="inline"
+					kind="video"
+					label="视频工作台"
+					projectId="project-a"
+				/>
+			</SWRConfig>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "视频工作台" }));
+		expect(await screen.findByRole("dialog", { name: "视频工作台" })).toBeInTheDocument();
+		expect(await screen.findByTestId("global-generation-workspace")).toHaveAttribute(
+			"data-conversation-id",
+			"project-a-video",
+		);
+		expect(screen.getByRole("button", { name: "历史会话" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "新建会话" })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "关闭视频工作台" }));
+		await waitFor(() =>
+			expect(screen.queryByRole("dialog", { name: "视频工作台" })).not.toBeInTheDocument(),
+		);
+	});
+
 	it("restricts project navigation history to the current project", async () => {
 		vi.mocked(getGenerationConversations).mockImplementation(async (kind) => ({
 			conversations:

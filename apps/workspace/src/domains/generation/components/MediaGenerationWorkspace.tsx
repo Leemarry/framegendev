@@ -198,6 +198,7 @@ export interface MediaGenerationWorkspaceProps {
 	kind: GenerationKind;
 	mediaAssetProjectId?: string | null;
 	materialLibraryImportOpen?: boolean;
+	showMaterialLibraryImportCard?: boolean;
 	modelPreferenceScopeId?: string | null;
 	notificationTarget?: GenerationNotificationOpenTarget | null;
 	onGenerationComplete?: (
@@ -256,6 +257,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 	kind,
 	mediaAssetProjectId,
 	materialLibraryImportOpen,
+	showMaterialLibraryImportCard = false,
 	modelPreferenceScopeId,
 	notificationTarget,
 	onGenerationComplete,
@@ -1793,7 +1795,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 			{showTabbedHistory ? (
 				<>
 					<section aria-label="历史记录" className="flex h-full min-h-0 min-w-0 flex-col bg-card">
-						{historyStatus}
+						{(!showMaterialLibraryImportCard || historyUnavailable) && historyStatus}
 						{!historyUnavailable && (
 							<HistoryGenerationList
 								activeEntryId={highlightedHistoryEntryId}
@@ -1808,6 +1810,11 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 								onDeleteAsset={deleteEntryAsset}
 								onDeletePlaceholder={deleteEntryAssetPlaceholder}
 								onCopyPrompt={resultActions.copyPrompt}
+								onOpenMaterialLibrary={
+									showMaterialLibraryImportCard && onMaterialLibraryImportOpenChange
+										? () => onMaterialLibraryImportOpenChange(true)
+										: undefined
+								}
 								onEditAsset={openImageEditor}
 								onSaveAsset={resultActions.saveAsset}
 								onSelectEntry={selectHistoryEntry}
@@ -1885,6 +1892,7 @@ export const MediaGenerationWorkspace: React.FC<MediaGenerationWorkspaceProps> =
 			{onMaterialLibraryImportOpenChange ? (
 				<MaterialLibraryImportDialog
 					assetKind={materialImportAssetKind}
+					confirmLabel={showMaterialLibraryImportCard ? "加入生成列表" : undefined}
 					confirming={ws.isImportingMediaAssets}
 					mediaAssets={ws.mediaAssets}
 					open={Boolean(materialLibraryImportOpen)}

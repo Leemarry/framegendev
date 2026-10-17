@@ -99,10 +99,16 @@ export const GlobalToolboxButton: React.FC<GlobalToolboxButtonProps> = ({
 					)}
 					onClick={() => setOpen((current) => !current)}
 				>
-					<History className="size-4" />
-					<span>生成历史</span>
+					{kind === "video" ? <Film className="size-4" /> : <History className="size-4" />}
+					<span>{label}</span>
 				</Button>
-				<GlobalToolboxDrawer kind={kind} open={open} projectId={projectId} onOpenChange={setOpen} />
+				<GlobalToolboxDrawer
+					title={label}
+					kind={kind}
+					open={open}
+					projectId={projectId}
+					onOpenChange={setOpen}
+				/>
 			</div>
 		);
 	}
@@ -149,12 +155,13 @@ export const GlobalToolboxButton: React.FC<GlobalToolboxButtonProps> = ({
 };
 
 const GlobalToolboxDrawer: React.FC<{
+	title?: string;
 	kind?: StudioTab;
 	onOpenChange: (open: boolean) => void;
 	open: boolean;
 	projectId?: string;
 	projectOnly?: boolean;
-}> = ({ kind, onOpenChange, open, projectId, projectOnly = false }) => {
+}> = ({ title = "生成历史", kind, onOpenChange, open, projectId, projectOnly = false }) => {
 	const [activeConversation, setActiveConversation] = useState<GenerationConversation | null>(null);
 	const [historyOpen, setHistoryOpen] = useState(false);
 	const [isCreatingConversation, setIsCreatingConversation] = useState(false);
@@ -360,9 +367,7 @@ const GlobalToolboxDrawer: React.FC<{
 				>
 					<header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-ide-panel px-3">
 						<SheetHeader className="min-w-0">
-							<SheetTitle className="truncate">
-								{projectOnly ? "项目生成历史" : "生成历史"}
-							</SheetTitle>
+							<SheetTitle className="truncate">{projectOnly ? "项目生成历史" : title}</SheetTitle>
 							<SheetDescription className="mt-0.5 truncate text-2xs">
 								{selectedConversation
 									? selectedConversation.title || "未命名会话"
@@ -445,7 +450,7 @@ const GlobalToolboxDrawer: React.FC<{
 									type="button"
 									className="flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-ide-list-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 									title="关闭"
-									aria-label="关闭生成历史"
+									aria-label={`关闭${title}`}
 								>
 									<X className="size-4" />
 								</button>

@@ -1,6 +1,5 @@
 import type React from "react";
 import { useEffect, useState } from "react";
-import { Images } from "lucide-react";
 import type { GenerationAsset, SelectedGenerationAsset } from "@/domains/generation/api/generation";
 import { GenerationModalShell } from "@/domains/documents/components/GenerationModalShell";
 import { DocumentSectionGenerator } from "@/domains/documents/components/DocumentSectionGenerator";
@@ -38,6 +37,9 @@ interface VideoGenerationDialogProps {
 	title?: string;
 	titleId?: string;
 	workspaceProps?: VideoWorkspaceProps;
+	targets?: Array<{ id: string; title: string; thumbnailUrl?: string }>;
+	activeTargetId?: string;
+	onSelectTarget?: (id: string) => void;
 }
 
 const defaultVideoTitleId = "video-generation-title";
@@ -59,6 +61,9 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 	title,
 	titleId = defaultVideoTitleId,
 	workspaceProps,
+	targets,
+	activeTargetId,
+	onSelectTarget,
 }) => {
 	const [lastSection, setLastSection] = useState<MarkdownSectionContext | null>(section ?? null);
 	const [materialLibraryOpen, setMaterialLibraryOpen] = useState(false);
@@ -74,6 +79,40 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 	}, [open]);
 
 	const activeSection = section ?? workspaceProps?.notificationTarget?.section ?? lastSection;
+	const sectionKey = activeSection
+		? `${activeSection.documentId}:${activeSection.blockId}`
+		: workspaceProps?.historyScopeId;
+	useEffect(() => setMaterialLibraryOpen(false), [sectionKey]);
+	const resourceTargets =
+		targets ?? (activeSection ? [{ id: sectionKey!, title: activeSection.headingText }] : []);
+	const rightPane =
+		resourceTargets.length > 0 ? (
+			<div
+				role="region"
+				aria-label="生成素材"
+				data-testid="media-generation-target-rail"
+				className="space-y-1 p-2"
+			>
+				{resourceTargets.map((target) => {
+					const active = target.id === (activeTargetId ?? sectionKey);
+					return (
+						<button
+							key={target.id}
+							type="button"
+							aria-label={`切换到素材：${target.title}`}
+							aria-current={active ? "true" : undefined}
+							onClick={() => onSelectTarget?.(target.id)}
+							className={`relative flex h-16 w-full items-center justify-between gap-2 overflow-hidden rounded-md border border-border px-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-ring ${active ? "bg-primary/5 font-semibold ring-2 ring-inset ring-primary" : "hover:bg-muted"}`}
+						>
+							<span className="truncate">{target.title}</span>
+							{target.thumbnailUrl && (
+								<img alt="" src={target.thumbnailUrl} className="h-full w-20 object-cover" />
+							)}
+						</button>
+					);
+				})}
+			</div>
+		) : null;
 	const workflowToggle = activeSection ? (
 		<Button
 			type="button"
@@ -101,10 +140,12 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 				title={title ?? "生成视频"}
 				titleId={titleId}
 				headerActions={workflowToggle}
+				rightPane={rightPane}
 				titleAside={
 					<div className="flex items-center gap-2">
 						<GlobalToolboxButton
 							kind="video"
+							label="视频工作台"
 							projectId={projectId ?? workspaceProps.projectId}
 							variant="inline"
 						/>
@@ -118,7 +159,15 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 						section={activeSection}
 					/>
 				) : (
-					<MediaGenerationWorkspace {...workspaceProps} kind="video" />
+					<MediaGenerationWorkspace
+						key={workspaceProps.historyScopeId}
+						{...workspaceProps}
+						kind="video"
+						viewMode="history"
+						materialLibraryImportOpen={materialLibraryOpen}
+						onMaterialLibraryImportOpenChange={setMaterialLibraryOpen}
+						showMaterialLibraryImportCard
+					/>
 				)}
 			</GenerationModalShell>
 		);
@@ -132,19 +181,15 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 			title={title ?? `生成视频素材 · ${activeSection.headingText}`}
 			titleId={titleId}
 			headerActions={workflowToggle}
+			rightPane={rightPane}
 			titleAside={
 				<div className="flex items-center gap-2">
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						className="h-8 shrink-0 rounded-md px-2.5 text-xs active:border-primary focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0"
-						onClick={() => setMaterialLibraryOpen(true)}
-					>
-						<Images className="size-4" />
-						<span>从素材库中选择</span>
-					</Button>
-					<GlobalToolboxButton kind="video" projectId={projectId} variant="inline" />
+					<GlobalToolboxButton
+						label="视频工作台"
+						kind="video"
+						projectId={projectId}
+						variant="inline"
+					/>
 				</div>
 			}
 			onOpenChange={onOpenChange}
@@ -153,6 +198,8 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 				<WorkflowGenerationSurface projectId={projectId} section={activeSection} />
 			) : (
 				<DocumentSectionGenerator
+					key={sectionKey}
+					showMaterialLibraryImportCard
 					kind="video"
 					materialLibraryImportOpen={materialLibraryOpen}
 					projectId={projectId}

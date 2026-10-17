@@ -134,6 +134,29 @@ const failedImageEntry = (): GenerationEntry => ({
 });
 
 describe("HistoryGenerationList", () => {
+	it.each([{ entries: [] }, { entries: [videoEntry()] }])(
+		"keeps material import available with empty or populated video history",
+		({ entries }) => {
+			const onOpenMaterialLibrary = vi.fn();
+			render(
+				<HistoryGenerationList
+					activeEntryId={null}
+					deletingEntryIds={[]}
+					entries={entries}
+					kind="video"
+					selectedAssetKeys={[]}
+					onDeleteEntry={vi.fn()}
+					onSelectEntry={vi.fn()}
+					onOpenMaterialLibrary={onOpenMaterialLibrary}
+					variant="list"
+				/>,
+			);
+			fireEvent.click(screen.getByRole("button", { name: "从素材库中选择" }));
+			expect(onOpenMaterialLibrary).toHaveBeenCalledOnce();
+			expect(screen.queryByText("暂无生成历史。")).not.toBeInTheDocument();
+		},
+	);
+
 	afterEach(() => {
 		cleanup();
 	});

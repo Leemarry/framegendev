@@ -8,6 +8,7 @@ import {
 	Image as ImageIcon,
 	Loader2,
 	Pencil,
+	Plus,
 	Trash2,
 	WandSparkles,
 	X,
@@ -70,6 +71,7 @@ export const HistoryGenerationList: React.FC<{
 	onDeleteAsset?: (entry: GenerationEntry, asset: GenerationAsset, assetIndex: number) => void;
 	onDeleteEntry: (entry: GenerationEntry) => void;
 	onDeletePlaceholder?: (entry: GenerationEntry, assetIndex: number) => void;
+	onOpenMaterialLibrary?: () => void;
 	onEditAsset?: (entry: GenerationEntry, asset: GenerationAsset) => void;
 	onSaveAsset?: (entry: GenerationEntry, asset: GenerationAsset) => void;
 	onSelectEntry: (entry: GenerationEntry) => void;
@@ -92,6 +94,7 @@ export const HistoryGenerationList: React.FC<{
 	onDeleteAsset,
 	onDeleteEntry,
 	onDeletePlaceholder,
+	onOpenMaterialLibrary,
 	onEditAsset,
 	onSaveAsset,
 	onSelectEntry,
@@ -103,7 +106,7 @@ export const HistoryGenerationList: React.FC<{
 	savingAssetKeys = [],
 	variant = "compact",
 }) => {
-	if (entries.length === 0) {
+	if (entries.length === 0 && !(variant === "list" && onOpenMaterialLibrary)) {
 		return (
 			<div className="flex min-h-0 flex-1 items-center justify-center p-4 text-center text-xs text-muted-foreground">
 				暂无生成历史。
@@ -122,6 +125,7 @@ export const HistoryGenerationList: React.FC<{
 				onDeleteAsset={onDeleteAsset}
 				onDeleteEntry={onDeleteEntry}
 				onDeletePlaceholder={onDeletePlaceholder}
+				onOpenMaterialLibrary={onOpenMaterialLibrary}
 				onEditAsset={onEditAsset}
 				onSaveAsset={onSaveAsset}
 				onToggleAsset={onToggleAsset}
@@ -189,6 +193,7 @@ const HistoryImageGrid: React.FC<{
 	onDeleteAsset?: (entry: GenerationEntry, asset: GenerationAsset, assetIndex: number) => void;
 	onDeleteEntry: (entry: GenerationEntry) => void;
 	onDeletePlaceholder?: (entry: GenerationEntry, assetIndex: number) => void;
+	onOpenMaterialLibrary?: () => void;
 	onEditAsset?: (entry: GenerationEntry, asset: GenerationAsset) => void;
 	onSaveAsset?: (entry: GenerationEntry, asset: GenerationAsset) => void;
 	onToggleAsset?: (asset: GenerationAsset, selected: boolean) => void;
@@ -206,6 +211,7 @@ const HistoryImageGrid: React.FC<{
 	onDeleteAsset,
 	onDeleteEntry,
 	onDeletePlaceholder,
+	onOpenMaterialLibrary,
 	onEditAsset,
 	onSaveAsset,
 	onToggleAsset,
@@ -223,7 +229,7 @@ const HistoryImageGrid: React.FC<{
 		if (index >= 0) setPreviewIndex(index);
 	};
 
-	if (records.length === 0) {
+	if (records.length === 0 && !onOpenMaterialLibrary) {
 		return (
 			<div className="flex min-h-0 flex-1 items-center justify-center p-4 text-center text-xs text-muted-foreground">
 				{kind === "image"
@@ -261,6 +267,16 @@ const HistoryImageGrid: React.FC<{
 							savingAssetKeys={savingAssetKeys}
 						/>
 					))}
+					{onOpenMaterialLibrary && (
+						<button
+							type="button"
+							onClick={onOpenMaterialLibrary}
+							className="flex aspect-square flex-col items-center justify-center gap-3 rounded-lg border border-border bg-muted/20 text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+						>
+							<Plus className="size-5" />
+							<span>从素材库中选择</span>
+						</button>
+					)}
 				</div>
 			</div>
 			<GenerationImagePreviewSlider

@@ -40,6 +40,7 @@ export interface DocumentSectionGeneratorProps {
 	section: MarkdownSectionContext;
 	selectedAssetKeys?: string[];
 	materialLibraryImportOpen?: boolean;
+	showMaterialLibraryImportCard?: boolean;
 	projectId?: string;
 	resolveLatestSection?: boolean;
 	onGenerationComplete: (
@@ -68,6 +69,7 @@ const mentionSearchMarkdown = (sourceMarkdown: string, promptMarkdown: string) =
 export const DocumentSectionGenerator: React.FC<DocumentSectionGeneratorProps> = ({
 	kind = "image",
 	materialLibraryImportOpen,
+	showMaterialLibraryImportCard,
 	onGenerationComplete,
 	onGenerationError,
 	onGenerationResponse,
@@ -217,6 +219,7 @@ export const DocumentSectionGenerator: React.FC<DocumentSectionGeneratorProps> =
 				initialPrompt={activeSection.prompt}
 				modelPreferenceScopeId={modelPreferenceScopeId}
 				materialLibraryImportOpen={materialLibraryImportOpen}
+				showMaterialLibraryImportCard={showMaterialLibraryImportCard}
 				notificationTarget={notificationTarget}
 				projectId={normalizedProjectId || undefined}
 				// Section history is keyed by (project, document, section), so pull tasks

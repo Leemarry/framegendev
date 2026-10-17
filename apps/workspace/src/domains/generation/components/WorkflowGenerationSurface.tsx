@@ -499,17 +499,7 @@ const WorkflowSurface = ({ projectId, section, storageKey }: Props & { storageKe
 					)}
 				</div>
 			</div>
-			<aside
-				aria-label="当前资源"
-				className="w-1/4 min-w-32 shrink-0 border-l border-border bg-ide-panel p-3"
-			>
-				<div
-					aria-current="true"
-					className="flex min-h-16 items-center rounded-lg border-2 border-primary bg-primary/5 px-3 text-sm font-semibold"
-				>
-					{section.headingText}
-				</div>
-			</aside>
+
 			{pickerNode && pickerNode.kind !== "text" && (
 				<>
 					{media.error ? (

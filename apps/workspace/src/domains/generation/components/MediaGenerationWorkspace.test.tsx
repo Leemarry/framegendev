@@ -1825,7 +1825,7 @@ describe("MediaGenerationWorkspace", () => {
 
 	it("imports selected material library videos in video generation", async () => {
 		const importMediaAssetsToHistory = vi.fn().mockResolvedValue([{ id: "imported-video-entry" }]);
-		const onMaterialLibraryImportOpenChange = vi.fn();
+
 		const setActiveEntryId = vi.fn();
 		vi.mocked(useGenerationWorkspace).mockReturnValue({
 			...workspaceDefaults,
@@ -1836,17 +1836,24 @@ describe("MediaGenerationWorkspace", () => {
 			setActiveEntryId,
 		} as unknown as ReturnType<typeof useGenerationWorkspace>);
 
-		render(
-			<MediaGenerationWorkspace
-				historyScopeId="history-a"
-				initialPrompt="视频提示词"
-				kind="video"
-				materialLibraryImportOpen
-				onMaterialLibraryImportOpenChange={onMaterialLibraryImportOpenChange}
-				selectedAssetTitle="第 01 组"
-				viewMode="history"
-			/>,
-		);
+		const ImportFromCard = () => {
+			const [open, setOpen] = useState(false);
+			return (
+				<MediaGenerationWorkspace
+					historyScopeId="history-a"
+					initialPrompt="视频提示词"
+					kind="video"
+					showMaterialLibraryImportCard
+					materialLibraryImportOpen={open}
+					onMaterialLibraryImportOpenChange={setOpen}
+					selectedAssetTitle="第 01 组"
+					viewMode="history"
+				/>
+			);
+		};
+		render(<ImportFromCard />);
+		expect(screen.queryByText("暂无生成历史。")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "从素材库中选择" }));
 
 		expect(screen.getByRole("dialog", { name: "从素材库中选择" })).toBeTruthy();
 		expect(screen.getByText("scene.mp4")).toBeTruthy();
@@ -1855,7 +1862,7 @@ describe("MediaGenerationWorkspace", () => {
 		expect(screen.queryByLabelText("上传图片素材")).toBeNull();
 
 		fireEvent.click(screen.getByRole("checkbox", { name: /scene\.mp4/u }));
-		fireEvent.click(screen.getByRole("button", { name: "加入生成记录" }));
+		fireEvent.click(screen.getByRole("button", { name: "加入生成列表" }));
 
 		await waitFor(() => {
 			expect(importMediaAssetsToHistory).toHaveBeenCalledWith([videoMediaAsset], {
@@ -1863,7 +1870,7 @@ describe("MediaGenerationWorkspace", () => {
 			});
 		});
 		expect(setActiveEntryId).toHaveBeenCalledWith("imported-video-entry");
-		expect(onMaterialLibraryImportOpenChange).toHaveBeenCalledWith(false);
+		expect(screen.queryByRole("dialog", { name: "从素材库中选择" })).not.toBeInTheDocument();
 	});
 
 	it("uploads material library images from the import dialog before confirmation", async () => {
