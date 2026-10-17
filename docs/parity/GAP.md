@@ -42,10 +42,10 @@
 | [agent：Drami](#agent) | 18 | 2 L / 11 M / 5 S | 🟡 |
 | [settings：设置](#settings) | 25 | 7 L / 9 M / 7 S | 🟡 |
 | [newtools：工作流/浏览器/运行时](#newtools) | 15 | 7 L / 6 M / 2 S | ❌ |
-| [electron：桌面壳](#electron) | 待任务 2.5 | 待评估 | ⏳ |
-| **合计** | **145** | — | — |
+| [electron：桌面壳](#electron) | 16 | 3 L / 4 M / 9 S | 🅿 |
+| **合计** | **162** | — | — |
 
-建议实施顺序（`DEEPSEEK.md` §6 任务队列）：路由对齐 → shell 收尾 → 项目管理页 → REA 壳分析 → 素材库 → 文档工作区 → 生成历史 → Drami → 设置 → 剪辑工作台 → 新增工具。
+建议实施顺序（`DEEPSEEK.md` §6 任务队列）：路由对齐 → shell 收尾 → 项目管理页 → REA 壳分析 → 素材库 → 文档工作区 → 生成历史 → Drami → 设置 → 剪辑工作台 → 新增工具。桌面壳全部条目依赖是否决定做 Electron 包装，暂列🅿，不占主线。
 
 ---
 
@@ -374,19 +374,39 @@ Tab 从 URL `?tab=` 读取并经 `Hf` 归一化：`runtime` → `local-models`�
 <a id="electron"></a>
 ## electron：桌面壳
 
-⏳ **待任务 2.5 填写**。Electron 主进程（应用菜单、IPC 通道、窗口、更新、原生对话框）只存在于 `E:/AI/MediaGo Drama/resources/app.asar`，网页 bundle 里没有。
+桌面壳（主进程、preload、托盘、更新、原生对话框、嵌入式浏览器）只存在于 `E:/AI/MediaGo Drama/resources/app.asar`，网页 bundle 里没有。本节的证据来自 **REA 静态分析 + asar 解包直读**，没有启动过 exe，所以全部按「结构」层记录，不做运行时断言。
 
-计划证据来源：以 REA 静态分析为主
+**分析对象**：`app.asar` 1,879,845 B，sha256 `632ee844…f33d25`，208 个 entry。顶层只有 `main.js`（698,794 B）、`preload.cjs`（19,362 B）、`package.json`、`release-config.json`、`node_modules/`（只有 electron-updater 及其依赖）。`package.json`：`name: mediago-drama`、`productName: MediaGo Drama`、`version: 0.1.17`、`type: module`、`main: main.js`。也就是说主进程是**单个 ESM 文件**，没有源码分目录。
 
-```bash
-npx -y rea-agents@latest analyze-javascript-application "E:/AI/MediaGo Drama/resources/app.asar" --json > .cache/delegates/rea-electron.json
-```
+**REA 结果**：`npx -y rea-agents@latest analyze-javascript-application "E:/AI/MediaGo Drama/resources/app.asar" --json`。统计：192 个相关文件、174 个 JS 被解析、241,882 个 AST 节点、1,563 条 findings、0 解析失败。图规模：1,175 节点 / 2,167 边，其中 `javascript-module` 704、`asar-entry` 192、`browser-window` 6、`ipc-channel` 2、`ipc-handler` 1、`context-bridge-api` 1、`electron-main` 1。**REA 只认出 2 条 IPC 通道**（都是动态 channel 表达式），因为通道名是在 `preload` 里泛化转发的；真实清单靠读 `main.js` 里的字面量映射表补齐（见下）。
 
-渲染层模块与 import 关系用同一命令分析 `E:/AI/framegendev/.cache/ref/web`，输出 `.cache/delegates/rea-web.json`。
+> 运行备注：`npx -y rea-agents@latest` 首次安装会拉 frida 的预编译包，本次在 15 MB 处卡住；`frida` 是 `optionalDependencies`，直接从 npx 缓存里执行 `node scripts/rea.mjs …` 即可跑通静态分析。输出经 PowerShell 重定向会写成 UTF-16（385 MB），已转 UTF-8 留 `.cache/delegates/rea-electron.utf8.json`（192 MB）。IPC 清单 `.cache/delegates/rea-electron-ipc.json`。asar 解包用 `python scripts/parity/asar-extract.py`，解出的 `main.js` sha256 前 16 位 `d7b5aee5f515e6af`、`preload.cjs` `afeae91668b03c53`，与 REA 记录的 artifact sha 一致。
 
-对照目标：`apps/workspace/electron/src/*`。
+| 模块 | 项 | 官方（证据） | 我们现状 | 缺口/动作 | 工作量 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- |
+| electron | 窗口与 webPreferences | `main.js` 里 4 处 `new BrowserWindow({…})`（行 206/11240/14112/15212）+ 1 个迁移恢复窗口；每处 `sandbox: true`、`contextIsolation: true`、`nodeIntegration: false`、`devTools: developerToolsEnabled`、`preload: preloadPath`；REA 记 6 个 `browser-window` 节点、24 条显式 webPreferences | 无桌面壳 | 建 `apps/workspace/electron/` 主进程，按同参数开窗 | M | 🅿【待接入】 |
+| electron | preload 桥 | `preload.cjs` 末尾 `contextBridge.exposeInMainWorld("mediagoDesktop", desktopSdk)`；`desktopSdk` 由 `createDesktopSdkPreload({arch, platform, transport})` 生成，transport 是 `ipcRenderer.invoke/on/removeListener` 的泛化包装（channel 由调用方传入，所以 REA 只能看到动态通道） | 无 | 同上；渲染侧 `window.mediagoDesktop` 的类型要落 `packages/desktop-sdk` 契约 | M | 🅿【待接入】 |
+| electron | IPC 通道清单 | `main.js` 的 `desktopSdkInvokeChannels`：**74 条** invoke 通道，命名 `desktop:<kebab-ns>-<kebab-method>`；`desktopSdkEventChannels`：**11 条**事件。命名空间分布：embeddedBrowser 41、autoUpdater 7、runtimeUpdater 7、fileSystem 6、browserWindow 5、shell 3、application 2、dialog 2、notification 1。事件：`application.settingsChanged`、`autoUpdater.{status,releaseChannelChanged}`、`runtimeUpdater.{status,releaseChannelChanged}`、`browserWindow.{navigate,closeRequested}`、`embeddedBrowser.{downloadsChanged,stateChanged,chromeAction}`、`notification.clicked` | 无 | 桌面壳落地时按 `.cache/delegates/rea-electron-ipc.json` 逐条实现 | L | 🅿【待接入】 |
+| electron | IPC 参数与错误契约 | 同名 `desktopSdkInvokeArgumentCounts` 给 74 条通道各配固定参数个数，`registerDesktopSdkHandler` 里先校验个数、再执行、异常统一走 `serializeDesktopSdkError` | 无 | 契约照抄，别自创形状 | S | 🅿【待接入】 |
+| electron | IPC 发送方校验 | `assertTrustedIpcSender`：要求 `event.senderFrame === event.sender.mainFrame` 且 `isTrustedRendererURL`（只认 loopback 的 localhost/127.0.0.1/::1 + 受信渲染路径），否则抛 `desktop IPC request came from an untrusted renderer`；router 里先 `authorize(event)` 再执行 | 无 | 照抄；这是我们 Go 服务之外唯一的安全边界 | S | 🅿【待接入】 |
+| electron | 渲染进程导航守卫 | `configureRendererWindow`（`main.js:151`）：`setWindowOpenHandler` 一律 `deny`，只有判定 `open-external` 才 `shell.openExternal`；`will-navigate` 用 `resolveRendererNavigation` 三态（allow/open-external/deny）；`will-attach-webview` 直接 `preventDefault` | 无 | 照抄 | S | 🅿【待接入】 |
+| electron | 应用菜单 | 主进程只提供 `setMenu(template)` → `Menu.setApplicationMenu(Menu.buildFromTemplate(template))`，模板由渲染进程通过 SDK 传入，**菜单条目在网页 bundle 里**，asar 内没有应用菜单定义 | 无 | 菜单内容按渲染层实现，桌面壳只做透传 | S | 🅿【待接入】 |
+| electron | 托盘菜单 | `main.js:16173` `new Tray`；模板两项：`打开 MediaGo Drama`（显示主窗）、`退出 MediaGo Drama`（走 `requestQuit` 协调器）；macOS 用模板图标 + `popUpContextMenu`，Windows 用 `setContextMenu` + 点击显窗；tooltip `MediaGo Drama` | 无 | 照抄；退出要接 `createQuitCoordinator`（活动任务/下载确认） | S | 🅿【待接入】 |
+| electron | 标签页右键菜单 | `main.js:15359` 用 `Menu.buildFromTemplate` 弹窗：`关闭标签页`、`关闭其他标签页`、`关闭右侧标签页`、`复制标签页`、`固定标签页/取消固定标签页`、`在其他 Profile 中打开`、`剪切`、`复制`、`粘贴` | 无（网页里没有嵌入浏览器） | 随 embeddedBrowser 一起做 | M | 🅿【待接入】 |
+| electron | 原生对话框 | `dialog.showErrorBox("MediaGo Drama 无法安全启动", …)`（`showStartupError`）；`showOpenDialog` 7 处、`showSaveDialog` 6 处、`showMessageBox` 16 处调用 | 网页端用自绘 Dialog；Go 服务用服务端路径 | 目录/文件选择在桌面端走原生对话框；无壳时保持现有服务端方案 | S | 🅿【待接入】 |
+| electron | 更新（应用） | `electron-updater`；`resources/app-update.yml`：`provider: generic`、`url: https://drama-releases.oss-cn-beijing.aliyuncs.com/desktop/latest`、`channel: latest`、`publisherName: Zhengzhou Xingju Network Technology Co., Ltd.`；SDK 的 `autoUpdater.*` 7 个通道 + 2 个事件 | 无 | 桌面壳接 electron-updater；界面上的更新红点/菜单项见 shell「账户菜单：更新提示」 | M | 🅿【待接入】 |
+| electron | 更新（运行时） | `resources/release-config.json`：`bundledRuntimeVersion: 0.1.8`、`updateBaseURL …/desktop`、`runtimeUpdateBaseURL …/drama-server`、`runtimeSigningPublicKey`；独立的 `runtimeUpdater.*` 7 个通道 + 2 个事件 | Go 服务是本地自编译二进制，没有运行时下载/签名校验 | 若要复刻自动升级运行时，需要签名校验 + 下载器 | L | 🅿【待接入】 |
+| electron | 嵌入式浏览器 | `WebContentsView`（3 处）+ `embeddedBrowser` 41 个通道（标签/Profile/下载/查找/截图/交互/站点数据）+ 3 个事件；`session.fromPath`、`setPermissionRequestHandler` | 无 | 对应网页路由 `/embedded-browser/*`（见 shell 节，8 个子路由） | L | 🅿【待接入】 |
+| electron | 系统通知 | `notification.show` / `notification.clicked` 两个通道，`main.js` 里 1 处 `new Notification` | 网页用 sonner toast | 桌面端换成原生通知 | S | 🚧【待开发】 |
+| electron | 单实例与退出 | `requestSingleInstanceLock`（3 处）、`second-instance` 处理、`createQuitCoordinator` 统一退出（活动任务/下载确认） | 无 | 桌面壳照抄 | S | 🅿【待接入】 |
+| electron | 恢复页协议 | 恢复窗口走 `mediago-recovery://quit` 自定义协议 + `loadURL(recoveryPageURL(…))`，`devTools: false` | 无 | 桌面壳照抄 | S | 🅿【待接入】 |
 
-限制：REA 是否能顺利分析 `app.asar` 尚未实测；失败时在任务 2.5 报告里写明原因，并退回 `asar` 解包 + 手工阅读的方案。
+**关键结论**
+
+1. 官方桌面壳的 IPC 是**语义化 SDK + 私有通道名**两层：渲染层只见 `mediagoDesktop.<ns>.<method>`，通道名由 `desktopSdkInvokeChannels` 映射成 `desktop:*` 私有串，并且有参数个数校验和发送方校验。复刻时这两层都要有，否则后端接口会被任意渲染内容调用。
+2. 应用菜单不在 asar 里——菜单条目由渲染进程下发（`application.setMenu`）。所以在网页里做的菜单配置将来可以直接复用。
+3. 更新分成**应用**和**运行时**两套（`autoUpdater` / `runtimeUpdater`），运行时更新指向 `…/drama-server` 并带签名公钥。我们当前是本地 Go 二进制，这块属于🅿（缺发布链路与签名）。
+4. 未验证项：所有窗口的实际 URL、IPC 的运行时配对、更新的真实下载行为。REA 的 10 条 limitations 已提示「inert syntax、未执行 bundle」，本节的 🅿 状态不因静态证据充分而升级。
 
 ---
 
