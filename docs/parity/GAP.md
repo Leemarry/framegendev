@@ -34,16 +34,16 @@
 
 | 模块 | 条目数 | 主要工作量 | 当前状态 |
 |---|---|---|---|
-| [shell：路由与工作区壳](#shell) | 21 | 1 L / 6 M / 10 S | 🟡 |
+| [shell：路由与工作区壳](#shell) | 23 | 3 L / 7 M / 12 S | 🟡 |
 | [assets：素材库](#assets) | 21 | 3 L / 9 M / 9 S | 🟡 |
 | [documents：文档工作区](#documents) | 14 | 3 M / 8 S | 🟡 |
 | [episode：剧集与剪辑](#episode) | 15 | 2 L / 4 M / 6 S | 🟡 |
 | [generation：生成与生成历史](#generation) | 16 | 1 L / 8 M / 5 S | 🟡 |
 | [agent：Drami](#agent) | 18 | 2 L / 11 M / 5 S | 🟡 |
 | [settings：设置](#settings) | 25 | 7 L / 9 M / 7 S | 🟡 |
-| [newtools：工作流/浏览器/运行时](#newtools) | 15 | 7 L / 6 M / 2 S | ❌ |
+| [newtools：工作流/浏览器/运行时](#newtools) | 15 | 6 L / 7 M / 2 S | ❌ |
 | [electron：桌面壳](#electron) | 16 | 3 L / 4 M / 9 S | 🅿 |
-| **合计** | **162** | — | — |
+| **合计** | **163** | — | — |
 
 建议实施顺序（`DEEPSEEK.md` §6 任务队列）：路由对齐 → shell 收尾 → 项目管理页 → REA 壳分析 → 素材库 → 文档工作区 → 生成历史 → Drami → 设置 → 剪辑工作台 → 新增工具。桌面壳全部条目依赖是否决定做 Electron 包装，暂列🅿，不占主线。
 
