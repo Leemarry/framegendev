@@ -27,6 +27,7 @@ import {
 	Info,
 	RefreshCw,
 	SlidersHorizontal,
+	Sparkles,
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -59,6 +60,7 @@ import {
 	updateMediaAsset,
 	updateMediaAssetMetadata,
 	updateMediaAssetFields,
+	type MediaAsset,
 	type MediaAssetMetadataUpdate,
 	uploadMediaAsset,
 } from "@/domains/workspace/api/media";
@@ -106,6 +108,7 @@ import { confirmDialog } from "@/shared/components/callable/ConfirmDialog";
 import { apiResourceURL } from "@/shared/lib/api-base";
 import { cn } from "@/shared/lib/utils";
 import { AssetLibraryMetadataEditor } from "./AssetLibraryMetadataEditor";
+import { AssetLibraryUseDialog } from "./AssetLibraryUseDialog";
 import { SidebarNavContent, sidebarNavRowClassName } from "./SidebarNavButton";
 import { AssetLibraryMove, type AssetLibraryFolderControls } from "./AssetLibraryFolders";
 import { libraryFolderPath } from "@/domains/workspace/lib/library-folders";
@@ -295,6 +298,7 @@ export const AssetLibraryWorkspace: React.FC<{
 	const setProvenanceFilter = (value: AssetLibraryProvenanceFilter) =>
 		patchFilters({ provenance: value });
 	const [uploading, setUploading] = useState<"media" | null>(null);
+	const [useForCreationAssets, setUseForCreationAssets] = useState<MediaAsset[] | null>(null);
 	const [importQueue, setImportQueue] = useState<ImportQueueEntry[]>([]);
 	const [importing, setImporting] = useState(false);
 	const patchImportEntry = (id: string, patch: Partial<ImportQueueEntry>) =>
@@ -1390,6 +1394,14 @@ export const AssetLibraryWorkspace: React.FC<{
 									}
 								: undefined
 						}
+						onUseForCreation={
+							activeItem?.mediaAsset
+								? () => {
+										const asset = activeItem?.mediaAsset;
+										if (asset) setUseForCreationAssets([asset]);
+									}
+								: undefined
+						}
 						onToggleFavorite={() =>
 							activeItem ? toggleFavorite(activeItem) : Promise.reject(new Error("请选择素材"))
 						}
@@ -1434,6 +1446,16 @@ export const AssetLibraryWorkspace: React.FC<{
 							? "素材加载失败"
 							: `已加载 ${childFolders.length} 个文件夹，${filteredItems.length} 个文件${query ? `（共 ${folderItems.length} 个素材）` : ""}`}
 				</footer>
+			) : null}
+			{useForCreationAssets ? (
+				<AssetLibraryUseDialog
+					assets={useForCreationAssets}
+					onClose={() => setUseForCreationAssets(null)}
+					onChanged={() => {
+						void mutateMediaAssets();
+						void mutateSelectedAssets();
+					}}
+				/>
 			) : null}
 		</>
 	);
@@ -1583,6 +1605,7 @@ const AssetLibraryPreview: React.FC<{
 	onRename: (filename: string) => Promise<boolean>;
 	onSaveMetadata: (payload: MediaAssetMetadataUpdate) => Promise<void>;
 	onToggleFavorite: () => Promise<void>;
+	onUseForCreation?: () => void;
 	folderActions?: React.ReactNode;
 }> = ({
 	busy,
@@ -1594,6 +1617,7 @@ const AssetLibraryPreview: React.FC<{
 	onRename,
 	onSaveMetadata,
 	onToggleFavorite,
+	onUseForCreation,
 	folderActions,
 }) => {
 	const toast = useToast();
@@ -1778,6 +1802,19 @@ const AssetLibraryPreview: React.FC<{
 				/>
 			</div>
 			<div className="flex shrink-0 flex-wrap items-center gap-1.5">
+				{item.mediaAsset && onUseForCreation ? (
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						className="h-7 rounded-sm px-2 text-xs"
+						disabled={busy}
+						onClick={onUseForCreation}
+					>
+						<Sparkles className="size-3.5" />
+						<span>用于创作</span>
+					</Button>
+				) : null}
 				<Button
 					type="button"
 					size="sm"
@@ -2316,6 +2353,7 @@ const mediaAssetSourceLabel = (source: string) => {
 	if (source === "toolbox") return "生成历史";
 	if (source === "generation") return "项目生成";
 	if (source === "preview") return "预览";
+	if (source === "imported") return "导入";
 	return source;
 };
 

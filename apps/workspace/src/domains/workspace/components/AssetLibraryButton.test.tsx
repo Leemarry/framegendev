@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -15,8 +15,12 @@ import {
 	updateMediaAsset,
 	updateMediaAssetFields,
 	updateMediaAssetMetadata,
+	useCatalogAssets,
 } from "@/domains/workspace/api/media";
-import { getWorkspaceDocuments } from "@/domains/workspace/api/workspace";
+import {
+	getWorkspaceDocumentResources,
+	getWorkspaceDocuments,
+} from "@/domains/workspace/api/workspace";
 import { AssetLibraryButton } from "./AssetLibraryButton";
 
 vi.mock("@/components/AudioPlayer", () => ({
@@ -117,11 +121,13 @@ vi.mock("@/domains/workspace/api/media", () => ({
 			: `/media-assets/${encodeURIComponent(id)}/references`;
 	},
 	mediaAssetsKey: "/media-assets",
+	newCatalogOperationID: () => "op-test",
 	scanMediaAssets: vi.fn(),
 	updateMediaAsset: vi.fn(),
 	updateMediaAssetFields: vi.fn(),
 	updateMediaAssetMetadata: vi.fn(),
 	uploadMediaAsset: vi.fn(),
+	useCatalogAssets: vi.fn(),
 }));
 
 vi.mock("@/domains/workspace/api/project-assets", () => ({
@@ -131,7 +137,10 @@ vi.mock("@/domains/workspace/api/project-assets", () => ({
 }));
 
 vi.mock("@/domains/workspace/api/workspace", () => ({
+	getWorkspaceDocumentResources: vi.fn(),
 	getWorkspaceDocuments: vi.fn(),
+	workspaceDocumentResourcesKey: (projectId?: string | null) =>
+		`/projects/${projectId ?? ""}/workspace/resources`,
 	workspaceDocumentsKey: (projectId?: string | null) =>
 		`/projects/${projectId ?? ""}/workspace/documents`,
 }));
@@ -162,6 +171,10 @@ describe("AssetLibraryButton", () => {
 		});
 		vi.mocked(getWorkspaceDocuments).mockResolvedValue(workspaceDocuments());
 		vi.mocked(getMediaAssetReferences).mockResolvedValue({ references: [] });
+		vi.mocked(getWorkspaceDocumentResources).mockResolvedValue({
+			projectId: "project-a",
+			resources: [],
+		});
 	});
 
 	afterEach(() => {
@@ -563,6 +576,37 @@ describe("AssetLibraryButton", () => {
 				{ favorite: true },
 				"project-a",
 			),
+		);
+	});
+
+	it("opens the use-in-creation dialog for the previewed asset", async () => {
+		const asset = mediaAsset({ id: "media-a", filename: "use.png", projectId: "project-a" });
+		vi.mocked(getMediaAssets).mockResolvedValue({ assets: [asset] });
+		vi.mocked(getSelectedGenerationAssets).mockResolvedValue({ assets: [] });
+		vi.mocked(useCatalogAssets).mockResolvedValue({
+			items: [{ sourceId: "media-a", assetId: "media-a", added: false }],
+		});
+
+		renderAssetLibraryButton("/projects?projectId=project-a");
+		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
+		await screen.findByRole("dialog", { name: "项目素材库" });
+		fireEvent.click(await screen.findByRole("button", { name: "预览 use.png" }));
+		fireEvent.click(screen.getByRole("button", { name: "用于创作" }));
+
+		const dialog = await screen.findByRole("alertdialog", { name: "用于创作" });
+		fireEvent.click(within(dialog).getByRole("button", { name: "用于创作" }));
+
+		await waitFor(() =>
+			expect(useCatalogAssets).toHaveBeenCalledWith({
+				operationId: "op-test",
+				sourceProjectId: "project-a",
+				projectId: "project-a",
+				target: undefined,
+				assetIds: ["media-a"],
+			}),
+		);
+		await waitFor(() =>
+			expect(screen.queryByRole("alertdialog", { name: "用于创作" })).not.toBeInTheDocument(),
 		);
 	});
 

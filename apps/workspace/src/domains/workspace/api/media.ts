@@ -164,6 +164,43 @@ export const restoreMediaAsset = async (id: string, projectId?: string | null) =
 	return response.data;
 };
 
+/** One document section an image or video can be attached to. */
+export interface CatalogUseTarget {
+	documentId: string;
+	sectionId: string;
+}
+
+export interface CatalogUseRequest {
+	operationId: string;
+	sourceProjectId?: string;
+	projectId: string;
+	target?: CatalogUseTarget;
+	assetIds: string[];
+}
+
+export interface CatalogUseItem {
+	sourceId: string;
+	assetId?: string;
+	added: boolean;
+	error?: string;
+}
+
+export interface CatalogUseResponse {
+	items: CatalogUseItem[];
+}
+
+/** Official idempotency key shape: `op-` plus a random UUID. */
+export const newCatalogOperationID = () => `op-${crypto.randomUUID()}`;
+
+/**
+ * Saves assets into a project library, optionally into one section's candidate
+ * list. Reusing the same operationId replays the first result.
+ */
+export const useCatalogAssets = async (payload: CatalogUseRequest) => {
+	const response = await httpClient.post<CatalogUseResponse>("/asset-catalog/use", payload);
+	return response.data;
+};
+
 export const updateMediaAsset = async (id: string, filename: string, projectId?: string | null) => {
 	return updateMediaAssetFields(id, { filename }, projectId);
 };
