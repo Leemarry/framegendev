@@ -154,6 +154,21 @@ describe("GenerationModalShell", () => {
 		await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
 	});
 
+	it("toggles the Toonflow-style full-screen generation canvas", async () => {
+		render(
+			<GenerationModalShell open title="工作流" titleId="workflow-title" onOpenChange={vi.fn()}>
+				<div>画布</div>
+			</GenerationModalShell>,
+		);
+		const toggle = screen.getByRole("button", { name: "全屏" });
+		fireEvent.click(toggle);
+		expect(screen.getByRole("button", { name: "退出全屏" })).toBeInTheDocument();
+		expect(screen.getByRole("dialog")).toHaveStyle({ width: "100vw" });
+		await waitForRadixOutsideListeners();
+		fireEvent.keyDown(document, { key: "Escape" });
+		await waitFor(() => expect(screen.getByRole("button", { name: "全屏" })).toBeInTheDocument());
+	});
+
 	it("keeps the lower dialog open and mounted while a later dialog is open", async () => {
 		render(<LayeredGenerationModalHarness />);
 

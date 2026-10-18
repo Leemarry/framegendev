@@ -12,6 +12,8 @@ import { GlobalToolboxButton } from "@/domains/workspace/components/GlobalToolbo
 import { Button } from "@/shared/components/ui/button";
 import { WorkflowGenerationSurface } from "@/domains/generation/components/WorkflowGenerationSurface";
 
+import { WorkflowManager } from "@/domains/generation/components/canvas/WorkflowManager";
+
 type VideoWorkspaceProps = Omit<MediaGenerationWorkspaceProps, "kind">;
 
 const noop = () => undefined;
@@ -133,6 +135,20 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 		</Button>
 	) : null;
 
+	const workflowProjectId = (projectId ?? workspaceProps?.projectId)?.trim();
+	const workflowSurface = activeSection ? (
+		workflowProjectId && activeSection.documentId.trim() && activeSection.blockId.trim() ? (
+			<WorkflowManager
+				projectId={workflowProjectId}
+				documentId={activeSection.documentId}
+				shotName={activeSection.blockId}
+				section={activeSection}
+			/>
+		) : (
+			<WorkflowGenerationSurface projectId={workflowProjectId} section={activeSection} />
+		)
+	) : null;
+
 	if (workspaceProps) {
 		return (
 			<GenerationModalShell
@@ -154,10 +170,7 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 				onOpenChange={onOpenChange}
 			>
 				{workflowOpen && activeSection ? (
-					<WorkflowGenerationSurface
-						projectId={projectId ?? workspaceProps.projectId}
-						section={activeSection}
-					/>
+					workflowSurface
 				) : (
 					<MediaGenerationWorkspace
 						key={workspaceProps.historyScopeId}
@@ -195,7 +208,7 @@ export const VideoGenerationDialog: React.FC<VideoGenerationDialogProps> = ({
 			onOpenChange={onOpenChange}
 		>
 			{workflowOpen ? (
-				<WorkflowGenerationSurface projectId={projectId} section={activeSection} />
+				workflowSurface
 			) : (
 				<DocumentSectionGenerator
 					key={sectionKey}

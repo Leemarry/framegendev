@@ -1,7 +1,7 @@
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import http from "@/shared/lib/http";
-import { executeWorkflow, useWorkflowOutputs } from "./workflow";
+import { executeWorkflow, useWorkflowOutputs, useWorkflows, workflowKeys } from "./workflow";
 
 vi.mock("@/shared/lib/http", () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 afterEach(() => {
@@ -34,6 +34,23 @@ describe("workflow HTTP contracts", () => {
 			"/workflows/workflow-contract/nodes/node-contract/assets",
 		);
 	});
+	it("isolates same-named shots by document in both the cache key and request", async () => {
+		vi.mocked(http.get).mockResolvedValue({
+			code: 0,
+			success: true,
+			message: "",
+			data: { workflows: [] },
+		});
+		expect(workflowKeys.list("project", "shot", "doc-a")).not.toEqual(
+			workflowKeys.list("project", "shot", "doc-b"),
+		);
+		const { result } = renderHook(() => useWorkflows("project", "shot", "doc-a"));
+		await waitFor(() => expect(result.current.data).toEqual({ workflows: [] }));
+		expect(http.get).toHaveBeenCalledWith("/workflows", {
+			params: { projectId: "project", shotName: "shot", documentId: "doc-a" },
+		});
+	});
+
 	it("propagates unavailable execution instead of reporting success", async () => {
 		vi.mocked(http.post).mockRejectedValue({ code: 501, message: "工作流执行待接入" });
 		await expect(executeWorkflow("workflow-contract")).rejects.toMatchObject({ code: 501 });

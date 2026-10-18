@@ -146,6 +146,13 @@ export const getDefaultHandles = (nodeType: string): NodeHandle[] => {
 				{ id: "output", type: "source", dataType: "IMAGE", label: "生成图像" },
 			];
 
+		case "audioGeneration":
+			return [
+				{ id: "text-input", type: "target", dataType: "TEXT", label: "提示词" },
+				{ id: "audio-input", type: "target", dataType: "AUDIO", label: "参考音频" },
+				{ id: "output", type: "source", dataType: "AUDIO", label: "生成音频" },
+			];
+
 		case "imageInpaint":
 			return [
 				{ id: "image-input", type: "target", dataType: "IMAGE", label: "原图" },

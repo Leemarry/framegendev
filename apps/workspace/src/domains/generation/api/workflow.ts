@@ -44,6 +44,7 @@ export interface WorkflowTemplateResponse {
 		id: string;
 		name: string;
 		category: "builtin" | "custom";
+		description?: string;
 		thumbnailUrl?: string;
 		usageCount: number;
 	}>;
@@ -57,6 +58,7 @@ export interface CreateWorkflowRequest {
 	documentId: string;
 	shotName: string;
 	name: string;
+	description?: string;
 	templateRef?: string;
 }
 
@@ -72,8 +74,8 @@ export interface UpdateWorkflowRequest {
  * SWR Key 生成器
  */
 export const workflowKeys = {
-	list: (projectId: string, shotName?: string) =>
-		["/workflows", projectId, shotName].filter(Boolean).join("/"),
+	list: (projectId: string, shotName?: string, documentId?: string) =>
+		["/workflows", projectId, shotName ?? "", documentId ?? ""] as const,
 	detail: (id: string) => `/workflows/${id}`,
 	templates: (category?: string) =>
 		category ? `/workflow-templates?category=${category}` : "/workflow-templates",
@@ -86,14 +88,25 @@ export const workflowKeys = {
 /**
  * 列出工作流（SWR Hook）
  */
-export function useWorkflows(projectId: string, shotName?: string) {
-	const key = workflowKeys.list(projectId, shotName);
-	return useSWR<ListWorkflowsResponse>(key, async () => {
-		const params: { projectId: string; shotName?: string } = { projectId };
-		if (shotName) params.shotName = shotName;
-		const res = await http.get<ListWorkflowsResponse>("/workflows", { params });
-		return res.data;
-	});
+export function useWorkflows(projectId: string, shotName?: string, documentId?: string) {
+	const key = projectId ? workflowKeys.list(projectId, shotName, documentId) : null;
+	return useSWR<ListWorkflowsResponse>(
+		key,
+		async ([, scopeProject, scopeShot, scopeDocument]: readonly [
+			string,
+			string,
+			string,
+			string,
+		]) => {
+			const params: { projectId: string; shotName?: string; documentId?: string } = {
+				projectId: scopeProject,
+			};
+			if (scopeShot) params.shotName = scopeShot;
+			if (scopeDocument) params.documentId = scopeDocument;
+			const res = await http.get<ListWorkflowsResponse>("/workflows", { params });
+			return res.data;
+		},
+	);
 }
 
 /**
@@ -101,8 +114,8 @@ export function useWorkflows(projectId: string, shotName?: string) {
  */
 export function useWorkflow(id: string | null) {
 	const key = id ? workflowKeys.detail(id) : null;
-	return useSWR<WorkflowDocument>(key, async () => {
-		const res = await http.get<WorkflowDocument>(`/workflows/${id}`);
+	return useSWR<WorkflowDocument>(key, async (url: string) => {
+		const res = await http.get<WorkflowDocument>(url);
 		return res.data;
 	});
 }

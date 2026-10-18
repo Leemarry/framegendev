@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
 	DocumentSectionGenerator: vi.fn(() => null),
 	MediaGenerationWorkspace: vi.fn(() => null),
 	WorkflowGenerationSurface: vi.fn(() => <div>工作流测试画布</div>),
+	WorkflowManager: vi.fn(() => <div>服务端工作流画布</div>),
 }));
 
 vi.mock("@/domains/documents/components/DocumentSectionGenerator", () => ({
@@ -32,6 +33,10 @@ const section: MarkdownSectionContext = {
 
 vi.mock("@/domains/generation/components/WorkflowGenerationSurface", () => ({
 	WorkflowGenerationSurface: mocks.WorkflowGenerationSurface,
+}));
+
+vi.mock("@/domains/generation/components/canvas/WorkflowManager", () => ({
+	WorkflowManager: mocks.WorkflowManager,
 }));
 
 describe("VideoGenerationDialog", () => {
@@ -108,9 +113,14 @@ describe("VideoGenerationDialog", () => {
 			/>,
 		);
 		fireEvent.click(screen.getByRole("switch", { name: "工作流" }));
-		expect(screen.getByText("工作流测试画布")).toBeInTheDocument();
-		expect(mocks.WorkflowGenerationSurface).toHaveBeenLastCalledWith(
-			expect.objectContaining({ projectId: "project-timeline", section }),
+		expect(screen.getByText("服务端工作流画布")).toBeInTheDocument();
+		expect(mocks.WorkflowManager).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				projectId: "project-timeline",
+				documentId: "doc-1",
+				shotName: "section-video",
+				section,
+			}),
 			undefined,
 		);
 	});
@@ -172,6 +182,16 @@ describe("VideoGenerationDialog", () => {
 			selectedAssetKeys: ["video:/scene.mp4"],
 			viewMode: "history",
 		});
+		fireEvent.click(screen.getByRole("switch", { name: "工作流" }));
+		expect(mocks.WorkflowManager).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				projectId: "project-a",
+				documentId: section.documentId,
+				shotName: section.blockId,
+			}),
+			undefined,
+		);
+
 		expect(generatorProps?.onToggleAsset).toBeTruthy();
 		expect(mocks.MediaGenerationWorkspace).not.toHaveBeenCalled();
 	});

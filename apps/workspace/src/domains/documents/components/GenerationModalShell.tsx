@@ -1,5 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { X, Maximize, Minimize } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import { Button } from "@/shared/components/ui/button";
 import { DialogClose } from "@/shared/components/ui/dialog-dismiss";
@@ -53,66 +54,96 @@ export const GenerationModalShell: React.FC<{
 	titleAside,
 	headerActions,
 	rightPane,
-}) => (
-	<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-		<DialogPrimitive.Portal>
-			<DialogPrimitive.Overlay
-				className={cn(
-					"fixed inset-0 z-50 grid place-items-center bg-foreground/30 p-4 backdrop-blur-sm data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 duration-200",
-					className,
-				)}
-			/>
-			<DialogPrimitive.Content
-				aria-describedby={undefined}
-				className={cn(
-					"group fixed left-1/2 top-1/2 z-50 w-[calc(100%_-_2rem)] max-w-7xl -translate-x-1/2 -translate-y-1/2 outline-none",
-					dialogContentMotion,
-					contentLayerClassName,
-				)}
-				data-agent-mention-popup-root=""
-				onEscapeKeyDown={preventPhotoViewEscapeDismiss}
-				onFocusOutside={preventPhotoViewPortalDismiss}
-				onPointerDownOutside={preventPhotoViewPortalDismiss}
-			>
-				<section
+}) => {
+	const [fullscreen, setFullscreen] = useState(false);
+	const fullscreenRef = useRef(fullscreen);
+	fullscreenRef.current = fullscreen;
+	const contentRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!open) setFullscreen(false);
+	}, [open]);
+
+	return (
+		<DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+			<DialogPrimitive.Portal>
+				<DialogPrimitive.Overlay
 					className={cn(
-						"flex h-[var(--section-generation-dialog-height)] w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl",
-						contentClassName,
+						"fixed inset-0 z-50 grid place-items-center bg-foreground/30 p-4 backdrop-blur-sm data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 duration-200",
+						className,
 					)}
+				/>
+				<DialogPrimitive.Content
+					ref={contentRef}
+					aria-describedby={undefined}
+					style={fullscreen ? { width: "100vw", maxWidth: "none" } : undefined}
+					className={cn(
+						"group fixed left-1/2 top-1/2 z-50 w-[calc(100%_-_2rem)] max-w-7xl -translate-x-1/2 -translate-y-1/2 outline-none",
+						dialogContentMotion,
+						contentLayerClassName,
+					)}
+					data-agent-mention-popup-root=""
+					onEscapeKeyDown={(event) => {
+						preventPhotoViewEscapeDismiss(event);
+						if (contentRef.current?.querySelector("[data-workflow-popup]")) event.preventDefault();
+						if (!event.defaultPrevented && fullscreenRef.current) {
+							event.preventDefault();
+							setFullscreen(false);
+						}
+					}}
+					onFocusOutside={preventPhotoViewPortalDismiss}
+					onPointerDownOutside={preventPhotoViewPortalDismiss}
 				>
-					<header className="flex shrink-0 items-start justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:items-center">
-						<div className="flex min-w-0 flex-1 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
-							<DialogPrimitive.Title className="min-w-0 max-w-full [overflow-wrap:anywhere] text-sm font-semibold text-foreground sm:truncate">
-								{title}
-							</DialogPrimitive.Title>
-							{titleAside ? <div className="max-w-full shrink-0">{titleAside}</div> : null}
-						</div>
-						{headerActions}
-						<DialogClose asChild>
+					<section
+						style={fullscreen ? { height: "100dvh", borderRadius: 0 } : undefined}
+						className={cn(
+							"flex h-[var(--section-generation-dialog-height)] w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl",
+							contentClassName,
+						)}
+					>
+						<header className="flex shrink-0 items-start justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:items-center">
+							<div className="flex min-w-0 flex-1 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+								<DialogPrimitive.Title className="min-w-0 max-w-full [overflow-wrap:anywhere] text-sm font-semibold text-foreground sm:truncate">
+									{title}
+								</DialogPrimitive.Title>
+								{titleAside ? <div className="max-w-full shrink-0">{titleAside}</div> : null}
+							</div>
+							{headerActions}
 							<Button
-								type="button"
 								variant="ghost"
 								size="icon"
-								className="shrink-0"
-								aria-label="关闭弹窗"
+								title={fullscreen ? "退出全屏" : "全屏"}
+								aria-label={fullscreen ? "退出全屏" : "全屏"}
+								aria-pressed={fullscreen}
+								onClick={() => setFullscreen(!fullscreen)}
 							>
-								<X />
+								{fullscreen ? <Minimize /> : <Maximize />}
 							</Button>
-						</DialogClose>
-					</header>
-					<div className="flex min-h-0 flex-1 overflow-hidden">
-						<div className="min-h-0 min-w-0 flex-1">{children}</div>
-						{rightPane && (
-							<aside
-								aria-label="生成素材列表"
-								className="h-full w-[23%] min-w-32 shrink-0 overflow-y-auto border-l border-border bg-ide-panel"
-							>
-								{rightPane}
-							</aside>
-						)}
-					</div>
-				</section>
-			</DialogPrimitive.Content>
-		</DialogPrimitive.Portal>
-	</DialogPrimitive.Root>
-);
+							<DialogClose asChild>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									className="shrink-0"
+									aria-label="关闭弹窗"
+								>
+									<X />
+								</Button>
+							</DialogClose>
+						</header>
+						<div className="flex min-h-0 flex-1 overflow-hidden">
+							<div className="min-h-0 min-w-0 flex-1">{children}</div>
+							{rightPane && (
+								<aside
+									aria-label="生成素材列表"
+									className="h-full w-[23%] min-w-32 shrink-0 overflow-y-auto border-l border-border bg-ide-panel"
+								>
+									{rightPane}
+								</aside>
+							)}
+						</div>
+					</section>
+				</DialogPrimitive.Content>
+			</DialogPrimitive.Portal>
+		</DialogPrimitive.Root>
+	);
+};
