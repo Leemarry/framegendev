@@ -109,6 +109,7 @@ export interface AgentSessionSummary {
 	lastMessage?: string;
 	updatedAt?: string;
 	running: boolean;
+	lifecycle?: "active" | "archived";
 }
 
 export interface AgentSessionsResponse {

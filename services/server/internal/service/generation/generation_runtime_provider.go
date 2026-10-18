@@ -11,6 +11,9 @@ import (
 )
 
 func (workflow *GenerationService) newGenerationProvider(route coregeneration.ModelRoute) (coregeneration.Provider, error) {
+	if route.RuntimeProvider != nil {
+		return route.RuntimeProvider, nil
+	}
 	if route.Status != coregeneration.RouteStatusAvailable {
 		return nil, errors.New(route.StatusReason)
 	}
@@ -65,6 +68,13 @@ func (workflow *GenerationService) newGenerationProviderForStoredTask(
 }
 
 func (workflow *GenerationService) requireGenerationRouteConfigured(route coregeneration.ModelRoute) error {
+	if route.RuntimeProvider != nil {
+		return nil
+	}
+	if strings.HasPrefix(route.ID, "custom-") {
+		_, err := workflow.resolveGenerationRoute(GenerationMessageRequest{RouteID: route.ID})
+		return err
+	}
 	if route.Provider == coregeneration.ProviderMediago &&
 		strings.TrimSpace(workflow.mediagoBaseURL) != "" &&
 		workflow.generationRouteCredentialsConfigured(route) {
@@ -95,6 +105,10 @@ func (workflow *GenerationService) generationRouteConfiguredWithMediagoModels(
 	mediagoModels map[string]struct{},
 	hasMediagoModels bool,
 ) bool {
+	if strings.HasPrefix(route.ID, "custom-") {
+		_, err := workflow.resolveGenerationRoute(GenerationMessageRequest{RouteID: route.ID})
+		return err == nil
+	}
 	if workflow == nil || workflow.settings == nil {
 		return false
 	}
@@ -139,7 +153,7 @@ func (workflow *GenerationService) generationRouteCredentialsConfigured(route co
 
 // RouteConfigured reports whether routeID resolves and all credentials are present.
 func (workflow *GenerationService) RouteConfigured(routeID string) bool {
-	route, ok := coregeneration.FindRoute(routeID)
+	route, ok := workflow.findGenerationRoute(routeID)
 	if !ok {
 		return false
 	}

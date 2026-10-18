@@ -134,6 +134,7 @@ func (workflow *GenerationService) ListGenerationModels() generationModelsRespon
 		)
 	}
 
+	workflow.appendCustomCatalog(&catalog)
 	return generationModelsResponse{
 		Families:      catalog.Families,
 		Versions:      catalog.Versions,
@@ -198,7 +199,7 @@ func (workflow *GenerationService) CreateGenerationMessage(ctx context.Context, 
 	if status, err := workflow.authorizeContentUse(ctx, "call", payload.SourceRefs); err != nil {
 		return generationMessageResponse{}, status, err
 	}
-	route, err := ResolveGenerationRoute(payload)
+	route, err := workflow.resolveGenerationRoute(payload)
 	if err != nil {
 		return generationMessageResponse{}, http.StatusBadRequest, err
 	}

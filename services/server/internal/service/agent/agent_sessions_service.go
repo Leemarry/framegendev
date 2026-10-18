@@ -26,6 +26,7 @@ type agentSession struct {
 	lastRootRunID      string
 	lastStatus         string
 	lastMessage        string
+	lifecycle          string
 }
 
 type AgentRun struct {
@@ -78,6 +79,7 @@ func (store *SessionService) create(sessionID string, projectID string) {
 	}
 	store.sessions[sessionID] = &agentSession{
 		projectID: strings.TrimSpace(projectID),
+		lifecycle: "active",
 		runs:      map[string]*AgentRun{},
 	}
 	store.persistSessionUnlocked(sessionID, store.sessions[sessionID])
@@ -133,7 +135,7 @@ func (store *SessionService) list(projectID string) []AgentSessionSummary {
 	defer store.mu.Unlock()
 
 	if store.repo != nil {
-		if models, err := store.repo.ListAgentSessions(projectID); err == nil {
+		if models, err := store.repo.ListAgentSessionsByScope(projectID, "active"); err == nil {
 			return store.sessionSummariesFromModelsUnlocked(models)
 		}
 	}
@@ -143,7 +145,7 @@ func (store *SessionService) list(projectID string) []AgentSessionSummary {
 		if session == nil {
 			continue
 		}
-		if projectID != "" && strings.TrimSpace(session.projectID) != projectID {
+		if strings.TrimSpace(session.projectID) != projectID || session.lifecycleOrActive() != "active" {
 			continue
 		}
 		summaries = append(summaries, AgentSessionSummary{
@@ -153,6 +155,7 @@ func (store *SessionService) list(projectID string) []AgentSessionSummary {
 			LastStatus:  strings.TrimSpace(session.lastStatus),
 			LastMessage: strings.TrimSpace(session.lastMessage),
 			Running:     session.hasActiveRuns(),
+			Lifecycle:   session.lifecycleOrActive(),
 		})
 	}
 	sort.Slice(summaries, func(i, j int) bool {
@@ -164,6 +167,75 @@ func (store *SessionService) list(projectID string) []AgentSessionSummary {
 // List returns agent sessions for HTTP handlers.
 func (store *SessionService) List(projectID string) []AgentSessionSummary {
 	return store.list(projectID)
+}
+
+// ListGlobal returns active sessions in the global namespace.
+func (store *SessionService) ListGlobal() []AgentSessionSummary { return store.list("") }
+
+// ListArchivedGlobal returns archived sessions in the global namespace.
+func (store *SessionService) ListArchivedGlobal() []AgentSessionSummary {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if store.repo != nil {
+		if models, err := store.repo.ListAgentSessionsByScope("", "archived"); err == nil {
+			return store.sessionSummariesFromModelsUnlocked(models)
+		}
+	}
+	return []AgentSessionSummary{}
+}
+
+// Archive archives an idle session.
+func (store *SessionService) Archive(sessionID string) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	session, ok := store.sessionUnlocked(sessionID)
+	if !ok {
+		return repository.ErrRecordNotFound
+	}
+	if session.hasActiveRuns() {
+		return repository.ErrAgentCommandConflict
+	}
+	session.lifecycle = "archived"
+	store.persistSessionUnlocked(sessionID, session)
+	return nil
+}
+
+// Restore restores an archived session.
+func (store *SessionService) Restore(sessionID string) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	session, ok := store.sessionUnlocked(sessionID)
+	if !ok {
+		return repository.ErrRecordNotFound
+	}
+	session.lifecycle = "active"
+	store.persistSessionUnlocked(sessionID, session)
+	return nil
+}
+
+// Delete permanently deletes a session.
+func (store *SessionService) Delete(sessionID string) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	delete(store.sessions, strings.TrimSpace(sessionID))
+	if store.repo == nil {
+		return nil
+	}
+	return store.repo.DeleteAgentSession(sessionID)
+}
+
+func modelLifecycle(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "active"
+	}
+	return strings.TrimSpace(value)
+}
+
+func (session *agentSession) lifecycleOrActive() string {
+	if session == nil || strings.TrimSpace(session.lifecycle) == "" {
+		return "active"
+	}
+	return session.lifecycle
 }
 
 func (store *SessionService) sessionSummariesFromModelsUnlocked(models []agentSessionModel) []AgentSessionSummary {
@@ -185,6 +257,7 @@ func (store *SessionService) sessionSummariesFromModelsUnlocked(models []agentSe
 			LastMessage: strings.TrimSpace(model.LastMessage),
 			UpdatedAt:   domain.StringFromTime(model.UpdatedAt),
 			Running:     lastStatus != "" && !isTerminalRunStatus(lastStatus),
+			Lifecycle:   modelLifecycle(model.Lifecycle),
 		})
 		store.cachePersistedSessionIfAbsentUnlocked(sessionID)
 	}

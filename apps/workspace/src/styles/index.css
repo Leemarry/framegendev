@@ -1320,3 +1320,40 @@
 	height: var(--desktop-drag-region-height);
 	cursor: default;
 }
+
+/* Drami stays inside the project content pane; collapsed chat remains mounted. */
+.project-agent-dock .drami-panel-header {
+	background: var(--surface-section);
+	border-radius: 0.75rem 0.75rem 0 0;
+}
+.project-agent-dock[data-presentation="collapsed"] .drami-panel-header {
+	border-radius: 0.75rem;
+}
+.project-agent-dock[data-presentation="floating"] .drami-panel-header {
+	cursor: grab;
+	touch-action: none;
+}
+.project-agent-dock .agent-chat-shell {
+	border-radius: 0 0 0.75rem 0.75rem;
+}
+.project-agent-dock .agent-composer-form {
+	margin: 0.5rem;
+}
+.project-agent-dock .agent-composer-footer {
+	flex-wrap: wrap;
+}
+.project-agent-dock .agent-composer-actions {
+	flex-wrap: wrap;
+	margin-left: auto;
+}
+.project-agent-dock .agent-composer-hint {
+	white-space: normal;
+}
+
+.project-agent-dock .agent-panel-shell {
+	background: transparent;
+	border-radius: inherit;
+}
+.project-agent-dock[data-presentation="floating"] {
+	overflow: hidden;
+}

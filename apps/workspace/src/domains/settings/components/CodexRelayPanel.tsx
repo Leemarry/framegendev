@@ -8,6 +8,7 @@ import {
 	Network,
 	Pencil,
 	Plus,
+	RefreshCw,
 	Route,
 	Trash2,
 	Wifi,
@@ -22,6 +23,7 @@ import {
 	type CodexRelayProfileMutation,
 	type CodexRelayProtocol,
 	checkCodexRelaySettings,
+	activateCodexRelayChannel,
 	codexRelaySettingsKey,
 	clearCodexRelayProfileAPIKey,
 	getCodexRelaySettings,
@@ -58,6 +60,7 @@ export interface CodexOfficialChannel {
 	onLogin: () => void;
 	onLogout: () => void;
 	onReopen: () => void;
+	onSwitchAccount: () => void;
 	status: OfficialChannelStatus;
 }
 
@@ -111,51 +114,48 @@ export const CodexRelayPanel: React.FC<CodexRelayPanelProps> = ({
 		profiles: nextProfiles.map(mutationFromDraft),
 	});
 
-	const saveEnabled = async (nextEnabled: boolean) => {
+	const selectChannel = async (
+		channel: { type: "official" } | { type: "relay"; profileId: string },
+	) => {
 		if (busy) return;
-		const nextActiveProfileID = activeProfileID || profiles[0]?.id || "";
-		if (nextEnabled && !nextActiveProfileID) {
+		if (channel.type === "relay" && !channel.profileId) {
 			toast.error("无法开启路由", { description: "请先新增并配置一个中转渠道。" });
 			return;
 		}
 
-		const previousEnabled = enabled;
-		setEnabled(nextEnabled);
-		setBusy("enabled");
-		let settingsSaved = false;
+		setBusy(channel.type === "official" ? "official" : `active:${channel.profileId}`);
 		try {
-			const nextData = await saveCodexRelaySettings(
-				settingsMutation(nextEnabled, nextActiveProfileID),
-			);
-			settingsSaved = true;
+			const nextData = await activateCodexRelayChannel(channel);
 			await mutate(nextData, false);
-			if (nextEnabled) await checkCodexRelaySettings({ profileId: nextActiveProfileID });
-			toast.success(nextEnabled ? "Codex 路由已开启" : "已切换到 ChatGPT 官方订阅");
-		} catch (err) {
-			setEnabled(previousEnabled);
-			if (settingsSaved) {
-				try {
-					const rollbackData = await saveCodexRelaySettings(
-						settingsMutation(previousEnabled, activeProfileID),
-					);
-					await mutate(rollbackData, false);
-				} catch {
-					// A later SWR refresh reconciles an unsuccessful rollback.
-				}
+			setEnabled(nextData.enabled);
+			setActiveProfileID(nextData.activeProfileId || "");
+			revalidateAgentRuntimeConfig();
+			if (channel.type === "official") {
+				toast.success("已切换到 ChatGPT 官方订阅");
+			} else {
+				toast.success("已切换 Codex 渠道", {
+					description: profiles.find((profile) => profile.id === channel.profileId)?.name,
+				});
 			}
-			toast.error(nextEnabled ? "启用失败" : "保存失败", {
-				description: errorMessage(err, "保存 Codex 中转失败。"),
-			});
+		} catch (err) {
+			toast.error("切换失败", { description: errorMessage(err, "Codex 渠道不可用。") });
 		} finally {
-			if (settingsSaved) revalidateAgentRuntimeConfig();
 			setBusy("");
+		}
+	};
+
+	const saveEnabled = async (nextEnabled: boolean) => {
+		if (nextEnabled) {
+			await selectChannel({ type: "relay", profileId: activeProfileID || profiles[0]?.id || "" });
+		} else {
+			await selectChannel({ type: "official" });
 		}
 	};
 
 	const activateOfficialChannel = () => {
 		if (!officialChannel || busy || officialChannel.busy) return;
 		if (officialChannel.status === "loggedIn") {
-			if (enabled) void saveEnabled(false);
+			if (enabled) void selectChannel({ type: "official" });
 			return;
 		}
 		if (officialChannel.status === "loggedOut") officialChannel.onLogin();
@@ -164,38 +164,7 @@ export const CodexRelayPanel: React.FC<CodexRelayPanelProps> = ({
 
 	const activateRelayProfile = async (profile: CodexRelayProfileDraft) => {
 		if (busy || (enabled && activeProfileID === profile.id)) return;
-		const previousEnabled = enabled;
-		const previousActiveID = activeProfileID;
-		setEnabled(true);
-		setActiveProfileID(profile.id);
-		setBusy(`active:${profile.id}`);
-		let settingsSaved = false;
-		try {
-			const nextData = await saveCodexRelaySettings(settingsMutation(true, profile.id));
-			settingsSaved = true;
-			await mutate(nextData, false);
-			await checkCodexRelaySettings({ profileId: profile.id });
-			toast.success("已切换 Codex 渠道", { description: profile.name });
-		} catch (err) {
-			setEnabled(previousEnabled);
-			setActiveProfileID(previousActiveID);
-			if (settingsSaved) {
-				try {
-					const rollbackData = await saveCodexRelaySettings(
-						settingsMutation(previousEnabled, previousActiveID),
-					);
-					await mutate(rollbackData, false);
-				} catch {
-					// A later SWR refresh reconciles an unsuccessful rollback.
-				}
-			}
-			toast.error("切换失败", {
-				description: errorMessage(err, "Codex 中转配置不可用。"),
-			});
-		} finally {
-			if (settingsSaved) revalidateAgentRuntimeConfig();
-			setBusy("");
-		}
+		await selectChannel({ type: "relay", profileId: profile.id });
 	};
 
 	const openNewProfile = () => {
@@ -257,8 +226,10 @@ export const CodexRelayPanel: React.FC<CodexRelayPanelProps> = ({
 			const nextData = await saveCodexRelaySettings(settingsMutation());
 			settingsSaved = true;
 			await mutate(nextData, false);
-			const result = await checkCodexRelaySettings({ profileId: profile.id });
-			toast.success("连通性测试通过", { description: result.baseURL || profile.name });
+			await checkCodexRelaySettings({ profileId: profile.id });
+			toast.success("模型列表读取成功", {
+				description: "凭据可读取模型列表；实际生成能力仍需调用验证。",
+			});
 		} catch (err) {
 			toast.error("连通性测试失败", {
 				description: errorMessage(err, "Codex 中转连通性测试失败。"),
@@ -353,46 +324,57 @@ export const CodexRelayPanel: React.FC<CodexRelayPanelProps> = ({
 	);
 
 	const body = (
-		<div className="w-full space-y-3">
-			{officialChannel ? (
-				<OfficialChannelCard
-					active={!enabled}
-					channel={officialChannel}
-					disabled={busy !== ""}
-					onActivate={activateOfficialChannel}
-				/>
-			) : null}
+		<div
+			className="w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+			data-testid="codex-channel-container"
+		>
+			<div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 text-xs text-muted-foreground">
+				<span>选择请求使用的 ChatGPT 官方订阅或中转渠道。</span>
+				<span className="shrink-0 tabular-nums">
+					{profiles.length + (officialChannel ? 1 : 0)} 项
+				</span>
+			</div>
+			<div className="space-y-px bg-border">
+				{officialChannel ? (
+					<OfficialChannelCard
+						active={!enabled}
+						channel={officialChannel}
+						disabled={busy !== ""}
+						onActivate={activateOfficialChannel}
+					/>
+				) : null}
 
-			{isLoading && profiles.length === 0 ? (
-				<div className="flex items-center justify-center gap-2 rounded-md border border-border py-10 text-sm text-muted-foreground">
-					<Loader2 className="size-4 animate-spin" />
-					<span>正在读取中转渠道</span>
-				</div>
-			) : null}
+				{isLoading && profiles.length === 0 ? (
+					<div className="flex items-center justify-center gap-2 bg-card py-10 text-sm text-muted-foreground">
+						<Loader2 className="size-4 animate-spin" />
+						<span>正在读取中转渠道</span>
+					</div>
+				) : null}
 
-			{profiles.map((profile) => (
-				<RelayChannelCard
-					key={profile.id}
-					active={enabled && activeProfileID === profile.id}
-					busy={busy}
-					profile={profile}
-					onActivate={() => void activateRelayProfile(profile)}
-					onDelete={() => confirmRemoveProfile(profile)}
-					onEdit={() => openProfileEditor(profile)}
-					onTest={() => void testConnectivity(profile)}
-				/>
-			))}
+				{profiles.map((profile) => (
+					<RelayChannelCard
+						key={profile.id}
+						active={enabled && activeProfileID === profile.id}
+						busy={busy}
+						profile={profile}
+						onActivate={() => void activateRelayProfile(profile)}
+						onDelete={() => confirmRemoveProfile(profile)}
+						onEdit={() => openProfileEditor(profile)}
+						onTest={() => void testConnectivity(profile)}
+					/>
+				))}
 
-			{!isLoading && profiles.length === 0 ? (
-				<button
-					type="button"
-					className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border px-4 py-8 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
-					onClick={openNewProfile}
-				>
-					<Plus className="size-4" />
-					新增第一个中转渠道
-				</button>
-			) : null}
+				{!isLoading && profiles.length === 0 ? (
+					<button
+						type="button"
+						className="flex min-h-16 w-full items-center justify-center gap-2 bg-card px-4 py-5 text-sm text-muted-foreground transition-colors hover:bg-primary/5 hover:text-foreground"
+						onClick={openNewProfile}
+					>
+						<Plus className="size-4" />
+						新增第一个中转渠道
+					</button>
+				) : null}
+			</div>
 		</div>
 	);
 
@@ -466,7 +448,7 @@ const OfficialChannelCard: React.FC<{
 }> = ({ active, channel, disabled, onActivate }) => {
 	const statusCopy = officialStatusCopy(channel);
 	return (
-		<div className={channelCardClass(active)} data-testid="official-channel-card">
+		<div className={cn(channelCardClass(active), "flex-wrap")} data-testid="official-channel-card">
 			<button
 				type="button"
 				aria-label="使用 ChatGPT 官方订阅"
@@ -486,7 +468,7 @@ const OfficialChannelCard: React.FC<{
 					<span className="mt-1 block truncate text-xs text-muted-foreground">{statusCopy}</span>
 				</span>
 			</button>
-			<div className="flex shrink-0 items-center gap-2 px-4">
+			<div className="flex basis-full flex-wrap items-center justify-end gap-2 border-t border-border px-4 py-2 sm:basis-auto sm:border-t-0 sm:py-0">
 				{channel.status === "pending" ? (
 					<>
 						<Button
@@ -510,16 +492,28 @@ const OfficialChannelCard: React.FC<{
 						</Button>
 					</>
 				) : channel.status === "loggedIn" ? (
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						disabled={channel.busy}
-						onClick={channel.onLogout}
-					>
-						<LogOut />
-						退出全局账号
-					</Button>
+					<>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							disabled={channel.busy}
+							onClick={channel.onSwitchAccount}
+						>
+							<RefreshCw />
+							切换全局账号
+						</Button>
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							disabled={channel.busy}
+							onClick={channel.onLogout}
+						>
+							<LogOut />
+							退出全局账号
+						</Button>
+					</>
 				) : channel.status === "loggedOut" ? (
 					<Button type="button" size="sm" disabled={channel.busy} onClick={channel.onLogin}>
 						<LogIn />
@@ -569,8 +563,10 @@ const RelayChannelCard: React.FC<{
 		</button>
 		<div
 			className={cn(
-				"flex shrink-0 items-center gap-1 px-3 transition-opacity",
-				active ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+				"flex basis-full shrink-0 items-center justify-end gap-1 border-t border-border px-3 py-2 transition-opacity sm:basis-auto sm:border-t-0 sm:py-0",
+				active
+					? "opacity-100"
+					: "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100",
 			)}
 		>
 			<ChannelActionButton
@@ -632,7 +628,7 @@ const CurrentChannelBadge = () => (
 
 const channelCardClass = (active: boolean) =>
 	cn(
-		"flex min-h-20 w-full overflow-hidden rounded-md border bg-card transition-colors",
+		"flex min-h-20 w-full flex-wrap overflow-hidden rounded-md border bg-card transition-colors",
 		active
 			? "border-primary/70 bg-primary/5 shadow-sm"
 			: "border-border hover:border-primary/30 hover:bg-ide-list-hover",
@@ -747,6 +743,18 @@ const RelayProfileEditDialog: React.FC<{
 							/>
 						</label>
 						<div className="grid gap-2">
+							<label>
+								<span className="mb-2 block text-xs text-muted-foreground">模型 ID</span>
+								<Input
+									value={draft.model}
+									onChange={(event) => onDraftChange({ ...draft, model: event.target.value })}
+									placeholder="填写中转平台支持的模型 ID"
+									className="rounded-md font-mono"
+								/>
+							</label>
+							<p className="text-xs text-muted-foreground">
+								需要支持 Responses API。DeepSeek 官方 API 请使用 DeepSeek 配置入口。
+							</p>
 							<div className="flex items-center justify-between gap-3">
 								<Label
 									htmlFor={`codex-relay-key-${draft.id}`}
@@ -791,7 +799,9 @@ const RelayProfileEditDialog: React.FC<{
 					<Button
 						type="button"
 						className="rounded-md"
-						disabled={busy !== "" || !draft?.name.trim() || !draft.baseURL.trim()}
+						disabled={
+							busy !== "" || !draft?.name.trim() || !draft.baseURL.trim() || !draft.model.trim()
+						}
 						onClick={onSave}
 					>
 						{busy === `profile:${draft?.id}` ? <Loader2 className="animate-spin" /> : null}

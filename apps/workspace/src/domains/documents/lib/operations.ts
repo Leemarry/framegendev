@@ -261,6 +261,31 @@ export const findTextAnchorMatch = (
 
 	const index = findTextAnchorIndex(content, anchor);
 	if (index >= 0) return { start: index, end: index + quote.length };
+	// Selections separate paragraphs with whitespace; rendered text nodes do not.
+	// Match the entire quote and map back to the original offsets, never just its first word.
+	const positions: number[] = [];
+	let compactContent = "";
+	for (let offset = 0; offset < content.length; offset += 1) {
+		if (/\s/.test(content[offset])) continue;
+		compactContent += content[offset];
+		positions.push(offset);
+	}
+	const compactQuote = quote.replace(/\s/g, "");
+	const compactAnchor =
+		typeof anchor === "string"
+			? compactQuote
+			: {
+					quote: compactQuote,
+					contextBefore: anchor.contextBefore.replace(/\s/g, ""),
+					contextAfter: anchor.contextAfter.replace(/\s/g, ""),
+				};
+	const compactIndex = findTextAnchorIndex(compactContent, compactAnchor);
+	if (compactIndex >= 0) {
+		return {
+			start: positions[compactIndex],
+			end: positions[compactIndex + compactQuote.length - 1] + 1,
+		};
+	}
 	if (!options.fallbackToToken) return null;
 
 	const token = quote

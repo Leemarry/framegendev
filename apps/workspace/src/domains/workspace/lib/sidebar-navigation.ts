@@ -88,6 +88,7 @@ export const sidebarStackScreen = (screen: SidebarScreenId): SidebarScreenId => 
 			return "settings";
 		case "global-agent":
 		case "global-agent-archive":
+			return screen;
 		case "asset-library":
 			return "projects";
 		case "generation-history":

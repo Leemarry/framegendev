@@ -16,6 +16,7 @@ func (APIKeyModel) TableName() string {
 
 // AgentModelProfileModel is the GORM model for global ACP model profiles.
 type AgentModelProfileModel struct {
+	Protocol         string    `gorm:"-"`
 	ID               string    `gorm:"column:id;primaryKey"`
 	Name             string    `gorm:"column:name;not null"`
 	ProviderID       string    `gorm:"column:provider_id;not null;uniqueIndex:agent_model_profiles_provider_id_idx"`

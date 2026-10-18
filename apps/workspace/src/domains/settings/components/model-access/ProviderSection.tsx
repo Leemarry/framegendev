@@ -54,12 +54,12 @@ export const MediaGoModelChips: React.FC<{ modelGroups?: ModelPlatformModelGroup
 	const hiddenCount = models.length - visibleModels.length;
 
 	return (
-		<div className="flex flex-wrap items-center gap-1.5 pt-1">
+		<div className="flex min-w-0 flex-wrap items-center gap-1.5 pt-1">
 			<span className="mr-1 text-xs text-muted-foreground">支持模型</span>
 			{visibleModels.map((model) => (
 				<span
 					key={model}
-					className="rounded-full bg-background px-2.5 py-0.5 text-xs text-muted-foreground"
+					className="max-w-full break-words rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground"
 				>
 					{model}
 				</span>

@@ -18,6 +18,9 @@ func (workflow *GenerationService) resolveGenerationReferences(
 	request generationMessageRequest,
 ) ([]string, error) {
 	if !route.SupportsReferenceURLs {
+		if strings.HasPrefix(route.ID, "custom-") && (len(request.ReferenceURLs) > 0 || len(request.ReferenceAssetIDs) > 0) {
+			return nil, fmt.Errorf("该自定义模型未声明参考图能力")
+		}
 		return []string{}, nil
 	}
 

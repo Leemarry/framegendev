@@ -180,6 +180,8 @@ func NewHandlerWithConfig(staticFS fs.FS, config Config) http.Handler {
 	documentOperationsHandler := httphandlers.NewDocumentOperations(api)
 	generationTaskHandler := httphandlers.NewGenerationTasks(api.generation)
 	generationPreferenceHandler := httphandlers.NewGenerationPreferences(api.generation)
+	workflowHandler := httphandlers.NewWorkflows(api.workflows)
+	workflowExecutionHandler := httphandlers.NewWorkflowExecutionHandler(api.workflowExecution)
 	internalEventHandler := httphandlers.NewInternalEvents(api.agentBridgeToken, api)
 	agentEventHandler := httphandlers.NewAgentEvents(api)
 	runtimeHandler := httphandlers.NewAgentRuntime(newAgentRuntimeConfigInspector(api))
@@ -249,6 +251,8 @@ func NewHandlerWithConfig(staticFS fs.FS, config Config) http.Handler {
 		DocumentOperations:    documentOperationsHandler,
 		GenerationTasks:       generationTaskHandler,
 		GenerationPreferences: generationPreferenceHandler,
+		Workflows:             workflowHandler,
+		WorkflowExecution:     workflowExecutionHandler,
 		InternalEvents:        internalEventHandler,
 		AgentEvents:           agentEventHandler,
 		AgentRuntime:          runtimeHandler,

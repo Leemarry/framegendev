@@ -118,7 +118,7 @@ func (workflow *GenerationService) RetryGenerationTask(ctx context.Context, id s
 	task.Params = generationParamsWithAssetTitle(task.Params, payload.AssetTitle)
 	payload.ProjectName = workflow.generationProjectName(payload.ProjectID)
 
-	route, err := ResolveGenerationRoute(payload)
+	route, err := workflow.resolveGenerationRoute(payload)
 	if err != nil {
 		return generationMessageResponse{}, http.StatusBadRequest, err
 	}

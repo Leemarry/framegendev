@@ -22,6 +22,11 @@ type WorkspaceRepositories struct {
 	GenerationTasks         *GenerationTaskRepository
 	MediaAssets             *MediaAssetRepository
 	ProjectAssets           *ProjectAssetRepository
+	Workflows               *WorkflowRepository
+	WorkflowTemplates       *WorkflowTemplateRepository
+	WorkflowOutputBindings  *WorkflowOutputBindingRepository
+	WorkflowAssets          *WorkflowAssetRepository
+	WorkflowNodeTasks       *WorkflowNodeTaskRepository
 }
 
 // OpenWorkspaceRepositories opens the workspace DB, runs the workspace
@@ -46,6 +51,11 @@ func OpenWorkspaceRepositories(dbPath string) (WorkspaceRepositories, error) {
 		GenerationTasks:         NewGenerationTaskRepositoryFromDB(db),
 		MediaAssets:             NewMediaAssetRepositoryFromDB(db),
 		ProjectAssets:           NewProjectAssetRepositoryFromDB(db),
+		Workflows:               NewWorkflowRepository(db),
+		WorkflowTemplates:       NewWorkflowTemplateRepository(db),
+		WorkflowOutputBindings:  NewWorkflowOutputBindingRepository(db),
+		WorkflowAssets:          NewWorkflowAssetRepository(db),
+		WorkflowNodeTasks:       NewWorkflowNodeTaskRepository(db),
 	}, nil
 }
 

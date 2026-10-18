@@ -40,9 +40,10 @@ func NewAgentChat(store AgentChatStore, pendingPermissions ...func(sessionID str
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/chat [get]
+// @Router /api/v1/agent/chat [get]
 func (handler AgentChat) HandleGetAgentChat(context *gin.Context) {
 	writeNoStoreHeaders(context)
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
@@ -74,6 +75,7 @@ func (handler AgentChat) HandleGetAgentChat(context *gin.Context) {
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId}/chat [get]
+// @Router /api/v1/agent/sessions/{sessionId}/chat [get]
 func (handler AgentChat) HandleGetAgentSessionChat(context *gin.Context) {
 	handler.HandleGetAgentChat(context)
 }
@@ -90,8 +92,9 @@ func (handler AgentChat) HandleGetAgentSessionChat(context *gin.Context) {
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/chat/messages [post]
+// @Router /api/v1/agent/chat/messages [post]
 func (handler AgentChat) HandleAppendAgentChat(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
@@ -121,8 +124,9 @@ func (handler AgentChat) HandleAppendAgentChat(context *gin.Context) {
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/chat [delete]
+// @Router /api/v1/agent/chat [delete]
 func (handler AgentChat) HandleDeleteAgentChat(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}

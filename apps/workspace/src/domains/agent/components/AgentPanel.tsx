@@ -1,4 +1,4 @@
-import { Bot, ChevronDown, History, Loader2, Plus } from "lucide-react";
+import { History, Loader2, Maximize2, Minimize2, Plus } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -9,16 +9,25 @@ import {
 	agentSessionsKey,
 	createAgentSession,
 	getAgentChatState,
+	listArchivedAgentSessions,
 	listAgentSessions,
 	type AgentChatStatePayload,
 	type AgentSessionSummary,
 } from "@/domains/agent/api/agent";
+import { DramiMascot } from "./DramiMascot";
 import { AgentChat } from "@/domains/agent/components/AgentChat";
 import { Button } from "@/shared/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
 import { useToast } from "@/hooks/useToast";
 import {
 	selectAgentComposerSeed,
 	selectAgentIsRunning,
+	selectAgentActiveConversation,
 	selectAgentSessionId,
 	useAgentStore,
 } from "@/domains/agent/stores";
@@ -32,15 +41,60 @@ import {
 } from "@/domains/workspace/lib/workbench-route";
 import { cn } from "@/shared/lib/utils";
 
-export const AgentPanel: React.FC<{ width?: number }> = ({ width }) => {
+export const AgentPanel: React.FC<{
+	width?: number;
+	globalScope?: boolean;
+	readOnly?: boolean;
+	expanded?: boolean;
+	onExpandedChange?: (expanded: boolean) => void;
+	onHeaderPointerDown?: React.PointerEventHandler<HTMLElement>;
+	onHeaderKeyDown?: React.KeyboardEventHandler<HTMLElement>;
+}> = ({
+	width,
+	globalScope = false,
+	readOnly = false,
+	expanded = true,
+	onExpandedChange,
+	onHeaderPointerDown,
+	onHeaderKeyDown,
+}) => {
 	const isRunning = useAgentStore(selectAgentIsRunning);
+	const activeConversation = useAgentStore(selectAgentActiveConversation);
+	const isChatHydrating = useAgentStore((state) => state.isChatHydrating);
 	const activeSessionId = useAgentStore(selectAgentSessionId);
 	const composerSeed = useAgentStore(selectAgentComposerSeed);
 	const storedProjectId = useProjectStore((state) => state.activeProjectId);
 	const location = useLocation();
 	const navigate = useNavigate();
 	const routeProjectId = getRouteProjectId(location.search);
-	const projectId = routeProjectId ?? storedProjectId;
+	const projectId = globalScope ? null : (routeProjectId ?? storedProjectId);
+	const { data: sessions = [], error: sessionsError } = useSWR(
+		!readOnly && (globalScope || projectId) ? agentSessionsKey(projectId) : null,
+		() => listAgentSessions(projectId),
+		{ refreshInterval: 3000 },
+	);
+	// Count sessions, not the child agents or tool calls within one task.
+	const runningTasks = new Map(
+		(sessionsError ? [] : sessions)
+			.filter((session) => session.running)
+			.map((session) => [session.sessionId, session]),
+	);
+	if (!readOnly && !isChatHydrating) {
+		if (isRunning) {
+			const key = activeSessionId || "pending";
+			runningTasks.set(key, {
+				sessionId: key,
+				running: true,
+				title:
+					runningTasks.get(key)?.title ||
+					activeConversation?.prompt ||
+					activeConversation?.name ||
+					"当前任务",
+				lastStatus: activeConversation?.status,
+			});
+		}
+	}
+	const runningTaskCount = readOnly ? 0 : runningTasks.size;
 	const currentRouteProjectIdRef = useRef(routeProjectId);
 	const toast = useToast();
 	const { mutate } = useSWRConfig();
@@ -49,19 +103,27 @@ export const AgentPanel: React.FC<{ width?: number }> = ({ width }) => {
 	const historyMenuRef = useRef<HTMLDivElement>(null);
 	currentRouteProjectIdRef.current = routeProjectId;
 
-	const isCurrentAgentProject = useCallback((requestedProjectId: string | null) => {
-		const currentRouteProjectId = currentRouteProjectIdRef.current;
-		if (currentRouteProjectId) return currentRouteProjectId === requestedProjectId;
-		return useProjectStore.getState().activeProjectId === requestedProjectId;
-	}, []);
+	const isCurrentAgentProject = useCallback(
+		(requestedProjectId: string | null) => {
+			if (globalScope) return requestedProjectId === null;
+			const currentRouteProjectId = currentRouteProjectIdRef.current;
+			if (currentRouteProjectId) return currentRouteProjectId === requestedProjectId;
+			return useProjectStore.getState().activeProjectId === requestedProjectId;
+		},
+		[globalScope],
+	);
 
 	const syncAgentSessionUrl = useCallback(
 		(sessionId: string, options: { cleanAgentRoute?: boolean; replace?: boolean } = {}) => {
 			const trimmedSessionId = sessionId.trim();
-			if (!projectId || !trimmedSessionId || !isAgentRoute(location.pathname)) return;
+			if (!trimmedSessionId || !isAgentRoute(location.pathname)) return;
 
-			if (options.cleanAgentRoute) {
-				const nextUrl = agentProjectPath(projectId, { agentSessionId: trimmedSessionId });
+			if (options.cleanAgentRoute && !onExpandedChange) {
+				const nextUrl = globalScope
+					? `/agent?agentSessionId=${encodeURIComponent(trimmedSessionId)}`
+					: projectId
+						? agentProjectPath(projectId, { agentSessionId: trimmedSessionId })
+						: location.pathname;
 				if (nextUrl === `${location.pathname}${location.search}`) return;
 				navigate(nextUrl, {
 					replace: options.replace ?? false,
@@ -71,8 +133,8 @@ export const AgentPanel: React.FC<{ width?: number }> = ({ width }) => {
 			}
 
 			const params = new URLSearchParams(location.search);
-			if (params.has("documentId") || params.has("assetId")) return;
-			params.set("projectId", projectId);
+			if (!onExpandedChange && (params.has("documentId") || params.has("assetId"))) return;
+			if (projectId) params.set("projectId", projectId);
 			params.set("agentSessionId", trimmedSessionId);
 			const nextUrl = `${location.pathname}?${params.toString()}`;
 			if (nextUrl === `${location.pathname}${location.search}`) return;
@@ -82,12 +144,23 @@ export const AgentPanel: React.FC<{ width?: number }> = ({ width }) => {
 				state: location.state,
 			});
 		},
-		[location.pathname, location.search, location.state, navigate, projectId],
+		[
+			globalScope,
+			location.pathname,
+			location.search,
+			location.state,
+			navigate,
+			projectId,
+			onExpandedChange,
+		],
 	);
 
 	useEffect(() => {
-		if (composerSeed) setIsHistoryOpen(false);
-	}, [composerSeed]);
+		if (composerSeed) {
+			setIsHistoryOpen(false);
+			onExpandedChange?.(true);
+		}
+	}, [composerSeed, onExpandedChange]);
 
 	useEffect(() => {
 		if (!isHistoryOpen) return;
@@ -110,7 +183,8 @@ export const AgentPanel: React.FC<{ width?: number }> = ({ width }) => {
 	}, [isHistoryOpen]);
 
 	const handleCreateSession = async () => {
-		if (isRunning || isCreatingSession) return;
+		if (readOnly || isRunning || isCreatingSession) return;
+		onExpandedChange?.(true);
 
 		const requestedProjectId = projectId;
 		setIsCreatingSession(true);
@@ -147,71 +221,135 @@ export const AgentPanel: React.FC<{ width?: number }> = ({ width }) => {
 
 	return (
 		<aside
-			className="agent-panel-shell flex h-full min-h-0 w-full shrink-0 flex-col bg-ide-panel text-ide-panel-foreground"
+			className="agent-panel-shell flex h-full min-h-0 w-full flex-col text-ide-panel-foreground"
 			style={width ? { width } : undefined}
 		>
-			<header className="agent-panel-header flex items-center justify-between gap-3 border-b border-border bg-ide-toolbar/95 px-3 py-2 text-ide-toolbar-foreground">
-				<div className="flex min-w-0 items-center gap-2">
-					<div className="agent-brand-mark flex size-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
-						<Bot className="size-4" />
-					</div>
-					<div className="min-w-0">
-						<h1 className="truncate text-sm font-semibold text-foreground">文档智能体</h1>
-						<p className="truncate text-xs text-muted-foreground">通过操作更新文档</p>
-					</div>
-				</div>
-				<div className="flex shrink-0 items-center gap-1">
-					<span className="agent-status-pill hidden items-center gap-1.5 rounded-sm border border-border bg-ide-panel px-2 py-1 text-caption text-muted-foreground sm:flex">
-						<span
-							className={cn(
-								"size-1.5 rounded-full",
-								isRunning ? "animate-pulse bg-success-foreground" : "bg-muted-foreground",
-							)}
-							aria-hidden="true"
-						/>
-						{isRunning ? "运行中" : "就绪"}
-					</span>
-					<div ref={historyMenuRef} className="relative">
-						<Button
-							variant={isHistoryOpen ? "secondary" : "ghost"}
-							size="sm"
-							className="agent-header-button"
-							onClick={() => setIsHistoryOpen((open) => !open)}
-							aria-expanded={isHistoryOpen}
-							aria-haspopup="menu"
-							title="历史会话"
+			<TooltipProvider delayDuration={200}>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<header
+							className="drami-panel-header flex shrink-0 items-center gap-2 px-3 text-sm font-medium text-foreground"
+							style={{ height: expanded ? 40 : 48 }}
+							onPointerDown={onHeaderPointerDown}
 						>
-							<History />
-							<span className="hidden sm:inline">历史会话</span>
-							<ChevronDown className={cn("transition-transform", isHistoryOpen && "rotate-180")} />
-						</Button>
-						{isHistoryOpen ? (
-							<AgentSessionHistoryMenu
-								activeSessionId={activeSessionId}
-								isCurrentProject={isCurrentAgentProject}
-								onSessionSelected={(sessionId) =>
-									syncAgentSessionUrl(sessionId, { cleanAgentRoute: true, replace: false })
-								}
-								projectId={projectId}
-								onClose={() => setIsHistoryOpen(false)}
-							/>
-						) : null}
-					</div>
-					<Button
-						variant="ghost"
-						size="sm"
-						className="agent-header-button"
-						onClick={handleCreateSession}
-						disabled={isRunning || isCreatingSession}
-						title={isRunning ? "当前运行结束后再新建会话" : "新建会话"}
-					>
-						{isCreatingSession ? <Loader2 className="animate-spin" /> : <Plus />}
-						<span className="hidden sm:inline">新建会话</span>
-					</Button>
-				</div>
-			</header>
-			<div className="relative min-h-0 flex-1 overflow-hidden">
-				<AgentChat projectId={projectId} />
+							{!expanded ? (
+								<button
+									type="button"
+									aria-label="打开 Drami"
+									className="flex min-w-0 flex-1 items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									onClick={() => onExpandedChange?.(true)}
+								>
+									<DramiMascot className="-ml-1 -mt-3 size-16" working={runningTaskCount > 0} />
+									<span>Drami</span>
+								</button>
+							) : (
+								<>
+									<DramiMascot className="size-6" working={runningTaskCount > 0} />
+									<span
+										className="min-w-0 flex-1 truncate"
+										role={onHeaderPointerDown ? "button" : undefined}
+										tabIndex={onHeaderPointerDown ? 0 : undefined}
+										aria-label={onHeaderPointerDown ? "移动 Drami 窗口" : undefined}
+										onKeyDown={onHeaderKeyDown}
+									>
+										Drami
+									</span>
+								</>
+							)}
+							{runningTaskCount > 0 ? (
+								<span
+									role="status"
+									className="shrink-0 whitespace-nowrap text-xs text-muted-foreground"
+								>
+									{runningTaskCount} 个执行中
+								</span>
+							) : null}
+							{!readOnly ? (
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 shrink-0 text-muted-foreground"
+									onClick={handleCreateSession}
+									disabled={isRunning || isCreatingSession}
+									aria-label="新建会话"
+									title="新建会话"
+								>
+									{isCreatingSession ? (
+										<Loader2 className="size-4 animate-spin" />
+									) : (
+										<Plus className="size-4" />
+									)}
+								</Button>
+							) : null}
+							<div ref={historyMenuRef} className="relative">
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 text-muted-foreground"
+									onClick={() => {
+										onExpandedChange?.(true);
+										setIsHistoryOpen((open) => !open);
+									}}
+									aria-expanded={isHistoryOpen}
+									aria-haspopup="menu"
+									aria-label="历史会话"
+									title="会话历史"
+								>
+									<History className="size-4" />
+								</Button>
+								{isHistoryOpen ? (
+									<AgentSessionHistoryMenu
+										activeSessionId={activeSessionId}
+										archivedScope={readOnly}
+										globalScope={globalScope}
+										isCurrentProject={isCurrentAgentProject}
+										onSessionSelected={(sessionId) =>
+											syncAgentSessionUrl(sessionId, { cleanAgentRoute: true, replace: false })
+										}
+										projectId={projectId}
+										onClose={() => setIsHistoryOpen(false)}
+									/>
+								) : null}
+							</div>
+							{onExpandedChange ? (
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 shrink-0 text-muted-foreground"
+									aria-label={expanded ? "收起 Drami" : "展开 Drami"}
+									title={expanded ? "收起 Drami" : "展开 Drami"}
+									onClick={() => onExpandedChange(!expanded)}
+								>
+									{expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+								</Button>
+							) : null}
+						</header>
+					</TooltipTrigger>
+					{runningTaskCount > 0 ? (
+						<TooltipContent
+							side="top"
+							sideOffset={14}
+							className="w-72 max-w-[calc(100vw-2rem)] rounded-xl p-2"
+						>
+							{Array.from(runningTasks.values()).map((task) => (
+								<div
+									key={task.sessionId}
+									className="flex items-center gap-4 rounded-md bg-ide-list-active px-3 py-2"
+								>
+									<span className="min-w-0 flex-1 truncate">
+										{task.title || task.lastMessage || "Agent 任务"}
+									</span>
+									<span className="shrink-0 text-warning-foreground">
+										{task.lastStatus === "waiting" ? "等待中" : "运行中"}
+									</span>
+								</div>
+							))}
+						</TooltipContent>
+					) : null}
+				</Tooltip>
+			</TooltipProvider>
+			<div className="relative min-h-0 flex-1 overflow-hidden" hidden={!expanded} inert={!expanded}>
+				<AgentChat projectId={projectId} globalScope={globalScope} readOnly={readOnly} />
 			</div>
 		</aside>
 	);
@@ -219,11 +357,21 @@ export const AgentPanel: React.FC<{ width?: number }> = ({ width }) => {
 
 const AgentSessionHistoryMenu: React.FC<{
 	activeSessionId: string | null;
+	archivedScope?: boolean;
+	globalScope?: boolean;
 	isCurrentProject: (projectId: string | null) => boolean;
 	onSessionSelected?: (sessionId: string) => void;
 	projectId: string | null;
 	onClose: () => void;
-}> = ({ activeSessionId, isCurrentProject, onSessionSelected, projectId, onClose }) => {
+}> = ({
+	activeSessionId,
+	archivedScope = false,
+	globalScope = false,
+	isCurrentProject,
+	onSessionSelected,
+	projectId,
+	onClose,
+}) => {
 	const toast = useToast();
 	const { mutate } = useSWRConfig();
 	const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
@@ -231,16 +379,23 @@ const AgentSessionHistoryMenu: React.FC<{
 		data: sessions = [],
 		error,
 		isLoading,
-	} = useSWR(projectId ? agentSessionsKey(projectId) : null, () => listAgentSessions(projectId));
+	} = useSWR(
+		globalScope || projectId
+			? archivedScope
+				? "/agent/sessions/archived"
+				: agentSessionsKey(projectId)
+			: null,
+		() => (archivedScope ? listArchivedAgentSessions() : listAgentSessions(projectId)),
+	);
 
 	useEffect(() => {
 		setLoadingSessionId(null);
 	}, [projectId]);
 
 	const selectSession = async (session: AgentSessionSummary) => {
-		if (!projectId || loadingSessionId) return;
+		if ((!globalScope && !projectId) || loadingSessionId) return;
 
-		const requestedProjectId = projectId;
+		const requestedProjectId = globalScope ? null : projectId;
 		const requestedSessionId = session.sessionId;
 		setLoadingSessionId(session.sessionId);
 		try {
@@ -262,7 +417,7 @@ const AgentSessionHistoryMenu: React.FC<{
 				running: state.running,
 				pendingPermissions: state.pendingPermissions,
 			});
-			setPersistedAgentSessionId(requestedProjectId, resolvedSessionId);
+			if (requestedProjectId) setPersistedAgentSessionId(requestedProjectId, resolvedSessionId);
 			onSessionSelected?.(resolvedSessionId);
 			void mutate(agentChatKey(requestedProjectId, resolvedSessionId), state, {
 				revalidate: false,
@@ -277,7 +432,7 @@ const AgentSessionHistoryMenu: React.FC<{
 		}
 	};
 
-	if (!projectId) {
+	if (!projectId && !globalScope) {
 		return (
 			<div
 				className="agent-history-menu absolute right-0 top-full z-50 mt-1 w-72 rounded-sm border border-border bg-popover p-3 text-sm text-muted-foreground shadow-lg"

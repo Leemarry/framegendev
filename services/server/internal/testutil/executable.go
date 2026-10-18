@@ -84,12 +84,25 @@ func runExecutableFixture(fixture ExecutableFixture, args []string) error {
 		return os.WriteFile(last, []byte("rendered-mp4"), 0o600)
 	}
 	command := strings.Join(args, " ")
+	if command == "user_credit" && strings.HasPrefix(fixture.Mode, "jimeng-") {
+		if fixture.Mode == "jimeng-account-failure" {
+			return fmt.Errorf("account request failed: token=secret")
+		}
+		if fixture.Mode == "jimeng-empty-account" {
+			fmt.Println(`{"user_id":0,"total_credit":0,"user_name":"","vip_level":""}`)
+		} else if fixture.Mode == "jimeng-nonmember" {
+			fmt.Println(`{"user_id":123,"total_credit":60,"vip_level":""}`)
+		} else {
+			fmt.Println(`{"user_id":123,"total_credit":60,"vip_level":"vip"}`)
+		}
+		return nil
+	}
 	if command == "logout" {
 		return nil
 	}
 	if command == "login --headless" {
 		switch fixture.Mode {
-		case "jimeng-reuse":
+		case "jimeng-reuse", "jimeng-nonmember", "jimeng-empty-account":
 			fmt.Println("Local OAuth session reused")
 			return nil
 		case "jimeng-challenge":
@@ -97,7 +110,17 @@ func runExecutableFixture(fixture ExecutableFixture, args []string) error {
 			return nil
 		}
 	}
-	if fixture.Mode == "jimeng-challenge" && len(args) >= 2 && args[0] == "login" && args[1] == "checklogin" {
+	if strings.HasPrefix(fixture.Mode, "jimeng-") && len(args) >= 2 && args[0] == "login" && args[1] == "checklogin" {
+		switch fixture.Mode {
+		case "jimeng-pending":
+			return fmt.Errorf("authorization_pending token=secret")
+		case "jimeng-expired":
+			return fmt.Errorf("登录已过期，请重新执行 dreamina login --headless token=secret")
+		case "jimeng-denied":
+			return fmt.Errorf("access_denied token=secret")
+		case "jimeng-check-failure":
+			return fmt.Errorf("transport failure token=secret")
+		}
 		fmt.Println("Local login available")
 		return nil
 	}

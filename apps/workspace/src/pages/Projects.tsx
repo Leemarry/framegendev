@@ -136,7 +136,7 @@ export const Projects: React.FC = () => {
 		});
 		setActiveProjectId(project.id);
 		navigate(agentProjectPath(project.id), {
-			state: agentProjectRouteState("agent"),
+			state: agentProjectRouteState("document"),
 		});
 	};
 

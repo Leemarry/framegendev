@@ -1418,6 +1418,11 @@ func TestInstructionHashMatchesRequiresSameDeliveryState(t *testing.T) {
 }
 
 func TestACPBackendIdentityScopesCustomCommands(t *testing.T) {
+	for _, name := range []string{"codex-acp", "codex-acp.exe", "codex-acp.cmd", "codex-acp.bat"} {
+		if got := acpAgentIDForCommand(filepath.Join(t.TempDir(), name), nil); got != "codex" {
+			t.Fatalf("%s must receive Codex runtime environment, got %q", name, got)
+		}
+	}
 	first := acpBackendIdentity("custom-acp", []string{"--profile", "one"})
 	if first == "" || first != acpBackendIdentity("custom-acp", []string{"--profile", "one"}) {
 		t.Fatalf("custom backend identity = %q, want stable non-empty value", first)

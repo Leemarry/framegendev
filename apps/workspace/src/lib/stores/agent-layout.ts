@@ -6,6 +6,8 @@ export type AgentLayoutMode = "panel" | "fullscreen";
 export type AgentLayoutTab = "document" | "agent";
 
 interface AgentLayoutState {
+	dockGeometry: { width: number; height: number; x: number; y: number };
+	setDockGeometry: (geometry: AgentLayoutState["dockGeometry"]) => void;
 	mode: AgentLayoutMode;
 	tab: AgentLayoutTab;
 	setMode: (mode: AgentLayoutMode) => void;
@@ -26,7 +28,12 @@ export const useAgentLayoutStore = create<AgentLayoutState>()(
 	persist(
 		immer((set) => ({
 			mode: "fullscreen",
-			tab: "agent",
+			tab: "document",
+			dockGeometry: { width: 900, height: 640, x: 0, y: 0 },
+			setDockGeometry: (geometry) =>
+				set((state) => {
+					state.dockGeometry = geometry;
+				}),
 			setMode: (mode) =>
 				set((state) => {
 					const nextMode = mode === "fullscreen" ? mode : "fullscreen";
@@ -51,14 +58,30 @@ export const useAgentLayoutStore = create<AgentLayoutState>()(
 			name: agentLayoutStoreKey,
 			storage: createJSONStorage(() => localStorage),
 			version: 1,
-			partialize: (state) => ({ mode: state.mode, tab: state.tab }),
+			partialize: (state) => ({
+				mode: state.mode,
+				tab: state.tab,
+				dockGeometry: state.dockGeometry,
+			}),
 			merge: (persisted, current) => {
 				const state =
-					(persisted as Partial<Pick<AgentLayoutState, "mode" | "tab">> | undefined) ?? {};
+					(persisted as
+						| Partial<Pick<AgentLayoutState, "mode" | "tab" | "dockGeometry">>
+						| undefined) ?? {};
 				return {
 					...current,
 					mode: normalizeAgentLayoutMode(state.mode),
 					tab: normalizeAgentLayoutTab(state.tab),
+					dockGeometry:
+						state.dockGeometry &&
+						[
+							state.dockGeometry.width,
+							state.dockGeometry.height,
+							state.dockGeometry.x,
+							state.dockGeometry.y,
+						].every(Number.isFinite)
+							? state.dockGeometry
+							: current.dockGeometry,
 				};
 			},
 		},

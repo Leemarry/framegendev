@@ -190,6 +190,11 @@ func EnsureWorkspaceSchema(db *gorm.DB) error {
 	}
 	if err := db.AutoMigrate(
 		&domain.WorkspaceProjectModel{},
+		&domain.WorkflowModel{},
+		&domain.WorkflowTemplateModel{},
+		&domain.WorkflowOutputBindingModel{},
+		&domain.WorkflowAssetModel{},
+		&domain.WorkflowNodeTaskModel{},
 		&domain.EpisodeTimelineModel{},
 		&domain.DocumentOperationLogModel{},
 		&domain.DocumentToolApprovalModel{},
@@ -220,6 +225,11 @@ func EnsureWorkspaceSchema(db *gorm.DB) error {
 		&domain.GenerationNotificationModel{},
 	); err != nil {
 		return fmt.Errorf("initializing workspace database: %w", err)
+	}
+	if db.Migrator().HasColumn(&domain.AgentSessionModel{}, "lifecycle") {
+		if err := db.Exec(`UPDATE agent_sessions SET lifecycle = 'active' WHERE lifecycle IS NULL OR TRIM(lifecycle) = ''`).Error; err != nil {
+			return fmt.Errorf("backfilling agent session lifecycle: %w", err)
+		}
 	}
 	if legacySelectionOwnerColumnMissing {
 		if err := db.Exec(`UPDATE agent_selections

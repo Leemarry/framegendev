@@ -28,6 +28,7 @@ func (repo *AgentSessionRepository) ReconcileInterruptedRuns(statuses []string, 
 		Updates(map[string]any{
 			"last_status":  "paused",
 			"last_message": message,
+			"lifecycle":    "active",
 			"updated_at":   finishedAt,
 		}).Error; err != nil {
 		return fmt.Errorf("reconciling interrupted agent sessions: %w", err)
@@ -45,6 +46,7 @@ func (repo *AgentSessionRepository) UpsertAgentSession(model domain.AgentSession
 			"acp_instruction_hash",
 			"last_status",
 			"last_message",
+			"lifecycle",
 			"updated_at",
 		}),
 		Where: clause.Where{Exprs: []clause.Expression{clause.Eq{
@@ -191,13 +193,59 @@ func (repo *AgentSessionRepository) FindLatestAgentSessionByProject(projectID st
 
 // ListAgentSessions returns sessions ordered by recent update.
 func (repo *AgentSessionRepository) ListAgentSessions(projectID string) ([]domain.AgentSessionModel, error) {
+	return repo.ListAgentSessionsByScope(projectID, "")
+}
+
+// ListAgentSessionsByScope lists sessions for an exact project scope and lifecycle.
+// An empty project ID means the global namespace; it never means all projects.
+func (repo *AgentSessionRepository) ListAgentSessionsByScope(projectID string, lifecycle string) ([]domain.AgentSessionModel, error) {
 	models := []domain.AgentSessionModel{}
-	query := repo.db.Model(&domain.AgentSessionModel{})
-	if strings.TrimSpace(projectID) != "" {
-		query = query.Where("project_id = ?", strings.TrimSpace(projectID))
+	query := repo.db.Model(&domain.AgentSessionModel{}).Where("project_id = ?", strings.TrimSpace(projectID))
+	if lifecycle = strings.TrimSpace(lifecycle); lifecycle != "" {
+		query = query.Where("lifecycle = ?", lifecycle)
 	}
 	if err := query.Order("updated_at DESC, session_id DESC").Find(&models).Error; err != nil {
 		return nil, fmt.Errorf("listing agent sessions: %w", err)
 	}
 	return models, nil
+}
+
+// ArchiveAgentSession marks an idle session as archived.
+func (repo *AgentSessionRepository) ArchiveAgentSession(sessionID string) error {
+	result := repo.db.Model(&domain.AgentSessionModel{}).
+		Where("session_id = ? AND lifecycle = ? AND last_status NOT IN ?", strings.TrimSpace(sessionID), "active", []string{"running", "waiting"}).
+		Update("lifecycle", "archived")
+	if result.Error != nil {
+		return fmt.Errorf("archiving agent session: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrAgentCommandConflict
+	}
+	return nil
+}
+
+// RestoreAgentSession marks an archived session active.
+func (repo *AgentSessionRepository) RestoreAgentSession(sessionID string) error {
+	result := repo.db.Model(&domain.AgentSessionModel{}).
+		Where("session_id = ? AND lifecycle = ?", strings.TrimSpace(sessionID), "archived").
+		Update("lifecycle", "active")
+	if result.Error != nil {
+		return fmt.Errorf("restoring agent session: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
+}
+
+// DeleteAgentSession permanently removes a session index.
+func (repo *AgentSessionRepository) DeleteAgentSession(sessionID string) error {
+	result := repo.db.Delete(&domain.AgentSessionModel{}, "session_id = ?", strings.TrimSpace(sessionID))
+	if result.Error != nil {
+		return fmt.Errorf("deleting agent session: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
 }

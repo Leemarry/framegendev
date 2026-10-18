@@ -17,6 +17,16 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useRef } from "react";
+import useSWR from "swr";
+import {
+	agentSessionsKey,
+	archiveAgentSession,
+	deleteAgentSession,
+	listAgentSessions,
+	listArchivedAgentSessions,
+	restoreAgentSession,
+	type AgentSessionSummary,
+} from "@/domains/agent/api/agent";
 import type { WorkspaceProject } from "@/domains/projects/api/projects";
 import type { DocumentCategory } from "@/domains/documents/stores";
 import type { GenerationSuccessNotification } from "@/domains/generation/stores/generation-notifications";
@@ -44,6 +54,101 @@ import {
 } from "@/domains/workspace/lib/workbench-route";
 import { useDocumentViewStore } from "@/lib/stores/document-view";
 import { cn } from "@/shared/lib/utils";
+
+export const GlobalAgentSidebarPanel: React.FC<{
+	archived?: boolean;
+	activeSessionId?: string | null;
+	onBack: () => void;
+	onOpenArchive?: () => void;
+	onOpenSession: (sessionId: string) => void;
+}> = ({ archived = false, activeSessionId, onBack, onOpenArchive, onOpenSession }) => {
+	const { data: sessions = [], mutate } = useSWR(
+		archived ? "/agent/sessions/archived" : agentSessionsKey(null),
+		archived ? listArchivedAgentSessions : () => listAgentSessions(null),
+	);
+	const mutateSession = async (
+		session: AgentSessionSummary,
+		action: "archive" | "restore" | "delete",
+	) => {
+		if (action === "archive") await archiveAgentSession(session.sessionId);
+		if (action === "restore") await restoreAgentSession(session.sessionId);
+		if (action === "delete") await deleteAgentSession(session.sessionId);
+		await mutate();
+	};
+	return (
+		<div className="flex h-full min-h-0 flex-col">
+			<button
+				type="button"
+				onClick={onBack}
+				className="flex h-9 items-center gap-2 px-2 text-sm font-medium hover:bg-ide-list-hover"
+			>
+				<ChevronLeft className="size-4" />
+				<span>{archived ? "归档会话" : "Drami"}</span>
+			</button>
+			{!archived ? (
+				<button
+					type="button"
+					onClick={() => onOpenSession("")}
+					className="mx-1 flex h-8 items-center gap-2 rounded-sm bg-primary px-2 text-xs font-medium text-primary-foreground"
+				>
+					<FilePlus2 className="size-4" /> 新建会话
+				</button>
+			) : null}
+			<div className="min-h-0 flex-1 overflow-y-auto space-y-0.5 pt-3">
+				{sessions.length === 0 ? (
+					<p className="px-2 py-2 text-xs text-muted-foreground">
+						{archived ? "暂无归档会话" : "暂无会话"}
+					</p>
+				) : null}
+				{sessions.map((session) => (
+					<div
+						key={session.sessionId}
+						className={cn(
+							"group flex items-center gap-1 rounded-sm px-2 py-1.5 text-xs",
+							activeSessionId === session.sessionId && "bg-ide-list-active text-foreground",
+						)}
+					>
+						<button
+							type="button"
+							onClick={() => onOpenSession(session.sessionId)}
+							className="min-w-0 flex-1 truncate text-left"
+						>
+							<span className="mr-1 inline-block size-1.5 rounded-full bg-muted-foreground align-middle" />
+							{session.title?.trim() || session.sessionId}
+						</button>
+						<button
+							type="button"
+							className="invisible size-6 text-muted-foreground group-hover:visible"
+							aria-label="会话操作"
+							onClick={() => void mutateSession(session, archived ? "restore" : "archive")}
+						>
+							{archived ? <RotateCcw className="size-3.5" /> : <Archive className="size-3.5" />}
+						</button>
+						{archived ? (
+							<button
+								type="button"
+								className="invisible size-6 text-error-foreground group-hover:visible"
+								aria-label="永久删除会话"
+								onClick={() => void mutateSession(session, "delete")}
+							>
+								<Trash2 className="size-3.5" />
+							</button>
+						) : null}
+					</div>
+				))}
+			</div>
+			{!archived ? (
+				<button
+					type="button"
+					onClick={onOpenArchive}
+					className="border-t border-border px-2 py-2 text-left text-xs text-muted-foreground hover:text-foreground"
+				>
+					查看已归档会话
+				</button>
+			) : null}
+		</div>
+	);
+};
 
 export const ProjectsSidebarPanel: React.FC<{
 	error?: unknown;

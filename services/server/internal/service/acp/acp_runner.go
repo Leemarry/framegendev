@@ -476,7 +476,7 @@ func isOpenCodeACPCommand(command string, args []string) bool {
 func isCodexACPCommand(command string, args []string) bool {
 	_ = args
 	bin := strings.ToLower(filepath.Base(strings.TrimSpace(command)))
-	return bin == "codex-acp" || bin == "codex-acp.exe"
+	return bin == "codex-acp" || bin == "codex-acp.exe" || bin == "codex-acp.cmd" || bin == "codex-acp.bat"
 }
 
 func acpAgentIDForCommand(command string, args []string) string {

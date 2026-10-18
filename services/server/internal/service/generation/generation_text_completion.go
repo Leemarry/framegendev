@@ -139,7 +139,7 @@ func (workflow *GenerationService) completeTextWithRoute(ctx context.Context, re
 func (workflow *GenerationService) resolveConfiguredTextRoute(routeID string) (coregeneration.ModelRoute, error) {
 	routeID = strings.TrimSpace(routeID)
 	if routeID != "" {
-		route, ok := coregeneration.FindRoute(routeID)
+		route, ok := workflow.findGenerationRoute(routeID)
 		if !ok {
 			return coregeneration.ModelRoute{}, fmt.Errorf("unknown generation route %q", routeID)
 		}

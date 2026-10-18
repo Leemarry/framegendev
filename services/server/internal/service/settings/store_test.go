@@ -2,6 +2,7 @@ package settings
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,15 @@ import (
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation/libtv"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 )
+
+func TestCLIWritePermissionErrorsAreActionableAndRedacted(t *testing.T) {
+	for _, output := range []string{"permission denied: secret-key", "Access is denied. secret-key", "拒绝访问 secret-key"} {
+		err := jimengCommandError("logout", errors.New("exit 1"), output)
+		if !errors.Is(err, ErrLocalCLIPermission) || strings.Contains(err.Error(), "secret-key") {
+			t.Fatalf("permission error not classified or redacted: %v", err)
+		}
+	}
+}
 
 type memoryAPIKeyStore struct {
 	mu     sync.RWMutex
@@ -377,6 +387,91 @@ func TestSettingsBeginJimengLoginStoresOAuthMarkerWhenSessionExists(t *testing.T
 	}
 }
 
+func TestSettingsJimengNonmemberLoginDoesNotClaimFullAccess(t *testing.T) {
+	settings := NewSettings(&memoryAPIKeyStore{values: map[string]string{}})
+	binPath := testutil.WriteExecutable(t, filepath.Join(t.TempDir(), "dreamina"), testutil.ExecutableFixture{Mode: "jimeng-nonmember"})
+	settings.SetJimengCLIPaths(binPath, "")
+	result, err := settings.BeginJimengLogin(context.Background(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := providerByID(t, APIKeyList{Providers: result.Providers}, "jimeng")
+	if !provider.Configured || provider.Status != "partial" || !strings.Contains(provider.Help, "会员") {
+		t.Fatalf("unexpected nonmember state: %#v", provider)
+	}
+	providers, err := settings.ListGenerationProviders(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range providers.Providers {
+		if item.ID == "jimeng" && item.Status != "partial" {
+			t.Fatal("aggregate overwrote membership status")
+		}
+	}
+}
+
+func TestSettingsJimengEmptyAccountRemainsUnverified(t *testing.T) {
+	settings := NewSettings(&memoryAPIKeyStore{values: map[string]string{}})
+	binPath := testutil.WriteExecutable(t, filepath.Join(t.TempDir(), "dreamina"), testutil.ExecutableFixture{Mode: "jimeng-empty-account"})
+	settings.SetJimengCLIPaths(binPath, "")
+	result, err := settings.BeginJimengLogin(context.Background(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := providerByID(t, APIKeyList{Providers: result.Providers}, "jimeng")
+	if provider.Status != "partial" || !strings.Contains(provider.Help, "有效账号") {
+		t.Fatalf("empty account must not imply verified membership: %#v", provider)
+	}
+}
+
+func TestSettingsOAuthCompletionTracksCurrentAttempt(t *testing.T) {
+	for _, tc := range []struct {
+		name                        string
+		failure                     error
+		stale, canceled             bool
+		wantConfigured, wantFailure bool
+	}{
+		{name: "success", wantConfigured: true},
+		{name: "failure redacted", failure: errors.New("callback token=secret"), wantFailure: true},
+		{name: "stale success", stale: true},
+		{name: "stale failure", stale: true, failure: errors.New("secret")},
+		{name: "canceled success", canceled: true},
+		{name: "canceled failure", canceled: true, failure: context.Canceled},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			settings := NewSettings(&memoryAPIKeyStore{values: map[string]string{}})
+			settings.SetGenerationCLIs([]string{"libtv"})
+			finished := make(chan struct{})
+			id := settings.registerProviderLogin("libtv", func() { close(finished) }, finished)
+			if tc.stale {
+				settings.registerProviderLogin("libtv", func() {}, make(chan struct{}))
+			}
+			if tc.canceled {
+				if err := settings.cancelActiveProviderLogin(context.Background(), "libtv"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_ = settings.finishOAuthLogin("libtv", id, tc.failure)
+			settings.unregisterProviderLogin("libtv", id)
+			if tc.stale && settings.activeProviderLogins["libtv"].id == 0 {
+				t.Fatal("old completion removed new attempt")
+			}
+			list, err := settings.ListAPIKeys(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			provider := providerByID(t, list, "libtv")
+			if provider.Configured != tc.wantConfigured || (provider.Status == "loginFailed") != tc.wantFailure || strings.Contains(provider.Help, "secret") {
+				t.Fatalf("unexpected completion state: %#v", provider)
+			}
+			settings.registerProviderLogin("libtv", func() {}, make(chan struct{}))
+			if settings.providerLoginFailures["libtv"] != "" {
+				t.Fatal("retry retained prior error")
+			}
+		})
+	}
+}
+
 func TestSettingsJimengHeadlessLoginReturnsChallengeAndCompletes(t *testing.T) {
 	store := &memoryAPIKeyStore{values: map[string]string{}}
 	settings := NewSettings(store)
@@ -424,9 +519,48 @@ func TestSettingsJimengHeadlessLoginReturnsChallengeAndCompletes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading fake jimeng args: %v", err)
 	}
-	wantArgs := "login --headless\nlogin checklogin --device_code=device-123 --poll=30"
+	wantArgs := "login --headless\nlogin checklogin --device_code=device-123 --poll=0\nuser_credit"
 	if strings.TrimSpace(string(output)) != wantArgs {
 		t.Fatalf("jimeng args = %q, want %q", strings.TrimSpace(string(output)), wantArgs)
+	}
+}
+
+func TestJimengLoginCheckStates(t *testing.T) {
+	for _, tc := range []struct {
+		mode, status          string
+		configured, wantError bool
+	}{
+		{"jimeng-pending", "pending", false, false},
+		{"jimeng-expired", "expired", false, false},
+		{"jimeng-denied", "denied", false, false},
+		{"jimeng-check-failure", "", false, true},
+		{"jimeng-account-failure", "completed", true, false},
+	} {
+		t.Run(tc.mode, func(t *testing.T) {
+			settings := NewSettings(&memoryAPIKeyStore{values: map[string]string{}})
+			binPath := testutil.WriteExecutable(t, filepath.Join(t.TempDir(), "dreamina"), testutil.ExecutableFixture{Mode: tc.mode})
+			settings.SetJimengCLIPaths(binPath, "")
+			result, err := settings.CompleteJimengLogin(context.Background(), "private-device-code")
+			if tc.wantError {
+				if !errors.Is(err, ErrProviderLoginCheckFailed) || strings.Contains(err.Error(), "secret") || strings.Contains(err.Error(), "private-device-code") {
+					t.Fatalf("unsafe or unexpected error: %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Login.Status != tc.status || strings.Contains(result.Login.Message, "secret") {
+				t.Fatalf("unexpected login: %#v", result.Login)
+			}
+			provider := providerByID(t, APIKeyList{Providers: result.Providers}, "jimeng")
+			if provider.Configured != tc.configured {
+				t.Fatalf("unexpected configured: %v", provider.Configured)
+			}
+			if tc.mode == "jimeng-account-failure" && provider.Status != "partial" {
+				t.Fatal("account lookup failure must preserve authorization without claiming full access")
+			}
+		})
 	}
 }
 

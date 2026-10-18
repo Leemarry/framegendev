@@ -12,6 +12,16 @@ export interface APIKeyProvider {
 	help?: string;
 	credentialKind?: "apiKey" | "oauth" | string;
 	capabilities?: string[];
+	status?: string;
+	runtime?: CLIProviderRuntime;
+}
+
+export interface CLIProviderRuntime {
+	binaryPath: string;
+	version?: string;
+	source: "packaged" | "configured" | "path" | string;
+	available: boolean;
+	message?: string;
 }
 
 export interface APIKeyListResponse {
@@ -34,6 +44,22 @@ export interface ModelPlatformModelGroup {
 
 export interface ModelPlatformsResponse {
 	platforms: ModelPlatform[];
+}
+
+export interface GenerationProvider extends APIKeyProvider {
+	kind: "cli" | "official" | "aggregator" | string;
+	status: string;
+	settings?: Record<string, string>;
+}
+
+export interface GenerationProvidersResponse {
+	providers: GenerationProvider[];
+	platforms: ModelPlatform[];
+}
+
+export interface GenerationProviderSettingsMutation {
+	revision?: string;
+	values: Record<string, string>;
 }
 
 export interface APIKeyLoginChallenge {
@@ -185,6 +211,7 @@ export const modelPlatformsKey = "/settings/model-platforms";
 export const agentModelProfilesKey = "/settings/agent-model-profiles";
 export const codexRelaySettingsKey = "/settings/codex-relay";
 export const codexAccountKey = "/settings/codex-account";
+export const generationProvidersKey = "/settings/generation/providers";
 export const jianyingDraftSettingsKey = "/settings/jianying-draft";
 
 export const getAPIKeys = async () => {
@@ -194,6 +221,22 @@ export const getAPIKeys = async () => {
 
 export const getModelPlatforms = async () => {
 	const response = await httpClient.get<ModelPlatformsResponse>(modelPlatformsKey);
+	return response.data;
+};
+
+export const getGenerationProviders = async () => {
+	const response = await httpClient.get<GenerationProvidersResponse>(generationProvidersKey);
+	return response.data;
+};
+
+export const saveGenerationProviderSettings = async (
+	providerID: string,
+	input: GenerationProviderSettingsMutation,
+) => {
+	const response = await httpClient.put<GenerationProvidersResponse>(
+		`${generationProvidersKey}/${encodeURIComponent(providerID)}`,
+		input,
+	);
 	return response.data;
 };
 
@@ -221,6 +264,7 @@ export const beginProviderLogin = async (providerID: string, force = false) => {
 	const response = await httpClient.post<APIKeyLoginResponse>(
 		`/settings/api-keys/${encodeURIComponent(providerID)}/login`,
 		{ force },
+		{ timeout: 120000 },
 	);
 	return response.data;
 };
@@ -229,6 +273,7 @@ export const completeProviderLogin = async (providerID: string, deviceCode: stri
 	const response = await httpClient.post<APIKeyLoginResponse>(
 		`/settings/api-keys/${encodeURIComponent(providerID)}/login/check`,
 		{ deviceCode },
+		{ timeout: 120000 },
 	);
 	return response.data;
 };
@@ -256,6 +301,16 @@ export const checkCodexRelaySettings = async (input: CodexRelayCheckRequest = {}
 	return response.data;
 };
 
+export type CodexRelayChannelMutation = { type: "official" } | { type: "relay"; profileId: string };
+
+export const activateCodexRelayChannel = async (input: CodexRelayChannelMutation) => {
+	const response = await httpClient.put<CodexRelaySettingsResponse>(
+		`${codexRelaySettingsKey}/channel`,
+		input,
+	);
+	return response.data;
+};
+
 export const saveCodexRelayProfileAPIKey = async (profileID: string, apiKey: string) => {
 	const response = await httpClient.put<CodexRelaySettingsResponse>(
 		`${codexRelaySettingsKey}/profiles/${encodeURIComponent(profileID)}/api-key`,
@@ -276,8 +331,14 @@ export const getCodexAccount = async () => {
 	return response.data;
 };
 
-export const beginCodexAccountLogin = async () => {
-	const response = await httpClient.post<CodexLoginAttempt>(`${codexAccountKey}/login`);
+export const importLocalCodex = async () => {
+	const response = await httpClient.post<CodexRelaySettingsResponse>(`${codexAccountKey}/import`);
+	return response.data;
+};
+
+export const beginCodexAccountLogin = async (forceBrowser = false) => {
+	const suffix = forceBrowser ? "?forceBrowser=true" : "";
+	const response = await httpClient.post<CodexLoginAttempt>(`${codexAccountKey}/login${suffix}`);
 	return response.data;
 };
 
@@ -348,6 +409,7 @@ export const clearAgentModelProfileAPIKey = async (profileID: string) => {
 export const clearAPIKey = async (providerID: string) => {
 	const response = await httpClient.delete<APIKeyListResponse>(
 		`/settings/api-keys/${encodeURIComponent(providerID)}`,
+		{ timeout: 45000 },
 	);
 	return response.data;
 };

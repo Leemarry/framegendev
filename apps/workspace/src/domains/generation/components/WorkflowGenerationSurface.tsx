@@ -20,7 +20,6 @@ import {
 	LockKeyhole,
 	Maximize,
 	Minus,
-	Play,
 	Plus,
 	Unlock,
 	Trash2,
@@ -31,6 +30,7 @@ import useSWR from "swr";
 import type { MarkdownSectionContext } from "@/domains/documents/components/MarkdownHybridEditor";
 import { getMediaAssets, uploadMediaAsset } from "@/domains/workspace/api/media";
 import { MaterialLibraryImportDialog } from "./MaterialLibraryImportDialog";
+import { WorkflowExecutionPanel } from "./canvas/WorkflowExecutionPanel";
 import {
 	activeWorkflowDocument,
 	createWorkflowDocument,
@@ -99,6 +99,7 @@ const WorkflowSurface = ({ projectId, section, storageKey }: Props & { storageKe
 	const [name, setName] = useState("");
 	const [createPosition, setCreatePosition] = useState<{ x: number; y: number } | null>(null);
 	const [pickerNodeId, setPickerNodeId] = useState<string | null>(null);
+	const [executionId, setExecutionId] = useState<string | null>(null);
 	const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
 	const document = activeWorkflowDocument(state);
 	const graph = document.graph;
@@ -477,23 +478,16 @@ const WorkflowSurface = ({ projectId, section, storageKey }: Props & { storageKe
 									);
 								}}
 							/>
-							<div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-								<span>工作流执行【待接入】</span>
-								<div className="flex gap-2">
-									<Button
-										aria-label="删除节点"
-										variant="ghost"
-										size="sm"
-										disabled={locked}
-										onClick={() => onNodesChange([{ type: "remove", id: selectedNode.id }])}
-									>
-										<Trash2 />
-									</Button>
-									<Button disabled size="sm" variant="secondary" title="工作流执行尚未接入">
-										<Play />
-										运行
-									</Button>
-								</div>
+							<div className="mt-2 flex items-center justify-between gap-2">
+								<Button
+									aria-label="删除节点"
+									variant="ghost"
+									size="sm"
+									disabled={locked}
+									onClick={() => onNodesChange([{ type: "remove", id: selectedNode.id }])}
+								>
+									<Trash2 />
+								</Button>
 							</div>
 						</div>
 					)}
@@ -544,6 +538,12 @@ const WorkflowSurface = ({ projectId, section, storageKey }: Props & { storageKe
 					)}
 				</>
 			)}
+			<WorkflowExecutionPanel
+				workflowId={document.id}
+				executionId={executionId}
+				onExecutionStart={setExecutionId}
+				disabledReason="工作流执行【待接入】：本地画布尚未同步至服务端"
+			/>
 		</div>
 	);
 };

@@ -37,8 +37,9 @@ func NewAgentMessages(service AgentMessageService) AgentMessages {
 // @Failure 409 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId}/messages [post]
+// @Router /api/v1/agent/sessions/{sessionId}/messages [post]
 func (handler AgentMessages) HandleAgentMessage(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}

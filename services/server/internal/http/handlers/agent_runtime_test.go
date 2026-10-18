@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -38,6 +39,14 @@ func TestHandleAgentRuntimeConfig(t *testing.T) {
 		wantModelConfigID string
 		forbiddenBodyText string
 	}{
+		{
+			name: "missing executable is actionable",
+			inspect: func(context.Context, string) (serviceagent.AgentRuntimeConfigResponse, error) {
+				return serviceagent.AgentRuntimeConfigResponse{}, fmt.Errorf("starting ACP: %w", exec.ErrNotFound)
+			},
+			wantStatus:  http.StatusServiceUnavailable,
+			wantMessage: "未找到 Agent 运行程序，请配置 agent.bin_dir 或安装 codex-acp 后重启服务",
+		},
 		{
 			name: "success",
 			inspect: func(_ context.Context, projectID string) (serviceagent.AgentRuntimeConfigResponse, error) {

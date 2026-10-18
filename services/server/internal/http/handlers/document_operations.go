@@ -36,8 +36,9 @@ func NewDocumentOperations(runner DocumentOperationsRunner) DocumentOperations {
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/document-operations [post]
+// @Router /api/v1/agent/document-operations [post]
 func (handler DocumentOperations) HandleDocumentOperations(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
@@ -65,8 +66,9 @@ func (handler DocumentOperations) HandleDocumentOperations(context *gin.Context)
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/document-operations/test [post]
+// @Router /api/v1/agent/document-operations/test [post]
 func (handler DocumentOperations) HandleTestDocumentOperations(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}

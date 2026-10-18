@@ -1,7 +1,7 @@
 import type { APIKeyProvider } from "@/domains/settings/api/settings";
 
 export const apiKeyInputPlaceholder = (provider: APIKeyProvider, emptyText: string) =>
-	provider.configured ? "输入新的 Key 以替换当前凭据" : emptyText;
+	provider.configured ? "输入新的 Key 以替换当前凭据" : provider.placeholder || emptyText;
 
 export const maskCredentialValue = (value: string) => {
 	if (value.includes("•") || value.includes("*")) return value;

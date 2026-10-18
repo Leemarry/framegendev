@@ -530,7 +530,8 @@ describe("AssetLibraryButton", () => {
 		);
 	});
 
-	it("saves metadata through the asset's actual scope and resets drafts on selection", async () => {
+	it("autosaves metadata after debounce and resets on asset switch", async () => {
+		vi.useFakeTimers();
 		const asset = mediaAsset({ id: "media-a", filename: "global.png", note: "原备注" });
 		vi.mocked(getMediaAssets).mockResolvedValue({
 			assets: [asset, mediaAsset({ id: "media-b", filename: "other.png", note: "另一备注" })],
@@ -541,9 +542,8 @@ describe("AssetLibraryButton", () => {
 		fireEvent.click(screen.getByRole("button", { name: "打开素材库" }));
 		await screen.findByRole("dialog", { name: "项目素材库" });
 		fireEvent.click(await screen.findByRole("button", { name: "预览 global.png" }));
-		fireEvent.click(screen.getByRole("button", { name: "编辑元数据" }));
 		fireEvent.change(screen.getByLabelText("备注"), { target: { value: "新备注" } });
-		fireEvent.click(screen.getByRole("button", { name: "保存元数据" }));
+		await vi.advanceTimersByTimeAsync(850);
 		await waitFor(() =>
 			expect(updateMediaAssetMetadata).toHaveBeenCalledWith(
 				"media-a",
@@ -551,15 +551,10 @@ describe("AssetLibraryButton", () => {
 				undefined,
 			),
 		);
-		await screen.findByRole("button", { name: "编辑元数据" });
-		fireEvent.click(screen.getByRole("button", { name: "编辑元数据" }));
 		fireEvent.change(screen.getByLabelText("备注"), { target: { value: "丢弃草稿" } });
 		fireEvent.click(screen.getByRole("button", { name: "预览 other.png" }));
-		fireEvent.click(screen.getByRole("button", { name: "编辑元数据" }));
 		expect(screen.getByLabelText("备注")).toHaveValue("另一备注");
-		fireEvent.keyDown(screen.getByLabelText("备注"), { key: "Escape" });
-		expect(screen.getByRole("dialog", { name: "项目素材库" })).toBeInTheDocument();
-		expect(screen.queryByRole("form", { name: "编辑素材元数据" })).not.toBeInTheDocument();
+		vi.useRealTimers();
 	});
 
 	it("toggles a physical asset favorite through its owner scope", async () => {

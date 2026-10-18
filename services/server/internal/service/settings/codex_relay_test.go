@@ -96,6 +96,90 @@ func TestCodexRelaySettingsStoresProfileAndRedactsAPIKey(t *testing.T) {
 	}
 }
 
+func TestSetCodexRelayChannelSwitchesOfficialAndRelayAtomically(t *testing.T) {
+	service := NewSettingsWithStores(
+		&memoryAPIKeyStore{values: map[string]string{}},
+		nil,
+		&memoryAppSettingStore{values: map[string]string{}},
+	)
+	ctx := context.Background()
+	if _, err := service.SaveCodexRelaySettings(ctx, CodexRelaySettingsMutation{
+		Enabled:         false,
+		ActiveProfileID: "relay",
+		Profiles: []CodexRelayProfileMutation{{
+			ID: "relay", Name: "Relay", BaseURL: "https://relay.example.com/v1",
+			Model: "gpt-5.5", Protocol: CodexRelayProtocolResponses, Enabled: true,
+		}},
+	}); err != nil {
+		t.Fatalf("SaveCodexRelaySettings returned error: %v", err)
+	}
+
+	if _, err := service.SetCodexRelayProfileAPIKey(ctx, "relay", "test-key"); err != nil {
+		t.Fatal(err)
+	}
+	settings, err := service.SetCodexRelayChannel(ctx, CodexRelayChannelMutation{Type: "relay", ProfileID: "relay"})
+	if err != nil {
+		t.Fatalf("SetCodexRelayChannel(relay) returned error: %v", err)
+	}
+	if !settings.Enabled || settings.ActiveProfileID != "relay" {
+		t.Fatalf("relay settings = %#v, want enabled relay", settings)
+	}
+
+	settings, err = service.SetCodexRelayChannel(ctx, CodexRelayChannelMutation{Type: "official"})
+	if err != nil {
+		t.Fatalf("SetCodexRelayChannel(official) returned error: %v", err)
+	}
+	if settings.Enabled || settings.ActiveProfileID != "" {
+		t.Fatalf("official settings = %#v, want disabled relay", settings)
+	}
+}
+
+func TestSetCodexRelayChannelRejectsUnusableProfileWithoutChangingChannel(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		key      string
+		enabled  bool
+		protocol CodexRelayProtocol
+	}{
+		{name: "missing key", enabled: true, protocol: CodexRelayProtocolResponses},
+		{name: "disabled", key: "test-key", protocol: CodexRelayProtocolResponses},
+		{name: "unsupported protocol", key: "test-key", enabled: true, protocol: CodexRelayProtocolChatCompletions},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			service := NewSettingsWithStores(&memoryAPIKeyStore{values: map[string]string{CodexRelayAPIKeyName("relay"): test.key}}, nil, &memoryAppSettingStore{values: map[string]string{}})
+			ctx := context.Background()
+			before, err := service.SaveCodexRelaySettings(ctx, CodexRelaySettingsMutation{Profiles: []CodexRelayProfileMutation{{ID: "relay", Name: "relay", BaseURL: "https://example.test/v1", Model: "test", Enabled: test.enabled, Protocol: test.protocol}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := service.SetCodexRelayChannel(ctx, CodexRelayChannelMutation{Type: "relay", ProfileID: "relay"}); err == nil {
+				t.Fatal("unusable channel accepted")
+			}
+			after, err := service.GetCodexRelaySettings(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(before, after) {
+				t.Fatal("failed activation changed settings")
+			}
+		})
+	}
+}
+
+func TestSetCodexRelayChannelRejectsMissingProfile(t *testing.T) {
+	service := NewSettingsWithStores(
+		&memoryAPIKeyStore{values: map[string]string{}},
+		nil,
+		&memoryAppSettingStore{values: map[string]string{}},
+	)
+	_, err := service.SetCodexRelayChannel(context.Background(), CodexRelayChannelMutation{
+		Type: "relay", ProfileID: "missing",
+	})
+	if !errors.Is(err, ErrCodexRelayNotConfigured) {
+		t.Fatalf("SetCodexRelayChannel missing profile error = %v, want ErrCodexRelayNotConfigured", err)
+	}
+}
+
 func TestPrepareCodexRelayRuntimeConfigWritesLocalCodexHomeWithoutSecret(t *testing.T) {
 	service := NewSettingsWithStores(
 		&memoryAPIKeyStore{values: map[string]string{}},
@@ -376,43 +460,55 @@ func TestCheckCodexRelayAuthenticatesUpstream(t *testing.T) {
 	}
 }
 
-func TestCheckCodexRelayKeepsConnectivitySuccessWhenModelCatalogIsMalformed(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(writer, `{"data":`)
-	}))
-	defer server.Close()
+func TestCheckCodexRelayRejectsInvalidUpstreamResponses(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		status int
+		body   string
+	}{
+		{"malformed JSON", 200, `{"data":`},
+		{"HTML fallback", 200, `<html>login</html>`},
+		{"missing data", 200, `{}`},
+		{"not found", 404, `{"data":[]}`},
+		{"method rejected", 405, `{"data":[]}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				writer.Header().Set("Content-Type", "application/json")
+				writer.WriteHeader(test.status)
+				fmt.Fprint(writer, test.body)
+			}))
+			defer server.Close()
 
-	service := NewSettingsWithStores(
-		&memoryAPIKeyStore{values: map[string]string{}},
-		nil,
-		&memoryAppSettingStore{values: map[string]string{}},
-	)
-	ctx := context.Background()
-	if _, err := service.SaveCodexRelaySettings(ctx, CodexRelaySettingsMutation{
-		Enabled:         true,
-		ActiveProfileID: "relay",
-		Profiles: []CodexRelayProfileMutation{{
-			ID:       "relay",
-			Name:     "Relay",
-			BaseURL:  server.URL + "/v1",
-			Model:    "gpt-5.6-sol",
-			Protocol: CodexRelayProtocolResponses,
-			Enabled:  true,
-		}},
-	}); err != nil {
-		t.Fatalf("SaveCodexRelaySettings returned error: %v", err)
-	}
-	if _, err := service.SetCodexRelayProfileAPIKey(ctx, "relay", "sk-upstream-check"); err != nil {
-		t.Fatalf("SetCodexRelayProfileAPIKey returned error: %v", err)
-	}
+			service := NewSettingsWithStores(
+				&memoryAPIKeyStore{values: map[string]string{}},
+				nil,
+				&memoryAppSettingStore{values: map[string]string{}},
+			)
+			ctx := context.Background()
+			if _, err := service.SaveCodexRelaySettings(ctx, CodexRelaySettingsMutation{
+				Enabled:         true,
+				ActiveProfileID: "relay",
+				Profiles: []CodexRelayProfileMutation{{
+					ID:       "relay",
+					Name:     "Relay",
+					BaseURL:  server.URL + "/v1",
+					Model:    "gpt-5.6-sol",
+					Protocol: CodexRelayProtocolResponses,
+					Enabled:  true,
+				}},
+			}); err != nil {
+				t.Fatalf("SaveCodexRelaySettings returned error: %v", err)
+			}
+			if _, err := service.SetCodexRelayProfileAPIKey(ctx, "relay", "sk-upstream-check"); err != nil {
+				t.Fatalf("SetCodexRelayProfileAPIKey returned error: %v", err)
+			}
 
-	result, err := service.CheckCodexRelay(ctx, CodexRelayCheckRequest{})
-	if err != nil {
-		t.Fatalf("CheckCodexRelay returned error: %v", err)
-	}
-	if !result.OK || result.StatusCode != http.StatusOK || len(result.Models) != 0 {
-		t.Fatalf("result = %#v, want successful check with no parsed models", result)
+			result, err := service.CheckCodexRelay(ctx, CodexRelayCheckRequest{})
+			if !errors.Is(err, ErrCodexRelayCheckFailed) || result.OK {
+				t.Fatalf("malformed catalog was accepted: ok=%v err=%v", result.OK, err)
+			}
+		})
 	}
 }
 

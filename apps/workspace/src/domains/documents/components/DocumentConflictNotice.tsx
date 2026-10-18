@@ -3,6 +3,8 @@ import { AlertTriangle, Download, GitMerge, RefreshCw, X } from "lucide-react";
 import { useDocumentsStore, type MarkdownDocument } from "@/domains/documents/stores";
 import {
 	archiveDocumentRecovery,
+	archiveRecoveryDraft,
+	documentRecoveryChangedEvent,
 	listOtherWindowRecoveries,
 	persistDocumentRecovery,
 	type DocumentRecoveryDraft,
@@ -49,7 +51,11 @@ export const DocumentConflictNotice = () => {
 		};
 		read();
 		window.addEventListener("storage", read);
-		return () => window.removeEventListener("storage", read);
+		window.addEventListener(documentRecoveryChangedEvent, read);
+		return () => {
+			window.removeEventListener("storage", read);
+			window.removeEventListener(documentRecoveryChangedEvent, read);
+		};
 	}, [projectId]);
 	const local = conflicted.find((document) => document.id === documentId);
 	const open = (document: MarkdownDocument) => {
@@ -137,6 +143,8 @@ export const DocumentConflictNotice = () => {
 			};
 			const next = latest.documents.filter((item) => item.id !== staged.id).concat(staged);
 			persistDocumentRecovery(projectId, next);
+			// The current window now owns a durable copy; retire only this source snapshot.
+			archiveRecoveryDraft(captured);
 			context.set({
 				documents: next,
 				activeDocumentId: staged.id,
@@ -147,7 +155,11 @@ export const DocumentConflictNotice = () => {
 			setRecovery(null);
 			open(staged);
 		} catch (err) {
-			setRecoveryError(err instanceof Error ? err.message : "恢复稿载入失败，请重试");
+			const message =
+				err && typeof err === "object" && "message" in err && typeof err.message === "string"
+					? err.message
+					: "恢复稿载入失败，请重试";
+			setRecoveryError(`${message}。恢复草稿仍保留，可重试或下载副本。`);
 		} finally {
 			setLoading(false);
 		}
@@ -171,7 +183,7 @@ export const DocumentConflictNotice = () => {
 		<>
 			<div
 				role="alert"
-				className="fixed bottom-4 left-1/2 z-40 flex w-[calc(100%_-_2rem)] max-w-xl -translate-x-1/2 flex-wrap items-center gap-2 rounded border border-warning-border bg-warning-surface p-3 text-sm text-warning-foreground shadow-md"
+				className="flex w-full shrink-0 flex-wrap items-center gap-2 border-b border-warning-border bg-warning-surface px-4 py-2 text-sm text-warning-foreground"
 			>
 				<AlertTriangle className="size-4 shrink-0" />
 				<div className="min-w-0 flex-1">
@@ -204,7 +216,9 @@ export const DocumentConflictNotice = () => {
 				>
 					<SheetHeader>
 						<SheetTitle>其他窗口的恢复草稿</SheetTitle>
-						<SheetDescription>来源副本保留；载入后需要处理文档冲突。</SheetDescription>
+						<SheetDescription>
+							载入后需要合并；若当前正文已正确，可归档旧稿停止重复提示。原副本保留。
+						</SheetDescription>
 					</SheetHeader>
 					<select
 						aria-label="选择恢复草稿"
@@ -267,7 +281,22 @@ export const DocumentConflictNotice = () => {
 						</Button>
 						<Button disabled={loading} onClick={() => void stageRecovery()}>
 							<GitMerge className="size-4" />
-							载入为待合并稿
+							{loading ? "正在读取服务器版本…" : "载入为待合并稿"}
+						</Button>
+						<Button
+							variant="outline"
+							disabled={loading}
+							onClick={() => {
+								if (!recovery || !projectId) return;
+								try {
+									archiveRecoveryDraft(recovery);
+									setRecovery(listOtherWindowRecoveries(projectId)[0] ?? null);
+								} catch {
+									setRecoveryError("草稿归档失败，原副本仍保留，请重试");
+								}
+							}}
+						>
+							保留当前正文，归档此草稿
 						</Button>
 					</div>
 				</SheetContent>

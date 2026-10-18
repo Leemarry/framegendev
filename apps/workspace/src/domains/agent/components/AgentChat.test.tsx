@@ -232,12 +232,12 @@ describe("AgentChat runtime config persistence", () => {
 		vi.resetModules();
 	});
 
-	it("places the live plan between the timeline and composer", async () => {
+	it("places the live plan between the empty state and composer", async () => {
 		vi.resetModules();
 		const { AgentChat } = await import("./AgentChat");
 		renderAgentChat(AgentChat);
 
-		const timeline = screen.getByTestId("agent-timeline");
+		const timeline = screen.getByRole("region", { name: "Drami 起点" });
 		const livePlan = screen.getByTestId("agent-live-plan");
 		const composer = screen.getByTestId("composer-form");
 		expect(
@@ -379,4 +379,41 @@ describe("AgentChat runtime config persistence", () => {
 		expect(testState.setSettingsTab).toHaveBeenCalledWith("api-keys");
 		expect(screen.getByTestId("location-probe")).toHaveTextContent("/settings");
 	});
+});
+
+it("seeds the project starter without sending and hides starters for an existing chat", async () => {
+	const { AgentChat } = await import("./AgentChat");
+	const { useAgentStore } = await import("@/domains/agent/stores");
+	useAgentStore.getState().resetSession();
+	const view = renderAgentChat(AgentChat);
+	fireEvent.click(screen.getByRole("button", { name: /从灵感开始写剧本/ }));
+	expect(useAgentStore.getState().composerSeed?.text).toContain("适合漫剧制作的剧本");
+	expect(testState.runAgentPrompt).not.toHaveBeenCalled();
+	view.unmount();
+	useAgentStore
+		.getState()
+		.hydrateAgentChatState(
+			[{ id: "m1", role: "user", content: "hello", kind: "message", status: "complete" }],
+			[],
+			{ sessionId: "s1", running: false },
+		);
+	renderAgentChat(AgentChat);
+	expect(screen.queryByRole("region", { name: "Drami 起点" })).toBeNull();
+	expect(screen.getByTestId("agent-timeline")).toBeTruthy();
+	cleanup();
+	useAgentStore.getState().resetSession();
+});
+
+it("renders archived conversations without composer, permissions, or starter actions", async () => {
+	const { AgentChat } = await import("./AgentChat");
+	render(
+		<MemoryRouter>
+			<AgentChat globalScope readOnly />
+		</MemoryRouter>,
+	);
+	expect(screen.getByText("已归档会话 · 只读")).toBeTruthy();
+	expect(screen.queryByTestId("composer-form")).toBeNull();
+	expect(screen.queryByRole("region", { name: "Drami 起点" })).toBeNull();
+	expect(screen.queryByTestId("agent-live-plan")).toBeNull();
+	cleanup();
 });

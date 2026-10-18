@@ -403,7 +403,7 @@ func (service *Settings) officialAgentRuntimeProfiles(ctx context.Context) ([]do
 		}
 	}
 
-	return profiles, env, nil
+	return service.appendCustomAgentProfiles(ctx, profiles, env)
 }
 
 func (service *Settings) agentRuntimeAPIKey(providerKeyName string, legacyProfileID string, profileID string) (string, error) {
@@ -1282,7 +1282,7 @@ func renderOpenCodeConfig(profiles []domainAgentModelProfile, defaultProfile dom
 		providerConfig, ok := config.Provider[profile.ProviderID]
 		if !ok {
 			providerConfig = openCodeProviderConfig{
-				NPM:  "@ai-sdk/openai-compatible",
+				NPM:  customAgentNPM(profile.Protocol),
 				Name: firstNonEmpty(strings.TrimSpace(profile.ProviderLabel), strings.TrimSpace(profile.ProviderID)),
 				Options: openCodeProviderOptions{
 					BaseURL: strings.TrimRight(strings.TrimSpace(profile.BaseURL), "/"),

@@ -64,6 +64,7 @@ export interface AgentComposerSeedInput {
 interface AgentComposerProps {
 	className?: string;
 	disabled?: boolean;
+	globalScope?: boolean;
 	onChange?: (state: AgentComposerState) => void;
 	onSubmit?: () => void;
 	placeholder?: string;
@@ -209,6 +210,7 @@ export const AgentComposer = forwardRef<AgentComposerHandle, AgentComposerProps>
 		{
 			className,
 			disabled = false,
+			globalScope = false,
 			onChange,
 			onSubmit,
 			placeholder = "告诉智能体要在当前文档中插入或改写什么",
@@ -275,9 +277,9 @@ export const AgentComposer = forwardRef<AgentComposerHandle, AgentComposerProps>
 					placeholder,
 				}),
 				AgentSkill,
-				AgentMention,
+				...(globalScope ? [] : [AgentMention]),
 			],
-			[placeholder],
+			[globalScope, placeholder],
 		);
 
 		const editor = useEditor(
@@ -512,7 +514,8 @@ const resolveAgentSkillSlashState = (
 	editor: Editor | null,
 	items: AgentSkillSlashItem[],
 ): Omit<AgentSkillSlashState, "selectedIndex"> | null => {
-	if (!editor || !editor.isEditable || !agentComposerHasDomFocus(editor)) return null;
+	if (!editor || editor.isDestroyed || !editor.isEditable || !agentComposerHasDomFocus(editor))
+		return null;
 
 	const match = findAgentSkillSlashMatch(editor);
 	if (!match) return null;

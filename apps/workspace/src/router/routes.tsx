@@ -8,6 +8,9 @@ import { useWorkModeStore } from "@/lib/stores/work-mode";
 const Projects = lazy(() =>
 	import("@/pages/Projects").then((module) => ({ default: module.Projects })),
 );
+const GlobalAgent = lazy(() =>
+	import("@/pages/GlobalAgent").then((module) => ({ default: module.GlobalAgent })),
+);
 const AssetLibrary = lazy(() =>
 	import("@/pages/AssetLibrary").then((module) => ({ default: module.AssetLibrary })),
 );
@@ -77,7 +80,7 @@ function LegacyWorkspaceRouteRedirect() {
 	const location = useLocation();
 	const pathname =
 		location.pathname === "/agent"
-			? "/projects"
+			? "/agent"
 			: location.pathname.replace(/^\/studio(?=\/|$)/, "/toolbox");
 
 	return <Navigate to={`${pathname}${location.search}${location.hash}`} replace />;
@@ -120,7 +123,8 @@ const routes: RouteObject[] = [
 	{ path: "/history/video", element: <GenerationHistoryVideo /> },
 	{ path: "/history/text", element: <GenerationHistoryText /> },
 	{ path: "/history/audio", element: <GenerationHistoryAudio /> },
-	{ path: "/agent", element: <LegacyWorkspaceRouteRedirect /> },
+	{ path: "/agent", element: <GlobalAgent /> },
+	{ path: "/agent/archived", element: <GlobalAgent archived /> },
 	{ path: "/studio/*", element: <LegacyWorkspaceRouteRedirect /> },
 	{ path: "/settings", element: <SettingsRoute fallback={<Settings />} /> },
 	{ path: "/project-settings", element: <ProjectSettings /> },

@@ -385,6 +385,24 @@ describe("AgentStateSync", () => {
 		]);
 	});
 
+	it.each([
+		"documentId=doc-1",
+		"documentId=doc-1&documentMode=timeline&resourcePanel=open",
+		"assetId=asset-1",
+	])("preserves the current workspace when the dock opens or sends: %s", async (context) => {
+		swrMock.sessionsData = [agentSessionSummary("session-latest")];
+		const view = renderAgentStateSync(
+			{ agentSurfaceActive: false, projectId: "project-1" },
+			`/projects?projectId=project-1&${context}`,
+		);
+		view.rerenderAgentStateSync({ agentSurfaceActive: true, projectId: "project-1" });
+		await vi.waitFor(() =>
+			expect(screen.getByTestId("location").dataset.path).toBe(
+				`/projects?projectId=project-1&${context}&agentSessionId=session-latest`,
+			),
+		);
+	});
+
 	it("does not rewrite document routes while the agent surface is hidden", () => {
 		useProjectStore.setState({ activeProjectId: "project-1" });
 		swrMock.sessionsData = [agentSessionSummary("session-latest")];

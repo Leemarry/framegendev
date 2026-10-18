@@ -10,6 +10,7 @@ import type { MarkdownDocument } from "@/domains/documents/stores";
 import { useDocumentsStore } from "@/domains/documents/stores";
 import { useMediaGenerationStore } from "@/domains/generation/stores/media-generation";
 import { WritingEditor } from "./WritingEditor";
+import { getEditorHandle } from "@/domains/documents/lib/editor-registry";
 
 const testState = vi.hoisted(() => ({
 	editorHandle: {
@@ -145,6 +146,28 @@ const makeDocument = (overrides: Partial<MarkdownDocument> = {}): MarkdownDocume
 });
 
 describe("WritingEditor", () => {
+	it("keeps comment selection connected when the editor replaces its initial handle", () => {
+		useDocumentsStore.getState().hydrateWorkspaceDocuments({
+			documents: [makeDocument()],
+			projectId: "project-a",
+			workspaceDir: "/workspace/project-a",
+		});
+		const view = () => (
+			<MemoryRouter>
+				<WritingEditor />
+			</MemoryRouter>
+		);
+		const { rerender, unmount } = render(view());
+		const initialHandle = testState.editorHandle;
+		expect(getEditorHandle()).toBe(initialHandle);
+		testState.editorHandle = { ...initialHandle, setSelection: vi.fn(() => true) };
+		rerender(view());
+		expect(getEditorHandle()).toBe(testState.editorHandle);
+		unmount();
+		expect(getEditorHandle()).toBeNull();
+		testState.editorHandle = initialHandle;
+	});
+
 	beforeEach(() => {
 		generationApiMocks.getSelectedGenerationAssets.mockResolvedValue({ assets: [] });
 	});

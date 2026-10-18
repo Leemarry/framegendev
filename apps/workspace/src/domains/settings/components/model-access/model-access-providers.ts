@@ -33,8 +33,127 @@ export const officialProviderOrder = [
 export const aggregatorProviderOrder = ["mediago", "openrouter", "dmx"];
 
 export const cliProviderHints: Record<string, string> = {
-	jimeng: "已开通即梦高级会员？可直接登录即梦账号接入，无需 API Key。",
+	jimeng: "即梦 CLI 仅支持高级会员及以上账号；登录后会自动检测使用权限，无需 API Key。",
 	libtv: "已开通 LibTV 会员？可直接登录 LibTV 账号接入本地 CLI。",
+};
+
+/**
+ * The server catalog can be reduced by feature flags or an older backend. Keep
+ * the official 0.1.17 model-access surface visible while still using the real
+ * API endpoints for every action. Backend entries always win, so configured
+ * state and masked credentials are never replaced by these display defaults.
+ */
+const fallbackProviderCatalog: APIKeyProvider[] = [
+	{
+		id: "jimeng",
+		label: "即梦",
+		description: "登录即梦会员 CLI 接入，无需 API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "oauth",
+	},
+	{
+		id: "libtv",
+		label: "LibTV",
+		description: "登录 LibTV 会员 CLI 接入本地生成服务。",
+		configured: false,
+		source: "none",
+		credentialKind: "oauth",
+	},
+	{
+		id: "xiaoyunque",
+		label: "小云雀",
+		description: "配置小云雀 Access Key 接入会员 CLI。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "volcengine",
+		label: "火山引擎",
+		description: "配置火山引擎 Ark API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "openai",
+		label: "OpenAI",
+		description: "配置 OpenAI API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "google",
+		label: "Google Gemini",
+		description: "配置 Google Gemini API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "deepseek",
+		label: "DeepSeek",
+		description: "配置 DeepSeek API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "aliyun",
+		label: "阿里云百炼",
+		description: "配置阿里云百炼 API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "minimax",
+		label: "MiniMax 国内",
+		description: "配置 MiniMax 国内 API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "mediago",
+		label: "MediaGo",
+		description: "使用 MediaGo 聚合平台 API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "openrouter",
+		label: "OpenRouter",
+		description: "使用 OpenRouter 聚合平台 API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+	{
+		id: "dmx",
+		label: "DMXAPI",
+		description: "使用 DMXAPI 聚合平台 API Key。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+	},
+];
+
+const withFallbackProviderCatalog = (providers: APIKeyProvider[]) => {
+	const existing = new Map(providers.map((provider) => [provider.id, provider]));
+	for (const fallback of fallbackProviderCatalog) {
+		if (!existing.has(fallback.id)) {
+			existing.set(fallback.id, {
+				...fallback,
+				status: "unavailable",
+				description: `${fallback.label} 当前未在服务端启用。`,
+			});
+		}
+	}
+	return [...existing.values()];
 };
 
 /**
@@ -53,15 +172,62 @@ export const providerIcons: Record<string, LucideIcon> = {
 	deepseek: Bot,
 	aliyun: Cloud,
 	minimax: AudioLines,
+	kling: Sparkles,
 	// 聚合平台
 	mediago: Sparkles,
 	openrouter: Network,
 	dmx: Boxes,
 };
 
+/** 页面展示用的商业 provider 占位，不进入后端可调用 provider catalog。 */
+export const comingSoonProviders = [
+	{
+		id: "kling",
+		label: "AI 可灵",
+		description: "AI 可灵接入待接入。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+		status: "comingSoon",
+	},
+] satisfies APIKeyProvider[];
+
+const unavailableCLIProviders = [
+	{
+		id: "jimeng",
+		label: "即梦",
+		description: "即梦 CLI 接入当前未在服务端启用。",
+		configured: false,
+		source: "none",
+		credentialKind: "oauth",
+		status: "unavailable",
+	},
+	{
+		id: "libtv",
+		label: "LibTV",
+		description: "LibTV CLI 接入当前未在服务端启用。",
+		configured: false,
+		source: "none",
+		credentialKind: "oauth",
+		status: "unavailable",
+	},
+	{
+		id: "xiaoyunque",
+		label: "小云雀",
+		description: "小云雀 CLI 接入当前未在服务端启用。",
+		configured: false,
+		source: "none",
+		credentialKind: "apiKey",
+		status: "unavailable",
+	},
+] satisfies APIKeyProvider[];
+
 export const providerIconFor = (id: string): LucideIcon => providerIcons[id] ?? KeyRound;
 
 export const cliProviderHint = (provider: APIKeyProvider): string | undefined => {
+	if ((provider.status === "partial" || provider.status === "loginFailed") && provider.help)
+		return provider.help;
+	if (provider.status === "unavailable") return provider.description;
 	if (provider.id === "xiaoyunque") return undefined;
 	return cliProviderHints[provider.id] ?? provider.help;
 };
@@ -161,16 +327,35 @@ export const groupModelAccessProviders = (
 	platforms: ModelPlatform[],
 	options: GroupModelAccessOptions,
 ): ModelAccessGroups => {
-	const providersByID = new Map(providers.map((provider) => [provider.id, provider]));
+	// User-defined connections have their own editable cards in CustomProvidersSection.
+	const catalog = withFallbackProviderCatalog(
+		providers.filter((provider) => !provider.id.startsWith("custom-")),
+	);
+	const providersByID = new Map(catalog.map((provider) => [provider.id, provider]));
 
-	const mediago = platformProvider(platforms, providersByID, mediagoProviderID);
+	const mediago =
+		platformProvider(platforms, providersByID, mediagoProviderID) ??
+		providersByID.get(mediagoProviderID);
 	const mediagoModelGroups =
 		platforms.find((platform) => platform.id === mediagoProviderID)?.modelGroups ?? [];
 
 	const cliProviders =
 		platforms.length > 0
-			? platformProviders(platforms, providersByID, "cli")
-			: providers.filter((provider) => fallbackCLIProviderIDs.has(provider.id));
+			? [
+					...platformProviders(platforms, providersByID, "cli"),
+					...catalog.filter(
+						(provider) =>
+							fallbackCLIProviderIDs.has(provider.id) &&
+							!platforms.some((platform) => platform.apiKeyProviderId === provider.id),
+					),
+				]
+			: catalog.filter((provider) => fallbackCLIProviderIDs.has(provider.id));
+	const visibleCLIProviders = [
+		...cliProviders,
+		...unavailableCLIProviders.filter(
+			(provider) => !cliProviders.some((visible) => visible.id === provider.id),
+		),
+	];
 
 	const customProviders = options.customProvidersEnabled
 		? platformProviders(platforms, providersByID, "custom")
@@ -179,14 +364,23 @@ export const groupModelAccessProviders = (
 		(provider) => provider.id !== mediagoProviderID,
 	);
 
+	const fallbackAggregators = options.customProvidersEnabled
+		? catalog.filter(
+				(provider) =>
+					knownAggregatorProviderIDs.has(provider.id) &&
+					provider.id !== mediagoProviderID &&
+					!unifiedProviders.some((item) => item.id === provider.id) &&
+					!customProviders.some((item) => item.id === provider.id),
+			)
+		: [];
 	const aggregator = sortByOrder(
-		[...unifiedProviders, ...customProviders],
+		[...unifiedProviders, ...customProviders, ...fallbackAggregators],
 		aggregatorProviderOrder,
 	);
 
 	return {
-		cli: sortByOrder(cliProviders, cliProviderOrder),
-		official: sortByOrder(officialAPIKeyProviders(providers, platforms), officialProviderOrder),
+		cli: sortByOrder(visibleCLIProviders, cliProviderOrder),
+		official: sortByOrder(officialAPIKeyProviders(catalog, platforms), officialProviderOrder),
 		aggregator,
 		mediago,
 		mediagoModelGroups,

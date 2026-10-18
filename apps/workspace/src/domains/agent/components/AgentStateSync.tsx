@@ -7,6 +7,7 @@ import {
 	agentSessionsKey,
 	getAgentChatState,
 	getAgentSessionStatus,
+	listArchivedAgentSessions,
 	listAgentSessions,
 	type AgentSessionStatus,
 	type AgentSessionSummary,
@@ -25,26 +26,27 @@ import {
 	useAgentPersistenceStore,
 } from "@/domains/agent/stores/persistence";
 import { selectAgentMessages, useAgentStore } from "@/domains/agent/stores";
-import {
-	agentProjectPath,
-	agentProjectRouteState,
-	isAgentRoute,
-} from "@/domains/workspace/lib/workbench-route";
+import { isAgentRoute } from "@/domains/workspace/lib/workbench-route";
 
 interface AgentStateSyncProps {
 	agentSurfaceActive?: boolean;
+	archivedScope?: boolean;
+	globalScope?: boolean;
 	projectId?: string | null;
 	routeSessionId?: string | null;
 }
 
 export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 	agentSurfaceActive = true,
+	archivedScope = false,
+	globalScope = false,
 	projectId,
 	routeSessionId,
 }) => {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const normalizedProjectId = projectId?.trim() || null;
+	const normalizedProjectId = globalScope ? null : projectId?.trim() || null;
+	const scopeEnabled = globalScope || Boolean(normalizedProjectId);
 	const routeVisitRef = useRef<{ projectId: string | null; key: string }>({
 		projectId: null,
 		key: "",
@@ -52,19 +54,19 @@ export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 	if (routeVisitRef.current.projectId !== normalizedProjectId) {
 		routeVisitRef.current = {
 			projectId: normalizedProjectId,
-			key: normalizedProjectId ? agentRecoveryRouteVisitKey(location) : "",
+			key: scopeEnabled ? agentRecoveryRouteVisitKey(location) : "",
 		};
 	}
 	const routeVisitKey = routeVisitRef.current.key;
 	const persistedSessionId = useAgentPersistenceStore((state) =>
-		projectId ? (state.sessionIdsByProject[projectId] ?? null) : null,
+		!globalScope && projectId ? (state.sessionIdsByProject[projectId] ?? null) : null,
 	);
 	const [persistenceHydrated, setPersistenceHydrated] = useState(() =>
 		useAgentPersistenceStore.persist.hasHydrated(),
 	);
 	const routeSessionIdForLoad = routeSessionId?.trim() || null;
 	const shouldLoadLatestSession = Boolean(
-		projectId && agentSurfaceActive && !routeSessionIdForLoad,
+		scopeEnabled && agentSurfaceActive && !routeSessionIdForLoad,
 	);
 	const {
 		data: latestSessions,
@@ -72,9 +74,9 @@ export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 		isLoading: latestSessionsLoading,
 	} = useSWR(
 		shouldLoadLatestSession
-			? agentRouteScopedSWRKey(agentSessionsKey(projectId), routeVisitKey)
+			? agentRouteScopedSWRKey(agentSessionsKey(normalizedProjectId), routeVisitKey)
 			: null,
-		() => listAgentSessions(projectId),
+		() => (archivedScope ? listArchivedAgentSessions() : listAgentSessions(normalizedProjectId)),
 		agentRecoverySWRConfig,
 	);
 	const latestSessionLookupSettled =
@@ -95,13 +97,13 @@ export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 		(canLoadWithoutPersistence || persistenceHydrated) &&
 		(!shouldLoadLatestSession || latestSessionLookupSettled);
 	const swrKey =
-		projectId && canLoadChat
-			? agentRouteScopedSWRKey(agentChatKey(projectId, sessionIdForLoad), routeVisitKey)
+		scopeEnabled && canLoadChat
+			? agentRouteScopedSWRKey(agentChatKey(normalizedProjectId, sessionIdForLoad), routeVisitKey)
 			: null;
 	const { data } = useSWR(
 		swrKey,
 		async () => {
-			const requestedProjectId = projectId?.trim() || null;
+			const requestedProjectId = normalizedProjectId;
 			const requestedSessionId = sessionIdForLoad;
 			const state = await getAgentChatState(requestedProjectId, requestedSessionId);
 			return {
@@ -140,7 +142,7 @@ export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 		return () => {
 			closeAllResumedAgentEventStreams();
 		};
-	}, [projectId]);
+	}, [normalizedProjectId, scopeEnabled]);
 
 	const isChatHydrating = Boolean(swrKey) && !data;
 	useEffect(() => {
@@ -148,27 +150,43 @@ export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 	}, [isChatHydrating]);
 
 	useEffect(() => {
-		if (!agentSurfaceActive || !projectId || routeSessionIdForLoad || !latestSessionUrlTarget) {
+		if (
+			!agentSurfaceActive ||
+			!scopeEnabled ||
+			globalScope ||
+			archivedScope ||
+			routeSessionIdForLoad ||
+			!latestSessionUrlTarget
+		) {
 			return;
 		}
 		if (!isAgentRoute(location.pathname)) return;
-		const nextUrl = agentProjectPath(projectId, { agentSessionId: latestSessionUrlTarget });
-		if (nextUrl === `${location.pathname}${location.search}`) return;
-		navigate(nextUrl, { replace: true, state: agentProjectRouteState("agent") });
+		// Session recovery belongs to the dock; keep the document and its view in place.
+		const params = new URLSearchParams(location.search);
+		if (params.get("agentSessionId") === latestSessionUrlTarget) return;
+		params.set("agentSessionId", latestSessionUrlTarget);
+		navigate(
+			{ pathname: location.pathname, search: `?${params.toString()}`, hash: location.hash },
+			{ replace: true, state: location.state },
+		);
 	}, [
 		agentSurfaceActive,
 		latestSessionUrlTarget,
 		location.pathname,
 		location.search,
+		location.hash,
+		location.state,
 		navigate,
-		projectId,
+		globalScope,
+		archivedScope,
+		normalizedProjectId,
 		routeSessionIdForLoad,
 	]);
 
 	useEffect(() => {
 		if (!data) return;
-		const currentProjectId = projectId?.trim() || null;
-		if (!currentProjectId) return;
+		const currentProjectId = normalizedProjectId;
+		if (!scopeEnabled) return;
 		const requestedProjectId = data.__requestProjectId?.trim() || null;
 		if (requestedProjectId !== currentProjectId) return;
 		const responseProjectId = data.projectId?.trim() || null;
@@ -218,25 +236,27 @@ export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 		// guarantee a future terminal event, so the stream self-closes and never
 		// leaks on a genuinely idle session.
 		const shouldResumeStream = data.running || (data.pendingPermissions?.length ?? 0) > 0;
-		if (requestedProjectId && resolvedSessionId && shouldResumeStream) {
+		if (scopeEnabled && resolvedSessionId && shouldResumeStream) {
 			resumeAgentSessionEventStream(resolvedSessionId, requestedProjectId, data.lastEventId);
 		}
 		loadedRequestKey.current = requestKey;
-	}, [data, projectId]);
+	}, [data, normalizedProjectId, scopeEnabled]);
 
 	useEffect(() => {
-		if (!projectId || !loadedRequestKey.current) return;
+		if (!scopeEnabled || !loadedRequestKey.current) return;
 
 		const sessionId =
 			routeSessionId?.trim() ||
 			persistedSessionId?.trim() ||
 			useAgentStore.getState().sessionId?.trim() ||
-			getPersistedAgentSessionId(projectId);
+			(!globalScope && normalizedProjectId
+				? getPersistedAgentSessionId(normalizedProjectId)
+				: null);
 		if (!sessionId) return;
 		if (inactiveNoticeSessionId.current === sessionId) return;
 
 		let cancelled = false;
-		getAgentSessionStatus(sessionId, projectId)
+		getAgentSessionStatus(sessionId, normalizedProjectId)
 			.then((status) => {
 				const currentSessionId = useAgentStore.getState().sessionId?.trim() || null;
 				if (cancelled || (currentSessionId && currentSessionId !== sessionId)) {
@@ -246,7 +266,7 @@ export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 				const store = useAgentStore.getState();
 				if (!status.running) {
 					applyTerminalSessionStatus(status);
-					void refreshAgentChatTranscript(sessionId, projectId).catch(() => {});
+					void refreshAgentChatTranscript(sessionId, normalizedProjectId).catch(() => {});
 				}
 
 				if (
@@ -279,7 +299,9 @@ export const AgentStateSync: React.FC<AgentStateSyncProps> = ({
 		data,
 		persistenceHydrated,
 		persistedSessionId,
-		projectId,
+		globalScope,
+		normalizedProjectId,
+		scopeEnabled,
 		routeSessionId,
 	]);
 

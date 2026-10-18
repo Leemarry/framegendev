@@ -59,6 +59,8 @@ type Capabilities struct {
 
 // ModelRoute is one concrete provider implementation for a version.
 type ModelRoute struct {
+	// RuntimeProvider pins an application-supplied connection for this request only.
+	RuntimeProvider       Provider          `json:"-"`
 	ID                    string            `json:"id"`
 	FamilyID              string            `json:"familyId"`
 	VersionID             string            `json:"versionId"`

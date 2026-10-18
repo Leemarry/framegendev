@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Message is one response or notification emitted by Codex app-server.
@@ -36,22 +38,33 @@ type Client interface {
 
 // Session owns one stdio Codex app-server process.
 type Session struct {
-	cancel  context.CancelFunc
-	cmd     *exec.Cmd
-	stdin   io.WriteCloser
-	scan    *bufio.Scanner
-	mu      sync.Mutex
-	nextID  int
-	pending []Message
+	cancel    context.CancelFunc
+	cmd       *exec.Cmd
+	stdin     io.WriteCloser
+	scan      *bufio.Scanner
+	mu        sync.Mutex
+	nextID    int
+	pending   []Message
+	closeOnce sync.Once
 }
 
 // Start launches and initializes a Codex app-server session.
 func Start(parent context.Context, binPath string) (*Session, error) {
+	return StartWithHome(parent, binPath, "")
+}
+
+// StartWithHome launches app-server with an optional isolated credential and state directory.
+func StartWithHome(parent context.Context, binPath string, home string) (*Session, error) {
 	if strings.TrimSpace(binPath) == "" {
 		return nil, fmt.Errorf("Codex executable is required")
 	}
 	ctx, cancel := context.WithCancel(parent)
-	cmd := exec.CommandContext(ctx, binPath, "app-server", "--stdio")
+	cmd := exec.CommandContext(ctx, binPath, "app-server")
+	if home != "" {
+		cmd.Env = append(os.Environ(), "CODEX_HOME="+home)
+	}
+	// Browser helpers can inherit stderr and keep the copy pipe open after Codex exits.
+	cmd.WaitDelay = time.Second
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		cancel()
@@ -184,12 +197,14 @@ func (session *Session) Close() {
 	if session == nil {
 		return
 	}
-	session.cancel()
-	_ = session.stdin.Close()
-	if session.cmd != nil && session.cmd.Process != nil {
-		_ = session.cmd.Process.Kill()
-	}
-	if session.cmd != nil {
-		_ = session.cmd.Wait()
-	}
+	session.closeOnce.Do(func() {
+		session.cancel()
+		_ = session.stdin.Close()
+		if session.cmd != nil && session.cmd.Process != nil {
+			_ = session.cmd.Process.Kill()
+		}
+		if session.cmd != nil {
+			_ = session.cmd.Wait()
+		}
+	})
 }

@@ -20,6 +20,14 @@ fi
 WS_WIN="$(cygpath -m "$WS" 2>/dev/null || echo "$WS")"
 sed -E "s|^workspace_dir:.*|workspace_dir: \"$WS_WIN\"|" services/server/configs/server.yaml >.cache/dev-server.yaml
 cp services/server/configs/pricing.overlay.json .cache/
+# Vendored Codex ACP agent. The shared %USERPROFILE%/.codex belongs to the newer
+# Codex desktop app; the pinned codex 0.144 cannot initialize its sqlite state,
+# so the dev server gets its own Codex home (log in once from 设置 → Codex 接入).
+ROOT_WIN="$(cygpath -m "$(pwd)" 2>/dev/null || pwd)"
+export MEDIAGO_AGENT_BIN_DIR="$ROOT_WIN/bin/agents"
+export CODEX_HOME="$ROOT_WIN/.cache/codex-home"
+mkdir -p .cache/codex-home
+
 MEDIAGO_SERVER_PORT="$PORT" ./bin/mediago-server.exe --config .cache/dev-server.yaml >.cache/dev-server.log 2>&1 &
 echo $! >.cache/dev.pids
 

@@ -70,6 +70,12 @@ type CodexRelayCheckRequest struct {
 	ProfileID string `json:"profileId"`
 }
 
+// CodexRelayChannelMutation selects the active Codex channel.
+type CodexRelayChannelMutation struct {
+	Type      string `json:"type"`
+	ProfileID string `json:"profileId,omitempty"`
+}
+
 // CodexRelayCheckResponse describes an upstream reachability check for a relay profile.
 type CodexRelayCheckResponse struct {
 	OK         bool     `json:"ok"`
@@ -168,6 +174,42 @@ func (service *Settings) SaveCodexRelaySettings(ctx context.Context, input Codex
 	return service.codexRelaySettingsResponse(stored)
 }
 
+// SetCodexRelayChannel atomically activates the official account or one relay profile.
+func (service *Settings) SetCodexRelayChannel(ctx context.Context, input CodexRelayChannelMutation) (CodexRelaySettingsResponse, error) {
+	stored, err := service.loadCodexRelayStoredSettings()
+	if err != nil {
+		return CodexRelaySettingsResponse{}, err
+	}
+
+	switch strings.ToLower(strings.TrimSpace(input.Type)) {
+	case "official":
+		stored.Enabled = false
+		stored.ActiveProfileID = ""
+	case "relay":
+		profileID := strings.TrimSpace(input.ProfileID)
+		if profileID == "" || !codexRelayStoredProfileExists(stored, profileID) {
+			return CodexRelaySettingsResponse{}, ErrCodexRelayNotConfigured
+		}
+		profile, _, err := service.codexRelayProfileWithKey(profileID, true)
+		if err != nil {
+			return CodexRelaySettingsResponse{}, err
+		}
+		if !profile.Enabled || profile.Protocol != CodexRelayProtocolResponses {
+			return CodexRelaySettingsResponse{}, fmt.Errorf("%w: channel requires an enabled Responses profile", ErrCodexRelayInvalid)
+		}
+		stored.Enabled = true
+		stored.ActiveProfileID = profileID
+	default:
+		return CodexRelaySettingsResponse{}, fmt.Errorf("%w: unsupported channel type", ErrCodexRelayInvalid)
+	}
+
+	return service.SaveCodexRelaySettings(ctx, CodexRelaySettingsMutation{
+		Enabled:         stored.Enabled,
+		ActiveProfileID: stored.ActiveProfileID,
+		Profiles:        stored.Profiles,
+	})
+}
+
 // SetCodexRelayProfileAPIKey stores a Codex relay profile API key.
 func (service *Settings) SetCodexRelayProfileAPIKey(ctx context.Context, profileID string, apiKey string) (CodexRelaySettingsResponse, error) {
 	if service.apiKeys == nil {
@@ -243,6 +285,10 @@ func (service *Settings) CheckCodexRelay(ctx context.Context, input CodexRelayCh
 	result.StatusCode = response.StatusCode
 	body := readLimitedCodexRelayCheckBody(response.Body)
 	if codexRelayCheckStatusOK(response.StatusCode) && !codexRelayBodyLooksInvalidAPIKey(body) {
+		var catalog codexRelayModelsPayload
+		if err := json.Unmarshal([]byte(body), &catalog); err != nil || catalog.Data == nil {
+			return result, fmt.Errorf("%w：上游没有返回有效的模型列表，请检查 Base URL", ErrCodexRelayCheckFailed)
+		}
 		result.OK = true
 		result.Models = codexRelayModelIDs(body)
 		return result, nil
@@ -259,6 +305,13 @@ func (service *Settings) PrepareCodexRelayRuntimeConfig(ctx context.Context, wor
 	active, _, err := service.activeCodexRelayProfile()
 	if err != nil {
 		if err == ErrCodexRelayNotConfigured {
+			if service.codexAccount != nil && service.codexAccount.homePath != "" {
+				home := service.codexAccount.homePath
+				if err := os.MkdirAll(home, 0o700); err != nil {
+					return CodexRelayRuntimeConfig{}, err
+				}
+				return CodexRelayRuntimeConfig{ConfigDir: home, CodexHome: home, Env: map[string]string{"CODEX_HOME": home}}, nil
+			}
 			return CodexRelayRuntimeConfig{}, nil
 		}
 		return CodexRelayRuntimeConfig{}, err
@@ -296,6 +349,9 @@ func (service *Settings) DescribeCodexRuntimeHome(ctx context.Context, workspace
 	_ = ctx
 	if _, _, err := service.activeCodexRelayProfile(); err != nil {
 		if errors.Is(err, ErrCodexRelayNotConfigured) {
+			if service.codexAccount != nil && service.codexAccount.homePath != "" {
+				return CodexRuntimeHomeDescriptor{CodexHome: service.codexAccount.homePath, Isolated: true}, nil
+			}
 			return CodexRuntimeHomeDescriptor{}, nil
 		}
 		return CodexRuntimeHomeDescriptor{}, err
@@ -469,7 +525,7 @@ func normalizeCodexRelaySettings(input CodexRelaySettingsMutation) (codexRelaySt
 		seen[normalized.ID] = true
 		stored.Profiles = append(stored.Profiles, normalized)
 	}
-	if stored.ActiveProfileID == "" && len(stored.Profiles) > 0 {
+	if stored.Enabled && stored.ActiveProfileID == "" && len(stored.Profiles) > 0 {
 		stored.ActiveProfileID = stored.Profiles[0].ID
 	}
 	if stored.ActiveProfileID != "" && !seen[stored.ActiveProfileID] {
@@ -600,9 +656,7 @@ func readCodexRelayBody(reader io.Reader) ([]byte, error) {
 }
 
 func codexRelayCheckStatusOK(status int) bool {
-	return status >= http.StatusOK && status < http.StatusMultipleChoices ||
-		status == http.StatusNotFound ||
-		status == http.StatusMethodNotAllowed
+	return status >= http.StatusOK && status < http.StatusMultipleChoices
 }
 
 func codexRelayCheckStatusAuthFailed(status int) bool {

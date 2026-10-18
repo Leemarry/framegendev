@@ -40,6 +40,7 @@ type CodexLoginAttempt struct {
 type CodexAccountManager struct {
 	mu         sync.Mutex
 	binPath    string
+	homePath   string
 	attempts   map[string]CodexLoginAttempt
 	pending    *codexPendingLogin
 	newSession func(context.Context, string) (codexapp.Client, error)
@@ -71,11 +72,11 @@ func (service *Settings) GetCodexAccount(ctx context.Context) (CodexAccountStatu
 }
 
 // BeginCodexLogin starts or reuses a browser-based ChatGPT login attempt.
-func (service *Settings) BeginCodexLogin(ctx context.Context) (CodexLoginAttempt, error) {
+func (service *Settings) BeginCodexLogin(ctx context.Context, forceBrowser bool) (CodexLoginAttempt, error) {
 	if service.codexAccount == nil {
 		return CodexLoginAttempt{}, ErrCodexAccountUnavailable
 	}
-	return service.codexAccount.BeginLogin(ctx)
+	return service.codexAccount.BeginLogin(ctx, forceBrowser)
 }
 
 // GetCodexLogin returns one login attempt snapshot.
@@ -112,6 +113,10 @@ func (service *Settings) LogoutCodexAccount(ctx context.Context) (CodexAccountSt
 // Account reads the global Codex account through a short-lived app-server session.
 func (manager *CodexAccountManager) Account(ctx context.Context) (CodexAccountStatus, error) {
 	status := codexUnavailableStatus()
+	if manager != nil && manager.homePath != "" {
+		status.CodexHome = manager.homePath
+		status.Shared = false
+	}
 	if manager == nil || manager.binPath == "" {
 		return status, ErrCodexAccountUnavailable
 	}
@@ -143,7 +148,7 @@ func (manager *CodexAccountManager) Account(ctx context.Context) (CodexAccountSt
 }
 
 // BeginLogin starts the managed ChatGPT browser flow.
-func (manager *CodexAccountManager) BeginLogin(ctx context.Context) (CodexLoginAttempt, error) {
+func (manager *CodexAccountManager) BeginLogin(ctx context.Context, forceBrowser bool) (CodexLoginAttempt, error) {
 	if manager == nil || manager.binPath == "" {
 		return CodexLoginAttempt{}, ErrCodexAccountUnavailable
 	}
@@ -168,6 +173,7 @@ func (manager *CodexAccountManager) BeginLogin(ctx context.Context) (CodexLoginA
 		"type":                      "chatgpt",
 		"useHostedLoginSuccessPage": true,
 		"appBrand":                  "codex",
+		"forceBrowser":              forceBrowser,
 	}, &response); err != nil {
 		session.Close()
 		cancel()

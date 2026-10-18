@@ -2196,6 +2196,10 @@ const AssetLibraryPreview: React.FC<{
 					note={item.mediaAsset.note ?? ""}
 					rating={item.mediaAsset.rating ?? 0}
 					favorite={item.mediaAsset.favorite ?? false}
+					colors={item.mediaAsset.colors}
+					sourceUrl={item.mediaAsset.sourceUrl}
+					modifiedAt={item.mediaAsset.updatedAt}
+					folderPath={item.mediaAsset.relativePath}
 					disabled={busy}
 					onSave={onSaveMetadata}
 				/>

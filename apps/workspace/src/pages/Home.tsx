@@ -93,7 +93,7 @@ export const Home: React.FC = () => {
 			setAgentLayoutTab("document");
 			return;
 		}
-		setAgentLayoutTab("agent");
+		setAgentLayoutTab("document");
 	}, [assetId, documentId, preserveAgentTab, preserveDocumentTab, projectId, setAgentLayoutTab]);
 
 	useEffect(() => {

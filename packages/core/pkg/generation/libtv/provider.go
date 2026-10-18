@@ -14,12 +14,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation"
+	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation/clitool"
 )
 
 const (
@@ -1192,52 +1192,7 @@ func extractJSONObject(output []byte) (map[string]any, error) {
 
 // ResolveBinaryPath resolves an explicit binary, a vendored tools directory, or PATH.
 func ResolveBinaryPath(explicitPath string, binDir string) (string, error) {
-	binaryName := executableName(defaultBinaryName)
-	if explicitPath = strings.TrimSpace(explicitPath); explicitPath != "" {
-		return executableFile(explicitPath)
-	}
-	if binDir = strings.TrimSpace(binDir); binDir != "" {
-		candidates := []string{
-			filepath.Join(binDir, "libtv", binaryName),
-			filepath.Join(binDir, binaryName),
-		}
-		for _, candidate := range candidates {
-			if path, err := executableFile(candidate); err == nil {
-				return path, nil
-			}
-		}
-	}
-
-	path, err := exec.LookPath(binaryName)
-	if err != nil {
-		return "", fmt.Errorf("libtv CLI binary %q was not found", binaryName)
-	}
-	return path, nil
-}
-
-func executableName(name string) string {
-	if runtime.GOOS == "windows" && !strings.HasSuffix(strings.ToLower(name), ".exe") {
-		return name + ".exe"
-	}
-	return name
-}
-
-func executableFile(path string) (string, error) {
-	resolved, err := filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("resolving libtv CLI path %s: %w", path, err)
-	}
-	info, err := os.Stat(resolved)
-	if err != nil {
-		return "", err
-	}
-	if info.IsDir() {
-		return "", fmt.Errorf("libtv CLI path %s is a directory", resolved)
-	}
-	if runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0 {
-		return "", fmt.Errorf("libtv CLI path %s is not executable", resolved)
-	}
-	return resolved, nil
+	return clitool.ResolvePath(explicitPath, binDir, "libtv", defaultBinaryName)
 }
 
 type execCommandRunner struct{}

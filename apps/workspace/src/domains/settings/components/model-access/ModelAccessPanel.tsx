@@ -6,26 +6,36 @@ import { agentBackendsKey, getAgentBackends } from "@/domains/agent/api/agent";
 import { SettingsPanelLayout } from "@/domains/settings/components/SettingsPanelLayout";
 import { CodexAccessPanel } from "@/domains/settings/components/CodexAccessPanel";
 import { ProviderCard } from "./ProviderCard";
+import { CustomProvidersSection } from "./CustomProvidersSection";
+import { useState } from "react";
+import { CLIRuntimeSettingsDialog } from "./CLIRuntimeSettingsDialog";
 import { MediaGoConfigDialog, ProviderConfigDialog } from "./ProviderConfigDialog";
 import { ProviderCardsGrid, MediaGoModelChips, ProviderSection } from "./ProviderSection";
-import { cliProviderHint, mediagoProviderID, providerIconFor } from "./model-access-providers";
+import {
+	cliProviderHint,
+	comingSoonProviders,
+	mediagoProviderID,
+	providerIconFor,
+} from "./model-access-providers";
 import type { ProviderConfigVariant } from "./provider-credential-utils";
 import { useProviderCredentials } from "./useProviderCredentials";
 
 export const ModelAccessPanel: React.FC = () => {
 	const creds = useProviderCredentials();
+	const [advancedProviderID, setAdvancedProviderID] = useState<string>();
 	const { data: agentBackends } = useSWR(agentBackendsKey, getAgentBackends);
 	const isCodexBackend = (agentBackends?.activeId ?? "codex") === "codex";
 	const { groups } = creds;
+	const officialProviders = [...groups.official, ...comingSoonProviders];
 	const allProviders: APIKeyProvider[] = [
 		...groups.cli,
-		...groups.official,
+		...officialProviders,
 		...groups.aggregator,
 		...(groups.mediago ? [groups.mediago] : []),
 	];
 	const providerByID = new Map(allProviders.map((provider) => [provider.id, provider]));
 	const cliIDs = new Set(groups.cli.map((provider) => provider.id));
-	const officialIDs = new Set(groups.official.map((provider) => provider.id));
+	const officialIDs = new Set(officialProviders.map((provider) => provider.id));
 
 	const variantFor = (id: string): ProviderConfigVariant => {
 		if (cliIDs.has(id)) return "cli";
@@ -54,13 +64,24 @@ export const ModelAccessPanel: React.FC = () => {
 				onConfigure={() =>
 					isMediago ? creds.openMediagoDialog() : creds.openManualDialog(provider)
 				}
-			/>
+				onAdvancedSettings={
+					cliIDs.has(provider.id)
+						? () =>
+								provider.credentialKind === "oauth"
+									? setAdvancedProviderID(provider.id)
+									: creds.openManualDialog(provider)
+						: undefined
+				}
+			>
+				{isMediago ? <MediaGoModelChips modelGroups={groups.mediagoModelGroups} /> : null}
+			</ProviderCard>
 		);
 	};
 
 	const manualProvider = creds.manualProviderID
 		? providerByID.get(creds.manualProviderID)
 		: undefined;
+	const advancedProvider = advancedProviderID ? providerByID.get(advancedProviderID) : undefined;
 
 	return (
 		<SettingsPanelLayout
@@ -91,36 +112,30 @@ export const ModelAccessPanel: React.FC = () => {
 			) : null}
 
 			{/* 3. 官方 API 接入 */}
-			{groups.official.length > 0 ? (
+			{officialProviders.length > 0 ? (
 				<ProviderSection
 					testid="official-api-section"
 					title="官方 API 接入"
 					description="直接接入模型官方服务，使用对应官方平台的 API Key 和额度。"
 				>
-					<ProviderCardsGrid>{groups.official.map(renderCard)}</ProviderCardsGrid>
+					<ProviderCardsGrid>{officialProviders.map(renderCard)}</ProviderCardsGrid>
 				</ProviderSection>
 			) : null}
 
 			{/* 4. 聚合平台接入 */}
-			{groups.mediago || groups.aggregator.length > 0 ? (
-				<ProviderSection
-					testid="aggregator-section"
-					title="聚合平台接入"
-					description="通过聚合平台使用多个模型，使用对应平台的 API Key 和额度。"
-				>
-					<ProviderCardsGrid>
-						{groups.mediago ? (
-							<div key={groups.mediago.id} className="contents">
-								{renderCard(groups.mediago)}
-								<MediaGoModelChips modelGroups={groups.mediagoModelGroups} />
-							</div>
-						) : null}
-						{groups.aggregator.map(renderCard)}
-					</ProviderCardsGrid>
-				</ProviderSection>
-			) : null}
+			<CustomProvidersSection>
+				{groups.mediago ? renderCard(groups.mediago) : null}
+				{groups.aggregator.map(renderCard)}
+			</CustomProvidersSection>
 
 			{/* 通用 API Key / Access Key 配置弹窗 */}
+			{advancedProvider ? (
+				<CLIRuntimeSettingsDialog
+					provider={advancedProvider}
+					pending={creds.loginChallenges[advancedProvider.id]?.status === "pending"}
+					onClose={() => setAdvancedProviderID(undefined)}
+				/>
+			) : null}
 			{manualProvider ? (
 				<ProviderConfigDialog
 					provider={manualProvider}

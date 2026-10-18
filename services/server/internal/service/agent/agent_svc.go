@@ -39,6 +39,7 @@ type AgentSessionSummary struct {
 	LastMessage string `json:"lastMessage,omitempty"`
 	UpdatedAt   string `json:"updatedAt,omitempty"`
 	Running     bool   `json:"running"`
+	Lifecycle   string `json:"lifecycle"`
 }
 
 // AgentSessionsResponse lists agent sessions.

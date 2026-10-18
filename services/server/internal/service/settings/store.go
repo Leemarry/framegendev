@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,32 +10,33 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation"
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation/jimeng"
+	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation/libtv"
 )
 
 // Settings errors returned by the settings service.
 var (
-	ErrAPIKeyProviderNotFound  = errors.New("api key provider not found")
-	ErrAPIKeyRequired          = errors.New("apiKey is required")
-	ErrProviderLoginRequired   = errors.New("provider login challenge is required")
-	ErrAgentModelStoreMissing  = errors.New("agent model profile store is unavailable")
-	ErrAgentModelNotFound      = errors.New("agent model profile not found")
-	ErrAgentModelInvalid       = errors.New("agent model profile is invalid")
-	ErrAgentModelConflict      = errors.New("agent model provider id already exists")
-	ErrAppSettingStoreMissing  = errors.New("app setting store is unavailable")
-	ErrCodexRelayInvalid       = errors.New("codex relay settings are invalid")
-	ErrCodexRelayNotConfigured = errors.New("codex relay is not configured")
-	ErrCodexRelayCheckFailed   = errors.New("Codex 中转配置不可用")
-	ErrCodexRelayUnauthorized  = errors.New("codex relay request is unauthorized")
-	ErrCodexAccountUnavailable = errors.New("bundled Codex account service is unavailable")
-	ErrCodexLoginNotFound      = errors.New("Codex login attempt was not found")
-	ErrJianyingDraftInvalid    = errors.New("jianying draft settings are invalid")
+	ErrAPIKeyProviderNotFound   = errors.New("api key provider not found")
+	ErrAPIKeyRequired           = errors.New("apiKey is required")
+	ErrProviderLoginRequired    = errors.New("provider login challenge is required")
+	ErrProviderLoginCheckFailed = errors.New("即梦授权检查失败，请稍后点击确认重试；若授权页已过期，请重新登录")
+	ErrAgentModelStoreMissing   = errors.New("agent model profile store is unavailable")
+	ErrAgentModelNotFound       = errors.New("agent model profile not found")
+	ErrAgentModelInvalid        = errors.New("agent model profile is invalid")
+	ErrAgentModelConflict       = errors.New("agent model provider id already exists")
+	ErrAppSettingStoreMissing   = errors.New("app setting store is unavailable")
+	ErrCodexRelayInvalid        = errors.New("codex relay settings are invalid")
+	ErrCodexRelayNotConfigured  = errors.New("codex relay is not configured")
+	ErrCodexRelayCheckFailed    = errors.New("Codex 中转配置不可用")
+	ErrCodexRelayUnauthorized   = errors.New("codex relay request is unauthorized")
+	ErrCodexAccountUnavailable  = errors.New("bundled Codex account service is unavailable")
+	ErrCodexLoginNotFound       = errors.New("Codex login attempt was not found")
+	ErrJianyingDraftInvalid     = errors.New("jianying draft settings are invalid")
 )
 
 const (
@@ -86,6 +88,7 @@ type APIKeyProvider struct {
 	Help            string   `json:"help,omitempty"`
 	CredentialKind  string   `json:"credentialKind,omitempty"`
 	Capabilities    []string `json:"capabilities,omitempty"`
+	Status          string   `json:"status,omitempty"`
 	keyName         string
 }
 
@@ -113,6 +116,7 @@ type activeProviderLogin struct {
 	id       uint64
 	cancel   context.CancelFunc
 	finished <-chan struct{}
+	canceled bool
 }
 
 // JianyingDraftSettings describes the local Jianying draft folder settings.
@@ -139,6 +143,7 @@ type Settings struct {
 	providerLoginMu          sync.Mutex
 	providerLoginSequence    uint64
 	activeProviderLogins     map[string]activeProviderLogin
+	providerLoginFailures    map[string]string
 	codexAccount             *CodexAccountManager
 }
 
@@ -247,6 +252,21 @@ func (service *Settings) ListAPIKeys(ctx context.Context) (APIKeyList, error) {
 		}
 		providers[index].Configured = value != ""
 		providers[index].Source = source
+		service.providerLoginMu.Lock()
+		loginFailure := service.providerLoginFailures[providers[index].ID]
+		service.providerLoginMu.Unlock()
+		if loginFailure != "" {
+			providers[index].Status = "loginFailed"
+			providers[index].Help = loginFailure
+		}
+		if providers[index].ID == generation.ProviderJimeng && strings.HasPrefix(value, "oauth:membership-unverified:") {
+			providers[index].Status = "partial"
+			providers[index].Help = "已登录即梦，但未检测到会员等级。CLI 创作仅限有权限的会员；积分余额不代表创作权限。"
+		}
+		if providers[index].ID == generation.ProviderJimeng && strings.HasPrefix(value, "oauth:account-unverified:") {
+			providers[index].Status = "partial"
+			providers[index].Help = "即梦授权已保存，但 CLI 未返回有效账号信息，创作能力尚未验证。请检查 CLI 版本后重试账号查询。"
+		}
 		if providers[index].CredentialKind != "oauth" {
 			providers[index].Masked = maskAPIKey(value)
 		}
@@ -294,6 +314,9 @@ func (service *Settings) ClearAPIKey(ctx context.Context, providerID string) (AP
 	if err := service.apiKeys.Clear(provider.keyName); err != nil {
 		return APIKeyList{}, err
 	}
+	service.providerLoginMu.Lock()
+	delete(service.providerLoginFailures, providerID)
+	service.providerLoginMu.Unlock()
 	return service.ListAPIKeys(ctx)
 }
 
@@ -313,7 +336,7 @@ func (service *Settings) BeginJimengLogin(ctx context.Context, force bool) (APIK
 		}
 		return service.apiKeyLoginResult(ctx, login)
 	}
-	if err := service.apiKeys.Set(generation.ProviderJimeng, "oauth:"+time.Now().UTC().Format(time.RFC3339)); err != nil {
+	if err := service.recordJimengLogin(ctx); err != nil {
 		return APIKeyLoginResult{}, err
 	}
 	if login.Status == "" {
@@ -347,14 +370,29 @@ func (service *Settings) startJimengLogin(ctx context.Context) (ProviderLoginCha
 	return login, text, nil
 }
 
-func (service *Settings) persistOAuthLoginWhenDone(providerID string, done <-chan error) {
-	if done == nil {
-		return
+func (service *Settings) finishOAuthLogin(providerID string, attemptID uint64, err error) error {
+	service.providerLoginMu.Lock()
+	defer service.providerLoginMu.Unlock()
+	active, ok := service.activeProviderLogins[providerID]
+	if !ok || active.id != attemptID || active.canceled {
+		return err
 	}
-	if err := <-done; err != nil {
-		return
+	if err == nil {
+		err = service.apiKeys.Set(providerID, "oauth:"+time.Now().UTC().Format(time.RFC3339))
 	}
-	_ = service.apiKeys.Set(providerID, "oauth:"+time.Now().UTC().Format(time.RFC3339))
+	if err != nil {
+		if service.providerLoginFailures == nil {
+			service.providerLoginFailures = make(map[string]string)
+		}
+		message := "授权未完成或凭据保存失败，请重新登录。"
+		if errors.Is(err, ErrLocalCLIPermission) {
+			message = err.Error()
+		}
+		service.providerLoginFailures[providerID] = message
+	} else {
+		delete(service.providerLoginFailures, providerID)
+	}
+	return err
 }
 
 func (service *Settings) registerProviderLogin(
@@ -365,6 +403,7 @@ func (service *Settings) registerProviderLogin(
 	service.providerLoginMu.Lock()
 	defer service.providerLoginMu.Unlock()
 	service.providerLoginSequence++
+	delete(service.providerLoginFailures, providerID)
 	attemptID := service.providerLoginSequence
 	if service.activeProviderLogins == nil {
 		service.activeProviderLogins = make(map[string]activeProviderLogin)
@@ -389,6 +428,10 @@ func (service *Settings) unregisterProviderLogin(providerID string, attemptID ui
 func (service *Settings) cancelActiveProviderLogin(ctx context.Context, providerID string) error {
 	service.providerLoginMu.Lock()
 	login, ok := service.activeProviderLogins[providerID]
+	if ok {
+		login.canceled = true
+		service.activeProviderLogins[providerID] = login
+	}
 	service.providerLoginMu.Unlock()
 	if !ok {
 		return nil
@@ -422,22 +465,72 @@ func (service *Settings) CompleteJimengLogin(ctx context.Context, deviceCode str
 		"login",
 		"checklogin",
 		"--device_code="+deviceCode,
-		"--poll=30",
+		"--poll=0",
 	)
 	if err != nil {
-		return APIKeyLoginResult{}, err
+		if errors.Is(err, ErrLocalCLIPermission) {
+			return APIKeyLoginResult{}, err
+		}
+		if login, ok := jimengLoginCheckState(string(output)); ok {
+			return service.apiKeyLoginResult(ctx, login)
+		}
+		return APIKeyLoginResult{}, ErrProviderLoginCheckFailed
 	}
-	if err := service.apiKeys.Set(generation.ProviderJimeng, "oauth:"+time.Now().UTC().Format(time.RFC3339)); err != nil {
+	if err := service.recordJimengLogin(ctx); err != nil {
 		return APIKeyLoginResult{}, err
 	}
 	login := ProviderLoginChallenge{
 		Status:  "completed",
-		Message: strings.TrimSpace(string(output)),
+		Message: "即梦授权已保存。",
 	}
 	if login.Message == "" {
 		login.Message = "即梦本地登录态已可用"
 	}
 	return service.apiKeyLoginResult(ctx, login)
+}
+
+func jimengLoginCheckState(output string) (ProviderLoginChallenge, bool) {
+	text := strings.ToLower(output)
+	for _, state := range []struct {
+		status, message string
+		markers         []string
+	}{
+		{"expired", "授权已过期，请重新登录并使用新授权链接。", []string{"登录已过期", "授权已过期", "expired_token", "expired token"}},
+		{"denied", "授权被拒绝，请重新登录并在即梦授权页选择允许。", []string{"access_denied", "authorization_declined", "授权被拒绝", "用户拒绝"}},
+		{"pending", "尚未完成授权，请在即梦网页点击允许后再确认。", []string{"authorization_pending", "authorization pending", "等待授权", "尚未授权", "未完成授权", "等待用户", "slow_down"}},
+	} {
+		for _, marker := range state.markers {
+			if strings.Contains(text, marker) {
+				return ProviderLoginChallenge{Status: state.status, Message: state.message}, true
+			}
+		}
+	}
+	return ProviderLoginChallenge{}, false
+}
+
+// recordJimengLogin verifies the account separately from CLI membership access.
+func (service *Settings) recordJimengLogin(ctx context.Context) error {
+	output, err := service.runJimengCommand(ctx, jimengLoginCheckTimeout, "user_credit")
+	if err != nil {
+		return service.apiKeys.Set(generation.ProviderJimeng, "oauth:account-unverified:"+time.Now().UTC().Format(time.RFC3339))
+	}
+	// The CLI may print a local log warning before its JSON payload.
+	start := bytes.IndexByte(output, '{')
+	var account struct {
+		UserID   json.RawMessage `json:"user_id"`
+		VIPLevel string          `json:"vip_level"`
+	}
+	if start < 0 || json.Unmarshal(output[start:], &account) != nil || len(account.UserID) == 0 || string(account.UserID) == "null" {
+		return service.apiKeys.Set(generation.ProviderJimeng, "oauth:account-unverified:"+time.Now().UTC().Format(time.RFC3339))
+	}
+	prefix := "oauth:"
+	userID := strings.Trim(strings.TrimSpace(string(account.UserID)), "\"")
+	if userID == "" || userID == "0" {
+		prefix = "oauth:account-unverified:"
+	} else if strings.TrimSpace(account.VIPLevel) == "" {
+		prefix = "oauth:membership-unverified:"
+	}
+	return service.apiKeys.Set(generation.ProviderJimeng, prefix+time.Now().UTC().Format(time.RFC3339))
 }
 
 // BeginLibTVLogin starts the local LibTV web login flow.
@@ -451,19 +544,15 @@ func (service *Settings) BeginLibTVLogin(ctx context.Context, force bool) (APIKe
 	if err := service.cancelActiveProviderLogin(ctx, generation.ProviderLibTV); err != nil {
 		return APIKeyLoginResult{}, err
 	}
-	login, waitDone, output, err := service.startLibTVLogin(ctx)
+	if err := service.apiKeys.Clear(generation.ProviderLibTV); err != nil {
+		return APIKeyLoginResult{}, err
+	}
+	login, _, output, err := service.startLibTVLogin(ctx)
 	if err != nil {
 		return APIKeyLoginResult{}, err
 	}
 	if login.Status == "pending" {
-		if err := service.apiKeys.Clear(generation.ProviderLibTV); err != nil {
-			return APIKeyLoginResult{}, err
-		}
-		go service.persistOAuthLoginWhenDone(generation.ProviderLibTV, waitDone)
 		return service.apiKeyLoginResult(ctx, login)
-	}
-	if err := service.apiKeys.Set(generation.ProviderLibTV, "oauth:"+time.Now().UTC().Format(time.RFC3339)); err != nil {
-		return APIKeyLoginResult{}, err
 	}
 	if login.Status == "" {
 		login.Status = "completed"
@@ -478,6 +567,9 @@ func (service *Settings) BeginLibTVLogin(ctx context.Context, force bool) (APIKe
 }
 
 func (service *Settings) startLibTVLogin(ctx context.Context) (ProviderLoginChallenge, <-chan error, string, error) {
+	if err := checkCLICredentialPermissions(); err != nil {
+		return ProviderLoginChallenge{}, nil, "", err
+	}
 	binPath, err := service.resolveLibTVBinary()
 	if err != nil {
 		return ProviderLoginChallenge{}, nil, "", err
@@ -502,6 +594,10 @@ func (service *Settings) startLibTVLogin(ctx context.Context) (ProviderLoginChal
 	)
 	go func() {
 		err := command.Wait()
+		if err != nil {
+			err = localCLICommandError("libtv", "login web", err, output.String())
+		}
+		err = service.finishOAuthLogin(generation.ProviderLibTV, attemptID, err)
 		cancelProcess()
 		done <- err
 		close(finished)
@@ -540,6 +636,9 @@ func (service *Settings) startLibTVLogin(ctx context.Context) (ProviderLoginChal
 }
 
 func (service *Settings) runJimengCommand(ctx context.Context, timeout time.Duration, args ...string) ([]byte, error) {
+	if err := checkCLICredentialPermissions(); err != nil {
+		return nil, err
+	}
 	binPath, err := jimeng.ResolveBinaryPath(service.jimengBinPath, service.jimengBinDir)
 	if err != nil {
 		return nil, err
@@ -550,12 +649,15 @@ func (service *Settings) runJimengCommand(ctx context.Context, timeout time.Dura
 	command := exec.CommandContext(commandCtx, binPath, args...)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		return output, jimengCommandError(strings.Join(args, " "), err, string(output))
+		return output, jimengCommandError(args[0], err, string(output))
 	}
 	return output, nil
 }
 
 func (service *Settings) runLibTVCommand(ctx context.Context, timeout time.Duration, args ...string) ([]byte, error) {
+	if err := checkCLICredentialPermissions(); err != nil {
+		return nil, err
+	}
 	binPath, err := service.resolveLibTVBinary()
 	if err != nil {
 		return nil, err
@@ -572,10 +674,13 @@ func (service *Settings) runLibTVCommand(ctx context.Context, timeout time.Durat
 }
 
 func (service *Settings) resolveLibTVBinary() (string, error) {
-	return resolveLocalCLIBinary("LibTV", service.libTVBinPath, service.libTVBinDir, "libtv", "libtv")
+	return libtv.ResolveBinaryPath(service.libTVBinPath, service.libTVBinDir)
 }
 
 func jimengCommandError(commandName string, err error, output string) error {
+	if localCLIPermissionDenied(output) {
+		return fmt.Errorf("%w: 即梦无法写入本地登录目录，请在当前用户的终端运行 dreamina logout，检查目录权限后重试", ErrLocalCLIPermission)
+	}
 	message := strings.TrimSpace(output)
 	if message == "" {
 		return fmt.Errorf("jimeng %s failed: %w", commandName, err)
@@ -584,11 +689,22 @@ func jimengCommandError(commandName string, err error, output string) error {
 }
 
 func localCLICommandError(cliName string, commandName string, err error, output string) error {
+	if localCLIPermissionDenied(output) {
+		return fmt.Errorf("%w: %s 无法写入本地登录目录，请检查当前用户的目录权限", ErrLocalCLIPermission, cliName)
+	}
 	message := strings.TrimSpace(output)
 	if message == "" {
 		return fmt.Errorf("%s %s failed: %w", cliName, commandName, err)
 	}
 	return fmt.Errorf("%s %s failed: %w: %s", cliName, commandName, err, message)
+}
+
+// ErrLocalCLIPermission indicates a local credential directory cannot be written.
+var ErrLocalCLIPermission = errors.New("CLI 本地目录权限不足")
+
+func localCLIPermissionDenied(output string) bool {
+	value := strings.ToLower(output)
+	return strings.Contains(value, "permission denied") || strings.Contains(value, "access is denied") || strings.Contains(value, "拒绝访问")
 }
 
 func (service *Settings) apiKeyLoginResult(ctx context.Context, login ProviderLoginChallenge) (APIKeyLoginResult, error) {
@@ -674,55 +790,6 @@ func loginOutputValue(output string, keys ...string) string {
 func firstURL(output string) string {
 	value := urlPattern.FindString(output)
 	return strings.TrimRight(value, ".,;:)]}，。；：")
-}
-
-func resolveLocalCLIBinary(label string, explicitPath string, binDir string, toolID string, binaryName string) (string, error) {
-	binaryName = localCLIExecutableName(binaryName)
-	if explicitPath = strings.TrimSpace(explicitPath); explicitPath != "" {
-		return localCLIExecutableFile(label, explicitPath)
-	}
-	if binDir = strings.TrimSpace(binDir); binDir != "" {
-		candidates := []string{
-			filepath.Join(binDir, toolID, binaryName),
-			filepath.Join(binDir, binaryName),
-		}
-		for _, candidate := range candidates {
-			if path, err := localCLIExecutableFile(label, candidate); err == nil {
-				return path, nil
-			}
-		}
-	}
-
-	path, err := exec.LookPath(binaryName)
-	if err != nil {
-		return "", fmt.Errorf("%s binary %q was not found", label, binaryName)
-	}
-	return path, nil
-}
-
-func localCLIExecutableName(name string) string {
-	if runtime.GOOS == "windows" && !strings.HasSuffix(strings.ToLower(name), ".exe") {
-		return name + ".exe"
-	}
-	return name
-}
-
-func localCLIExecutableFile(label string, path string) (string, error) {
-	resolved, err := filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("resolving %s path %s: %w", label, path, err)
-	}
-	info, err := os.Stat(resolved)
-	if err != nil {
-		return "", err
-	}
-	if info.IsDir() {
-		return "", fmt.Errorf("%s path %s is a directory", label, resolved)
-	}
-	if runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0 {
-		return "", fmt.Errorf("%s path %s is not executable", label, resolved)
-	}
-	return resolved, nil
 }
 
 type commandOutputWatcher struct {

@@ -1,3 +1,4 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowRight, Loader2, Save, Sparkles, Trash2 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
@@ -6,6 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { DialogDismissButton } from "@/shared/components/ui/dialog-dismiss";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { CLIRuntimeFields } from "./CLIRuntimeSettingsDialog";
 import {
 	apiKeyInputPlaceholder,
 	providerConfigVariantLabel,
@@ -83,90 +85,97 @@ export const ProviderConfigDialog: React.FC<{
 	const variantLabel = providerConfigVariantLabel(variant);
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-6">
-			<div
-				aria-labelledby={`provider-config-title-${provider.id}`}
-				aria-modal="true"
-				className="max-h-[calc(100vh-3rem)] w-full max-w-xl overflow-auto rounded-md border border-border bg-background p-6 shadow-xl"
-				role="dialog"
-			>
-				<div className="flex items-start justify-between gap-4">
-					<div>
-						<div className="text-xs font-semibold text-muted-foreground">
-							{variant === "cli" ? "CLI 配置" : "凭据配置"}
+		<Dialog.Root open={open} onOpenChange={onOpenChange}>
+			<Dialog.Portal>
+				<Dialog.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
+				<Dialog.Content
+					aria-describedby={undefined}
+					className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-auto rounded-md border border-border bg-background p-6 shadow-xl"
+				>
+					<div className="flex items-start justify-between gap-4">
+						<div>
+							<div className="text-xs font-semibold text-muted-foreground">
+								{variant === "cli" ? "CLI 配置" : "凭据配置"}
+							</div>
+							<Dialog.Title className="mt-2 text-lg font-semibold text-foreground">
+								配置 {provider.label}
+							</Dialog.Title>
+							<p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+								{variant === "custom"
+									? "这里仅保存该接口的 API Key。供应商标识、端点和模型路由由系统预设，不需要在这里填写。"
+									: variant === "cli"
+										? "这里仅保存本地 CLI 使用的 Access Key。端点和模型能力由系统预设。"
+										: "这里仅保存官方账号凭据。端点和模型能力由系统内置配置决定。"}
+							</p>
 						</div>
-						<h3
-							id={`provider-config-title-${provider.id}`}
-							className="mt-2 text-lg font-semibold text-foreground"
-						>
-							配置 {provider.label}
-						</h3>
-						<p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-							{variant === "custom"
-								? "这里仅保存该接口的 API Key。供应商标识、端点和模型路由由系统预设，不需要在这里填写。"
-								: variant === "cli"
-									? "这里仅保存本地 CLI 使用的 Access Key。端点和模型能力由系统预设。"
-									: "这里仅保存官方账号凭据。端点和模型能力由系统内置配置决定。"}
-						</p>
+						<span className="rounded-full bg-ide-list-hover px-2 py-1 text-xs font-medium text-muted-foreground">
+							{variantLabel}
+						</span>
 					</div>
-					<span className="rounded-full bg-ide-list-hover px-2 py-1 text-xs font-medium text-muted-foreground">
-						{variantLabel}
-					</span>
-				</div>
 
-				<div className="mt-6">
-					<div className="grid gap-2">
-						<Label htmlFor={inputID} className="text-sm font-medium text-foreground">
-							{provider.credentialLabel || "API Key"}
-						</Label>
-						<MaskedAPIKeyInput
-							id={inputID}
-							aria-label={`${provider.label} API Key`}
-							className="h-10 rounded-md font-mono text-sm text-foreground"
-							onChange={onAPIKeyChange}
-							placeholder={apiKeyInputPlaceholder(provider, "输入API Key")}
-							provider={provider}
-							value={apiKey}
-						/>
-						{provider.help ? (
-							<p className="text-xs leading-5 text-muted-foreground">{provider.help}</p>
+					<div className="mt-6">
+						<div className="grid gap-2">
+							<Label htmlFor={inputID} className="text-sm font-medium text-foreground">
+								{provider.credentialLabel || "API Key"}
+							</Label>
+							<MaskedAPIKeyInput
+								id={inputID}
+								aria-label={`${provider.label} API Key`}
+								className="h-10 rounded-md font-mono text-sm text-foreground"
+								onChange={onAPIKeyChange}
+								placeholder={apiKeyInputPlaceholder(provider, "输入API Key")}
+								provider={provider}
+								value={apiKey}
+							/>
+							{provider.help ? (
+								<p className="text-xs leading-5 text-muted-foreground">{provider.help}</p>
+							) : null}
+						</div>
+					</div>
+
+					{variant === "cli" ? (
+						<details className="mt-5 rounded-md bg-muted p-4">
+							<summary className="cursor-pointer text-sm font-medium">高级设置</summary>
+							<div className="mt-4">
+								<CLIRuntimeFields providerID={provider.id} runtime={provider.runtime} />
+							</div>
+						</details>
+					) : null}
+
+					<div className="mt-6 flex justify-end gap-2">
+						{provider.configured ? (
+							<Button
+								type="button"
+								variant="ghost"
+								disabled={isClearing}
+								onClick={onClear}
+								className="mr-auto rounded-md text-destructive"
+							>
+								{isClearing ? <Loader2 className="animate-spin" /> : <Trash2 />}
+								<span>清除当前 Key</span>
+							</Button>
 						) : null}
-					</div>
-				</div>
-
-				<div className="mt-6 flex justify-end gap-2">
-					{provider.configured ? (
+						<DialogDismissButton
+							type="button"
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+							className="w-24 rounded-md"
+						>
+							关闭
+						</DialogDismissButton>
 						<Button
 							type="button"
-							variant="ghost"
-							disabled={isClearing}
-							onClick={onClear}
-							className="mr-auto rounded-md text-destructive"
+							disabled={!apiKey.trim() || isSaving}
+							onClick={onSave}
+							className="w-24 rounded-md"
 						>
-							{isClearing ? <Loader2 className="animate-spin" /> : <Trash2 />}
-							<span>清除当前 Key</span>
+							{isSaving ? <Loader2 className="animate-spin" /> : <Save />}
+							<span>保存</span>
 						</Button>
-					) : null}
-					<DialogDismissButton
-						type="button"
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-						className="w-24 rounded-md"
-					>
-						取消
-					</DialogDismissButton>
-					<Button
-						type="button"
-						disabled={!apiKey.trim() || isSaving}
-						onClick={onSave}
-						className="w-24 rounded-md"
-					>
-						{isSaving ? <Loader2 className="animate-spin" /> : <Save />}
-						<span>保存</span>
-					</Button>
-				</div>
-			</div>
-		</div>
+					</div>
+				</Dialog.Content>
+			</Dialog.Portal>
+		</Dialog.Root>
 	);
 };
 

@@ -49,7 +49,7 @@ func TestCodexAccountBrowserLoginCompletes(t *testing.T) {
 	service := NewSettings(nil)
 	service.SetCodexCLIPath(binPath)
 
-	attempt, err := service.BeginCodexLogin(context.Background())
+	attempt, err := service.BeginCodexLogin(context.Background(), false)
 	if err != nil {
 		t.Fatalf("BeginCodexLogin() error = %v", err)
 	}
@@ -77,11 +77,11 @@ func TestCodexAccountBrowserLoginCanBeCanceled(t *testing.T) {
 	service := NewSettings(nil)
 	service.SetCodexCLIPath(binPath)
 
-	attempt, err := service.BeginCodexLogin(context.Background())
+	attempt, err := service.BeginCodexLogin(context.Background(), false)
 	if err != nil {
 		t.Fatalf("BeginCodexLogin() error = %v", err)
 	}
-	duplicate, err := service.BeginCodexLogin(context.Background())
+	duplicate, err := service.BeginCodexLogin(context.Background(), false)
 	if err != nil {
 		t.Fatalf("duplicate BeginCodexLogin() error = %v", err)
 	}

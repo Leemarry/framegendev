@@ -10,18 +10,15 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { runAgentPrompt } from "@/domains/agent/lib/controller";
 import { useAgentLayoutStore } from "@/lib/stores/agent-layout";
 import { Button } from "@/shared/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { createDOMTextAnchorResolver } from "@/domains/documents/components/text-anchor-dom";
 import { getOpenComments } from "@/domains/documents/lib/filters";
-import { findMarkdownBlockForAnchor } from "@/domains/documents/lib/operations";
+import { getEditorHandle } from "@/domains/documents/lib/editor-registry";
 import { type DocumentComment, useDocumentsStore } from "@/domains/documents/stores";
 import { useProjectStore } from "@/domains/projects/stores";
-import { agentProjectPath, agentProjectRouteState } from "@/domains/workspace/lib/workbench-route";
 import { selectAgentIsRunning, useAgentStore } from "@/domains/agent/stores";
 import { cn } from "@/shared/lib/utils";
 
@@ -47,7 +44,6 @@ export const CommentsGutter: React.FC = () => {
 	const [bodyTop, setBodyTop] = useState(0);
 	const [bodyHeight, setBodyHeight] = useState(0);
 	const bodyRef = useRef<HTMLDivElement>(null);
-	const navigate = useNavigate();
 	const documents = useDocumentsStore((state) => state.documents);
 	const activeDocumentId = useDocumentsStore((state) => state.activeDocumentId);
 	const activeCommentId = useDocumentsStore((state) => state.activeCommentId);
@@ -73,17 +69,22 @@ export const CommentsGutter: React.FC = () => {
 	const anchoredComments = useMemo(
 		() =>
 			showComments && activeDocument
-				? comments.filter((comment) => hasCommentAnchor(activeDocument.content, comment))
+				? comments.filter((comment) => commentOffsets[comment.id] !== undefined)
 				: [],
-		[activeDocument, comments, showComments],
+		[activeDocument, comments, commentOffsets, showComments],
 	);
 	const danglingComments = useMemo(
 		() =>
 			showComments && activeDocument
-				? comments.filter((comment) => !hasCommentAnchor(activeDocument.content, comment))
+				? comments.filter((comment) => commentOffsets[comment.id] === undefined)
 				: [],
-		[activeDocument, comments, showComments],
+		[activeDocument, comments, commentOffsets, showComments],
 	);
+	const activeCommentTab = activeCommentId
+		? commentOffsets[activeCommentId] === undefined
+			? "dangling"
+			: "anchored"
+		: null;
 	const activePending =
 		pendingComment && activeDocument && pendingComment.documentId === activeDocument.id
 			? pendingComment
@@ -133,8 +134,8 @@ export const CommentsGutter: React.FC = () => {
 
 		const anchorResolver = createDOMTextAnchorResolver(editorRoot);
 		const nextOffsets: Record<string, number> = {};
-		for (const comment of anchoredComments) {
-			const anchorRect = anchorResolver.findRect(comment.anchor, { fallbackToToken: true });
+		for (const comment of comments) {
+			const anchorRect = anchorResolver.findRect(comment.anchor);
 			if (anchorRect) {
 				nextOffsets[comment.id] = anchorRect.top - rect.top;
 			}
@@ -165,7 +166,7 @@ export const CommentsGutter: React.FC = () => {
 		setPendingHeight((current) =>
 			sameNullableOffset(current, nextPendingHeight) ? current : nextPendingHeight,
 		);
-	}, [activePending, activeSelection?.anchor, anchoredComments]);
+	}, [activePending, activeSelection?.anchor, comments]);
 
 	useEffect(() => {
 		measureAnchors();
@@ -203,16 +204,8 @@ export const CommentsGutter: React.FC = () => {
 	}, [activeDocument?.id]);
 
 	useEffect(() => {
-		if (!showComments || !activeCommentId || !activeDocument) return;
-
-		if (danglingComments.some((comment) => comment.id === activeCommentId)) {
-			setActiveTab("dangling");
-			return;
-		}
-		if (anchoredComments.some((comment) => comment.id === activeCommentId)) {
-			setActiveTab("anchored");
-		}
-	}, [activeCommentId, activeDocument, anchoredComments, danglingComments, showComments]);
+		if (showComments && activeCommentTab) setActiveTab(activeCommentTab);
+	}, [activeCommentId, activeCommentTab, showComments]);
 
 	useEffect(() => {
 		let frame = 0;
@@ -223,12 +216,38 @@ export const CommentsGutter: React.FC = () => {
 
 		window.addEventListener("resize", scheduleMeasure);
 		document.addEventListener("scroll", scheduleMeasure, true);
+		const editor = document.querySelector<HTMLElement>("[data-document-scroll-container]");
+		const observer = new MutationObserver(scheduleMeasure);
+		if (editor) observer.observe(editor, { childList: true, characterData: true, subtree: true });
+		const resizeObserver = new ResizeObserver(scheduleMeasure);
+		if (editor) resizeObserver.observe(editor);
+		if (bodyRef.current) resizeObserver.observe(bodyRef.current);
+		scheduleMeasure();
 		return () => {
+			observer.disconnect();
+			resizeObserver.disconnect();
 			window.cancelAnimationFrame(frame);
 			window.removeEventListener("resize", scheduleMeasure);
 			document.removeEventListener("scroll", scheduleMeasure, true);
 		};
-	}, [measureAnchors]);
+	}, [measureAnchors, showComments, activeTab]);
+
+	useEffect(() => {
+		const body = bodyRef.current?.parentElement;
+		if (!body || activeTab !== "anchored") return;
+		const scrollDocument = (event: WheelEvent) => {
+			if (event.ctrlKey) return;
+			const editor = document.querySelector<HTMLElement>("[data-document-scroll-container]");
+			if (!editor) return;
+			const target = event.target instanceof Element ? event.target.closest("textarea") : null;
+			if (target && target.scrollHeight > target.clientHeight) return;
+			event.preventDefault();
+			const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? editor.clientHeight : 1;
+			editor.scrollTop += event.deltaY * unit;
+		};
+		body.addEventListener("wheel", scrollDocument, { passive: false });
+		return () => body.removeEventListener("wheel", scrollDocument);
+	}, [activeTab, showComments]);
 
 	useEffect(() => {
 		if (!showComments || !activeCommentId) return;
@@ -293,22 +312,24 @@ export const CommentsGutter: React.FC = () => {
 		focusComment(comment.id);
 	};
 
-	const submitOpenCommentsToAgent = () => {
+	const focusCommentInEditor = useCallback(
+		(comment: DocumentComment) => {
+			focusComment(comment.id);
+			getEditorHandle()?.setSelection({
+				blockId: "",
+				range: { start: 0, end: 0 },
+				quote: comment.anchor.quote || comment.anchorText,
+			});
+		},
+		[focusComment],
+	);
+
+	const openCommentsInAgent = (comment?: DocumentComment) => {
 		if (agentIsRunning || openComments.length === 0 || !projectId || !activeDocument) return;
 
+		focusComment(comment?.id ?? null);
 		setAgentTab("agent");
-		if (projectId && activeDocument) {
-			navigate(agentProjectPath(projectId, { documentId: activeDocument.id }), {
-				state: agentProjectRouteState("agent"),
-			});
-		}
-		void runAgentPrompt("", {
-			projectId,
-			documentId: activeDocument.id,
-			comments: openComments,
-			displayPrompt: "按照评论修改",
-			taskPrompt: "按照评论修改",
-		});
+		useAgentStore.getState().seedComposer({ text: "按照评论修改", focus: true });
 	};
 
 	if (!showComments) {
@@ -318,41 +339,50 @@ export const CommentsGutter: React.FC = () => {
 	return (
 		<aside
 			aria-label="文档批注"
-			className="absolute inset-y-0 right-0 z-30 flex h-full min-h-0 w-64 max-w-full shrink-0 flex-col border-l border-border bg-ide-panel text-ide-panel-foreground shadow-lg md:static md:shadow-none"
+			className="absolute inset-y-0 right-0 z-30 flex h-full min-h-0 w-[min(420px,90vw)] max-w-full shrink-0 flex-col bg-ide-editor text-foreground shadow-lg md:static md:w-[30%] md:min-w-80 md:shadow-none"
 		>
-			<header className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-ide-toolbar px-3 text-ide-toolbar-foreground">
-				<div className="flex min-w-0 items-center gap-2">
-					<MessageSquare className="size-4 text-muted-foreground" />
-					<h2 className="truncate text-sm font-semibold text-foreground">批注</h2>
-				</div>
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon"
-					aria-label="隐藏批注"
-					onClick={() => setShowComments(false)}
-				>
-					<PanelRightClose />
-				</Button>
-			</header>
-
 			<Tabs
 				value={activeTab}
 				onValueChange={(value) => setActiveTab(value as CommentTab)}
 				className="flex min-h-0 flex-1 flex-col"
 			>
-				<div className="border-b border-border p-2">
-					<TabsList className="grid w-full grid-cols-2">
+				<header aria-label="批注工具栏" className="flex h-14 shrink-0 items-start gap-2 px-3 pt-4">
+					<TabsList aria-label="批注分类" className="h-7 shrink-0">
 						<TabsTrigger value="anchored">正文 {anchoredComments.length}</TabsTrigger>
 						<TabsTrigger value="dangling">悬空 {danglingComments.length}</TabsTrigger>
 					</TabsList>
-				</div>
+					<Button
+						type="button"
+						size="sm"
+						className="ml-auto h-8 shrink-0 rounded-sm px-2.5"
+						disabled={agentIsRunning || openComments.length === 0}
+						onClick={() => openCommentsInAgent()}
+						title={agentIsRunning ? "智能体运行中" : `提交 ${openComments.length} 条未解决批注`}
+					>
+						<Bot />
+						<span>交给 Agent</span>
+					</Button>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="size-7 shrink-0"
+						aria-label="隐藏批注"
+						onClick={() => setShowComments(false)}
+					>
+						<PanelRightClose />
+					</Button>
+				</header>
 				<TabsContent
-					ref={bodyRef}
+					forceMount
 					value="anchored"
-					className="relative mt-0 min-h-0 flex-1 overflow-y-auto p-2"
+					className="relative mt-0 min-h-0 flex-1 overflow-hidden px-5 py-4 data-[state=inactive]:hidden"
 				>
-					<div className="relative w-full" style={{ minHeight: contentHeight }}>
+					<div
+						ref={bodyRef}
+						className="relative h-full w-full max-w-96"
+						style={{ minHeight: contentHeight }}
+					>
 						{activePending && pendingTop !== null ? (
 							<PendingCommentInput
 								body={draft}
@@ -381,7 +411,8 @@ export const CommentsGutter: React.FC = () => {
 									if (activeDocument) deleteComment(activeDocument.id, comment.id);
 								}}
 								onEditBodyChange={setEditDraft}
-								onFocus={() => focusComment(comment.id)}
+								onFocus={() => focusCommentInEditor(comment)}
+								onSendToAgent={() => openCommentsInAgent(comment)}
 								onResolve={() => activeDocument && resolveComment(activeDocument.id, comment.id)}
 								onSaveEdit={(event) => submitCommentEdit(event, comment)}
 								onStartEdit={() => startEditingComment(comment)}
@@ -389,12 +420,12 @@ export const CommentsGutter: React.FC = () => {
 						))}
 
 						{!activePending && anchoredComments.length === 0 ? (
-							<p className="px-1 py-3 text-xs text-muted-foreground">暂无正文批注。</p>
+							<CommentEmptyState>暂无正文批注。</CommentEmptyState>
 						) : null}
 					</div>
 				</TabsContent>
-				<TabsContent value="dangling" className="mt-0 min-h-0 flex-1 overflow-y-auto p-2">
-					<div className="space-y-2">
+				<TabsContent value="dangling" className="mt-0 min-h-0 flex-1 overflow-y-auto px-5 py-4">
+					<div className="h-full w-full max-w-96 space-y-3">
 						{danglingComments.map((comment) => (
 							<CommentCard
 								key={comment.id}
@@ -408,36 +439,31 @@ export const CommentsGutter: React.FC = () => {
 									if (activeDocument) deleteComment(activeDocument.id, comment.id);
 								}}
 								onEditBodyChange={setEditDraft}
-								onFocus={() => focusComment(comment.id)}
+								onFocus={() => focusCommentInEditor(comment)}
+								onSendToAgent={() => openCommentsInAgent(comment)}
 								onResolve={() => activeDocument && resolveComment(activeDocument.id, comment.id)}
 								onSaveEdit={(event) => submitCommentEdit(event, comment)}
 								onStartEdit={() => startEditingComment(comment)}
 							/>
 						))}
 						{danglingComments.length === 0 ? (
-							<p className="px-1 py-3 text-xs text-muted-foreground">暂无悬空批注。</p>
+							<CommentEmptyState>暂无悬空批注。</CommentEmptyState>
 						) : null}
 					</div>
 				</TabsContent>
 			</Tabs>
-			{openComments.length > 0 ? (
-				<footer className="flex shrink-0 justify-end border-t border-border bg-ide-panel p-2">
-					<Button
-						type="button"
-						size="sm"
-						className="h-8 rounded-sm px-2.5"
-						disabled={agentIsRunning}
-						onClick={submitOpenCommentsToAgent}
-						title={agentIsRunning ? "智能体运行中" : `提交 ${openComments.length} 条未解决批注`}
-					>
-						<Bot />
-						<span>提交给 agent</span>
-					</Button>
-				</footer>
-			) : null}
 		</aside>
 	);
 };
+
+const CommentEmptyState = ({ children }: { children: React.ReactNode }) => (
+	<div className="flex h-full min-h-48 flex-col items-center justify-center gap-4 text-muted-foreground">
+		<div className="flex size-16 items-center justify-center rounded-full bg-muted">
+			<MessageSquare className="size-8 stroke-1" aria-hidden="true" />
+		</div>
+		<p className="text-sm">{children}</p>
+	</div>
+);
 
 interface PendingCommentInputProps {
 	body: string;
@@ -518,6 +544,7 @@ interface CommentCardProps {
 	onFocus: () => void;
 	onResolve: () => void;
 	onSaveEdit: (event: React.FormEvent<HTMLFormElement>) => void;
+	onSendToAgent: () => void;
 	onStartEdit: () => void;
 }
 
@@ -533,6 +560,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
 	onFocus,
 	onResolve,
 	onSaveEdit,
+	onSendToAgent,
 	onStartEdit,
 }) => (
 	<article
@@ -540,7 +568,7 @@ const CommentCard: React.FC<CommentCardProps> = ({
 		role={editing ? undefined : "button"}
 		tabIndex={editing ? undefined : 0}
 		className={cn(
-			"rounded-sm border border-border bg-ide-editor p-2 text-xs shadow-sm transition-[box-shadow,border-color]",
+			"rounded-lg border border-border bg-card p-3 text-xs shadow-sm transition-[box-shadow,border-color]",
 			top !== undefined && "absolute inset-x-0",
 			!editing && "cursor-pointer",
 			focused && "border-primary shadow-lg",
@@ -597,6 +625,21 @@ const CommentCard: React.FC<CommentCardProps> = ({
 			<div className="mt-2 flex items-center justify-between gap-2">
 				<span className="text-caption text-muted-foreground">{getCommentMetaLabel(comment)}</span>
 				<div className="flex items-center gap-1">
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="size-7 rounded-sm"
+						aria-label="将此批注交给 Agent"
+						title="将此批注交给 Agent"
+						disabled={comment.resolved}
+						onClick={(event) => {
+							event.stopPropagation();
+							onSendToAgent();
+						}}
+					>
+						<Bot />
+					</Button>
 					<Button
 						type="button"
 						variant="ghost"
@@ -745,12 +788,6 @@ const sortLayoutItems = (first: LayoutItem, second: LayoutItem) =>
 	first.sortKey.localeCompare(second.sortKey);
 
 const layoutItemRank = (item: LayoutItem) => (item.type === "comment" ? 0 : 1);
-
-const hasCommentAnchor = (content: string, comment: DocumentComment) =>
-	Boolean(
-		findMarkdownBlockForAnchor(content, comment.anchor) ??
-		findMarkdownBlockForAnchor(content, comment.anchorText),
-	);
 
 const sameOffsets = (first: Record<string, number>, second: Record<string, number>) => {
 	const firstKeys = Object.keys(first);

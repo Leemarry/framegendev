@@ -141,7 +141,7 @@ describe("Settings model access page", () => {
 		},
 	);
 
-	it("shows official API providers by default and never invents Kling", async () => {
+	it("shows official API providers by default and marks Kling as coming soon", async () => {
 		renderSettings();
 
 		const officialSection = (await screen.findByRole("heading", { name: "官方 API 接入" })).closest(
@@ -149,7 +149,10 @@ describe("Settings model access page", () => {
 		);
 		expect(officialSection).toBeTruthy();
 		expect(within(officialSection as HTMLElement).getByText("火山引擎")).toBeInTheDocument();
-		expect(screen.queryByText(/可灵|Kling|kling/i)).not.toBeInTheDocument();
+		expect(within(officialSection as HTMLElement).getByText("AI 可灵")).toBeInTheDocument();
+		expect(
+			within(officialSection as HTMLElement).getByRole("button", { name: "配置 AI 可灵" }),
+		).toBeDisabled();
 	});
 
 	it("hides the Codex section but keeps other sections on a non-codex backend", async () => {
@@ -181,7 +184,9 @@ describe("Settings model access page", () => {
 		expect(within(cliSection as HTMLElement).getByText("即梦")).toBeInTheDocument();
 		expect(within(cliSection as HTMLElement).getByText("未登录")).toBeInTheDocument();
 		expect(
-			within(cliSection as HTMLElement).getByRole("button", { name: "登录" }),
+			within(cliSection as HTMLElement)
+				.getByTestId("provider-card-jimeng")
+				.querySelector("button:not([aria-label])"),
 		).toBeInTheDocument();
 		// 会员 CLI 区不应泄漏原始 provider id。
 		expect(screen.queryByText("jimeng")).not.toBeInTheDocument();
@@ -227,7 +232,7 @@ describe("Settings model access page", () => {
 		expect(screen.getByText("等 13 个模型")).toBeInTheDocument();
 	});
 
-	it("hides the aggregator section when platform metadata is unavailable", async () => {
+	it("keeps configured aggregators visible without platform metadata", async () => {
 		vi.mocked(getAPIKeys).mockResolvedValue(
 			apiKeysResponse({ mediagoConfigured: true, openrouterConfigured: true }),
 		);
@@ -236,8 +241,8 @@ describe("Settings model access page", () => {
 		renderSettings();
 
 		await screen.findByRole("heading", { name: "会员 CLI 接入" });
-		expect(screen.queryByTestId("aggregator-section")).not.toBeInTheDocument();
-		expect(screen.queryByText("OpenRouter")).not.toBeInTheDocument();
+		expect(screen.getByTestId("aggregator-section")).toBeInTheDocument();
+		expect(screen.getByText("OpenRouter")).toBeInTheDocument();
 	});
 
 	it("opens the MediaGo registration page from its config dialog", async () => {
@@ -371,7 +376,7 @@ describe("Settings model access page", () => {
 		fireEvent.click(within(cliSection as HTMLElement).getByRole("button", { name: "配置 小云雀" }));
 		const dialog = await screen.findByRole("dialog", { name: "配置 小云雀" });
 		expect(within(dialog).getByLabelText("小云雀 API Key")).toBeInTheDocument();
-		expect(within(cliSection as HTMLElement).queryByText("即梦")).not.toBeInTheDocument();
+		expect(within(cliSection as HTMLElement).getByText("即梦")).toBeInTheDocument();
 	});
 
 	it("saves the Xiaoyunque key from a CLI config dialog", async () => {
@@ -398,6 +403,37 @@ describe("Settings model access page", () => {
 		);
 	});
 
+	it("shows read-only CLI package metadata and preserves the key after a failed save", async () => {
+		const data = apiKeysResponse({ includeExtraCLI: true });
+		for (const provider of data.providers) {
+			if (provider.id === "xiaoyunque")
+				provider.runtime = {
+					available: true,
+					binaryPath: "E:/tools/pippit/replacement.exe",
+					version: "2.0",
+					source: "packaged",
+				};
+		}
+		vi.mocked(getAPIKeys).mockResolvedValue(data);
+		vi.mocked(saveAPIKey).mockRejectedValue({ message: "凭据保存服务不可用" });
+		renderSettings();
+		fireEvent.click(await screen.findByRole("button", { name: "配置 小云雀" }));
+		const dialog = await screen.findByRole("dialog", { name: "配置 小云雀" });
+		fireEvent.click(within(dialog).getByText("高级设置"));
+		expect(within(dialog).getByPlaceholderText("输入 XYQ_ACCESS_KEY")).toBeInTheDocument();
+		expect(within(dialog).getByLabelText("CLI 可执行文件路径")).toHaveValue(
+			"E:/tools/pippit/replacement.exe",
+		);
+		expect(within(dialog).getByLabelText("CLI 可执行文件路径")).toHaveAttribute("readonly");
+		fireEvent.change(within(dialog).getByLabelText("小云雀 API Key"), {
+			target: { value: "test-draft" },
+		});
+		fireEvent.click(within(dialog).getByRole("button", { name: "保存" }));
+		await waitFor(() => expect(saveAPIKey).toHaveBeenCalledWith("xiaoyunque", "test-draft"));
+		await waitFor(() => expect(within(dialog).getByRole("button", { name: "保存" })).toBeEnabled());
+		expect(within(dialog).getByLabelText("小云雀 API Key")).toHaveValue("test-draft");
+	});
+
 	it("refreshes model-dependent caches after an immediate LibTV login", async () => {
 		mockLibTVSettings();
 		vi.mocked(beginProviderLogin).mockResolvedValue(
@@ -405,7 +441,11 @@ describe("Settings model access page", () => {
 		);
 		renderSettings();
 
-		fireEvent.click(await screen.findByRole("button", { name: "登录" }));
+		fireEvent.click(
+			await within(await screen.findByTestId("provider-card-libtv")).findByRole("button", {
+				name: "登录",
+			}),
+		);
 
 		await waitFor(() => expect(beginProviderLogin).toHaveBeenCalledWith("libtv", false));
 		expectModelDependentCachesRevalidated();
@@ -417,25 +457,31 @@ describe("Settings model access page", () => {
 			libTVLoginResponse({
 				status: "pending",
 				verificationUri: "https://lib.tv/device",
-				deviceCode: "libtv-device-code",
 				userCode: "LIB-TV",
 			}),
 		);
-		vi.mocked(completeProviderLogin).mockResolvedValue(
-			libTVLoginResponse({ status: "completed" }, true),
-		);
+
 		renderSettings();
 
-		fireEvent.click(await screen.findByRole("button", { name: "登录" }));
+		fireEvent.click(
+			await within(await screen.findByTestId("provider-card-libtv")).findByRole("button", {
+				name: "登录",
+			}),
+		);
 
 		expect(await screen.findByText("等待浏览器授权")).toBeInTheDocument();
 		expect(swrMocks.mutate).not.toHaveBeenCalled();
 
 		fireEvent.click(screen.getByRole("button", { name: "确认" }));
+		await waitFor(() => expect(getAPIKeys).toHaveBeenCalledTimes(2));
+		expect(screen.getByText("等待浏览器授权")).toBeInTheDocument();
+		expect(swrMocks.mutate).not.toHaveBeenCalled();
+		vi.mocked(getAPIKeys).mockResolvedValue(libTVLoginResponse({ status: "completed" }, true));
+		await waitFor(() => expect(screen.getByRole("button", { name: "确认" })).toBeEnabled());
+		fireEvent.click(screen.getByRole("button", { name: "确认" }));
 
-		await waitFor(() =>
-			expect(completeProviderLogin).toHaveBeenCalledWith("libtv", "libtv-device-code"),
-		);
+		await waitFor(() => expect(screen.queryByText("等待浏览器授权")).not.toBeInTheDocument());
+		expect(completeProviderLogin).not.toHaveBeenCalled();
 		expectModelDependentCachesRevalidated();
 	});
 
@@ -464,7 +510,11 @@ describe("Settings model access page", () => {
 		);
 		renderSettings();
 
-		fireEvent.click(await screen.findByRole("button", { name: "登录" }));
+		fireEvent.click(
+			await within(await screen.findByTestId("provider-card-libtv")).findByRole("button", {
+				name: "登录",
+			}),
+		);
 
 		expect(await screen.findByText("等待浏览器授权")).toBeInTheDocument();
 		expect(swrMocks.mutate).not.toHaveBeenCalled();

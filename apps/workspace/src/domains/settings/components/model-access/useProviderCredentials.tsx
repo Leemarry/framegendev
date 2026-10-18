@@ -3,11 +3,14 @@ import { useCallback, useEffect, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import {
 	type APIKeyLoginChallenge,
+	type APIKeyListResponse,
 	type APIKeyProvider,
 	apiKeysKey,
 	beginProviderLogin,
 	clearAPIKey,
 	completeProviderLogin,
+	generationProvidersKey,
+	getGenerationProviders,
 	getAPIKeys,
 	getModelPlatforms,
 	modelPlatformsKey,
@@ -59,12 +62,17 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 	const toast = useToast();
 	const { mutate: mutateGlobal } = useSWRConfig();
 	const { data, mutate, isLoading } = useSWR(apiKeysKey, getAPIKeys);
+	const {
+		data: generationData,
+		mutate: mutateGeneration,
+		isLoading: isGenerationLoading,
+	} = useSWR(generationProvidersKey, getGenerationProviders);
 	const { data: modelPlatformsData, isLoading: isModelPlatformsLoading } = useSWR(
 		modelPlatformsKey,
 		getModelPlatforms,
 	);
-	const providers = data?.providers ?? [];
-	const platforms = modelPlatformsData?.platforms ?? [];
+	const providers = generationData?.providers ?? data?.providers ?? [];
+	const platforms = generationData?.platforms ?? modelPlatformsData?.platforms ?? [];
 	const groups = groupModelAccessProviders(providers, platforms, { customProvidersEnabled });
 
 	const [mediagoDialogOpen, setMediagoDialogOpen] = useState(false);
@@ -84,6 +92,10 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 		void mutateGlobal(isAgentRuntimeConfigKey, undefined, { revalidate: true });
 	}, [mutateGlobal]);
 
+	const revalidateGenerationProviders = useCallback(() => {
+		void mutateGeneration(undefined, { revalidate: true });
+	}, [mutateGeneration]);
+
 	useEffect(() => {
 		if (!hasPendingBrowserLogin) return;
 		const intervalID = window.setInterval(() => {
@@ -94,10 +106,27 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 
 	useEffect(() => {
 		if (!data?.providers) return;
+		const failed = data.providers.filter(
+			(provider) =>
+				provider.status === "loginFailed" && loginChallenges[provider.id]?.status === "pending",
+		);
+		if (failed.length > 0) {
+			setLoginChallenges((current) => {
+				const next = { ...current };
+				for (const provider of failed) delete next[provider.id];
+				return next;
+			});
+			for (const provider of failed)
+				toast.error(`${provider.label}登录失败`, {
+					description: provider.help || "凭据保存失败，请重新登录。",
+				});
+			revalidateGenerationProviders();
+		}
 		const completedProviderIDs = data.providers
 			.filter(
 				(provider) =>
 					provider.configured &&
+					provider.status !== "loginFailed" &&
 					loginChallenges[provider.id]?.status === "pending" &&
 					loggingInID !== provider.id &&
 					checkingLoginID !== provider.id,
@@ -110,13 +139,16 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 			for (const providerID of completedProviderIDs) delete next[providerID];
 			return next;
 		});
+		revalidateGenerationProviders();
 		revalidateModelDependentCaches();
 	}, [
 		checkingLoginID,
 		data?.providers,
 		loggingInID,
 		loginChallenges,
+		revalidateGenerationProviders,
 		revalidateModelDependentCaches,
+		toast,
 	]);
 
 	const updateAPIKey = (providerID: string, value: string) => {
@@ -131,12 +163,13 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 		try {
 			const nextData = await saveAPIKey(provider.id, apiKey);
 			await mutate(nextData, false);
+			revalidateGenerationProviders();
 			revalidateModelDependentCaches();
 			setAPIKeys((current) => ({ ...current, [provider.id]: "" }));
 			toast.success("API Key 已保存", { description: provider.label });
 			return true;
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "保存 API Key 失败。";
+			const message = credentialErrorMessage(err, "保存 API Key 失败。");
 			toast.error("保存失败", { description: message });
 			return false;
 		} finally {
@@ -150,6 +183,7 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 		try {
 			const nextData = await clearAPIKey(provider.id);
 			await mutate(nextData, false);
+			revalidateGenerationProviders();
 			revalidateModelDependentCaches();
 			setAPIKeys((current) => ({ ...current, [provider.id]: "" }));
 			setLoginChallenges((current) => withoutRecordKey(current, provider.id));
@@ -163,7 +197,7 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 			);
 			return true;
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "清除 API Key 失败。";
+			const message = credentialErrorMessage(err, "清除 API Key 失败。");
 			toast.error("清除失败", { description: message });
 			return false;
 		} finally {
@@ -200,6 +234,7 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 		try {
 			const nextData = await beginProviderLogin(provider.id, provider.configured);
 			await mutate(nextData, false);
+			revalidateGenerationProviders();
 			if (nextData.login.status === "pending") {
 				setLoginChallenges((current) => ({ ...current, [provider.id]: nextData.login }));
 				if (nextData.login.verificationUri) {
@@ -216,7 +251,7 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 			revalidateModelDependentCaches();
 			toast.success("登录已完成", { description: provider.label });
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "登录失败。";
+			const message = credentialErrorMessage(err, "登录失败。");
 			toast.error("登录失败", { description: message });
 		} finally {
 			setLoggingInID(undefined);
@@ -229,24 +264,48 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 		try {
 			await openExternalUrl(challenge.verificationUri);
 		} catch (err) {
-			const message = err instanceof Error ? err.message : `打开${provider.label}授权页失败。`;
+			const message = credentialErrorMessage(err, `打开${provider.label}授权页失败。`);
 			toast.error("打开失败", { description: message });
 		}
 	};
 
 	const completeLogin = async (provider: APIKeyProvider) => {
 		const challenge = loginChallenges[provider.id];
-		if (!challenge?.deviceCode) return;
+		if (!challenge || challenge.status !== "pending") return;
 
 		setCheckingLoginID(provider.id);
 		try {
-			const nextData = await completeProviderLogin(provider.id, challenge.deviceCode);
+			// LibTV's login process waits for the browser and persists its result on
+			// exit. It has no device-code command; confirm by reading that result.
+			const nextData: APIKeyListResponse & { login?: APIKeyLoginChallenge } = challenge.deviceCode
+				? await completeProviderLogin(provider.id, challenge.deviceCode)
+				: await getAPIKeys();
 			await mutate(nextData, false);
+			revalidateGenerationProviders();
+			const updatedProvider = nextData.providers.find((item) => item.id === provider.id);
+			if (nextData.login && nextData.login.status !== "completed") {
+				if (nextData.login.status === "pending") {
+					toast.info("等待授权", { description: nextData.login.message });
+				} else {
+					setLoginChallenges((current) => withoutRecordKey(current, provider.id));
+					toast.error(nextData.login.status === "expired" ? "授权已过期" : "授权未完成", {
+						description: nextData.login.message,
+					});
+				}
+				return;
+			}
+			if (updatedProvider?.status === "loginFailed") return;
+			if (!updatedProvider?.configured) {
+				toast.info("尚未确认登录", {
+					description: "请先在浏览器完成授权；如果授权已过期，请取消后重新登录。",
+				});
+				return;
+			}
 			setLoginChallenges((current) => withoutRecordKey(current, provider.id));
 			revalidateModelDependentCaches();
 			toast.success("登录已完成", { description: provider.label });
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "登录确认失败。";
+			const message = credentialErrorMessage(err, "登录确认失败。");
 			toast.error("确认失败", { description: message });
 		} finally {
 			setCheckingLoginID(undefined);
@@ -276,7 +335,7 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 
 	return {
 		groups,
-		isLoading: isLoading || isModelPlatformsLoading,
+		isLoading: isLoading || isGenerationLoading || isModelPlatformsLoading,
 		apiKeys,
 		savingID,
 		clearingID,
@@ -298,4 +357,16 @@ export const useProviderCredentials = (): UseProviderCredentialsResult => {
 		saveMediagoConfig,
 		openMediagoRegister,
 	};
+};
+
+const credentialErrorMessage = (error: unknown, fallback: string) => {
+	if (
+		error &&
+		typeof error === "object" &&
+		"message" in error &&
+		typeof error.message === "string" &&
+		error.message.trim()
+	)
+		return error.message;
+	return fallback;
 };

@@ -40,6 +40,7 @@ import (
 	servicesettings "github.com/mediago-dev/mediago-drama/services/server/internal/service/settings"
 	serviceskill "github.com/mediago-dev/mediago-drama/services/server/internal/service/skill"
 	servicetextcompletion "github.com/mediago-dev/mediago-drama/services/server/internal/service/textcompletion"
+	serviceworkflow "github.com/mediago-dev/mediago-drama/services/server/internal/service/workflow"
 	serviceworkspaceevent "github.com/mediago-dev/mediago-drama/services/server/internal/service/workspaceevent"
 )
 
@@ -136,6 +137,7 @@ func newAPIHandler(config Config) *apiHandler {
 	if resolvedCodexPath, err := backendService.CodexExecutable(); err == nil {
 		codexPath = resolvedCodexPath
 		settings.SetCodexCLIPath(codexPath)
+		settings.SetCodexAccountHome(filepath.Join(workspaceState.Dir(), ".mediago-drama", "runtime", "agents", "codex", "official"))
 	}
 	settings.SetModelPlatforms(config.ModelPlatforms)
 	settings.SetGenerationCLIs(config.GenerationCLIs)
@@ -298,6 +300,23 @@ func newAPIHandler(config Config) *apiHandler {
 	billingService := servicebilling.NewService(workspaceRepos.Billing, billingPrices, capabilityRegistry)
 	projectAssets := serviceprojectasset.NewProjectAssetsFromRepository(workspaceRepos.ProjectAssets, mediaDir, workspaceState.Dir(), workspaceRepos.Workspace, workspaceReposErr)
 	selectionService := serviceselection.NewService(workspaceRepos.Selections, workspaceReposErr)
+	var workflowService *serviceworkflow.Service
+	if workspaceReposErr != nil {
+		workflowService = serviceworkflow.NewService(nil, nil, workspaceReposErr)
+	} else {
+		workflowService = serviceworkflow.NewService(workspaceRepos.Workflows, workspaceRepos.WorkflowTemplates, nil)
+	}
+
+	// Keep metadata available while execution is awaiting the shared generation runtime.
+	workflowExecutionService := serviceworkflow.NewExecutionService(
+		workspaceRepos.Workflows,
+		workspaceRepos.WorkflowOutputBindings,
+		workspaceRepos.WorkflowAssets,
+		workspaceRepos.WorkflowNodeTasks,
+		nil,
+		workspaceReposErr,
+	)
+
 	events := appevents.NewBroker(workspaceState.AppendAgentEvent)
 	workspaceEvents := serviceworkspaceevent.NewBroker()
 	agentSessions := appagent.NewSessionService(workspaceState)
@@ -329,6 +348,8 @@ func newAPIHandler(config Config) *apiHandler {
 		backendService:    backendService,
 		generation:        generationService,
 		selection:         selectionService,
+		workflows:         workflowService,
+		workflowExecution: workflowExecutionService,
 		jianyingDraft:     jianyingDraft,
 		mediaAssets:       mediaAssets,
 		previewStreamer:   previewStreamer,
@@ -394,7 +415,7 @@ func newAPIHandler(config Config) *apiHandler {
 					},
 				}
 				if selectedModel := strings.TrimSpace(request.Model.Value); selectedModel != "" {
-					routeID, model, ok := servicegeneration.TextRouteForAgentRuntimeModel(selectedModel)
+					routeID, model, ok := generationService.TextRouteForAgentRuntimeModel(selectedModel)
 					if ok {
 						completion.Executor = servicetextcompletion.ExecutorRoute
 						completion.RouteID = routeID

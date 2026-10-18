@@ -19,6 +19,7 @@ export interface ProviderCardProps {
 	provider: APIKeyProvider;
 	icon: React.ComponentType<{ className?: string }>;
 	hint?: string;
+	children?: React.ReactNode;
 	loginChallenge?: APIKeyLoginChallenge;
 	isSaving?: boolean;
 	isClearing?: boolean;
@@ -29,12 +30,14 @@ export interface ProviderCardProps {
 	onOpenLogin: () => void;
 	onClear: () => void;
 	onConfigure: () => void;
+	onAdvancedSettings?: () => void;
 }
 
 export const ProviderCard: React.FC<ProviderCardProps> = ({
 	provider,
 	icon: Icon,
 	hint,
+	children,
 	loginChallenge,
 	isSaving = false,
 	isClearing = false,
@@ -45,17 +48,22 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 	onOpenLogin,
 	onClear,
 	onConfigure,
+	onAdvancedSettings,
 }) => {
 	const isOAuth = provider.credentialKind === "oauth";
+	const isComingSoon = provider.status === "comingSoon";
+	const isUnavailable = provider.status === "unavailable";
+	const isDisabled = isComingSoon || isUnavailable;
 	const isPending = loginChallenge?.status === "pending";
-	const canConfirm = isPending && Boolean(loginChallenge?.deviceCode);
+	const canConfirm =
+		isPending && Boolean(loginChallenge?.deviceCode || loginChallenge?.verificationUri);
 	const description = hint ?? provider.description;
 
 	return (
 		<div
 			data-testid={`provider-card-${provider.id}`}
 			className={cn(
-				"flex min-h-40 flex-col rounded-lg border border-border bg-card p-4 transition-colors",
+				"flex min-h-40 min-w-0 flex-col rounded-lg border border-border bg-card p-4 transition-colors",
 				"hover:border-primary/30 hover:bg-ide-list-hover",
 			)}
 		>
@@ -70,6 +78,8 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 					configured={provider.configured}
 					isOAuth={isOAuth}
 					isPending={Boolean(isPending)}
+					status={provider.status}
+					runtimeUnavailable={provider.runtime?.available === false}
 				/>
 			</div>
 
@@ -82,15 +92,17 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 			)}
 
 			{isOAuth && isPending ? (
-				<div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+				<div className="mt-2 grid min-w-0 grid-cols-1 gap-1 text-xs text-muted-foreground">
 					{loginChallenge?.userCode ? (
-						<div className="flex items-center gap-2">
-							<span>验证码</span>
-							<span className="font-mono text-foreground">{loginChallenge.userCode}</span>
+						<div className="flex min-w-0 items-center gap-2">
+							<span className="shrink-0">验证码</span>
+							<span className="min-w-0 break-all font-mono text-foreground">
+								{loginChallenge.userCode}
+							</span>
 						</div>
 					) : null}
 					{loginChallenge?.verificationUri ? (
-						<div className="flex items-center gap-2">
+						<div className="flex min-w-0 items-center gap-2">
 							<span className="shrink-0">授权页</span>
 							<span className="min-w-0 truncate font-mono text-foreground">
 								{loginChallenge.verificationUri}
@@ -104,13 +116,28 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 				</div>
 			) : null}
 
+			{children}
+
 			<div className="mt-auto flex items-center justify-end gap-1 pt-3">
-				{isOAuth ? (
+				{isComingSoon || isUnavailable ? (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled
+						aria-label={`配置 ${provider.label}`}
+						className="rounded-md"
+					>
+						<Settings2 />
+						<span>{isComingSoon ? "待接入" : "不可用"}</span>
+					</Button>
+				) : isOAuth ? (
 					<OAuthCardActions
 						canConfirm={canConfirm}
 						configured={provider.configured}
 						isCheckingLogin={isCheckingLogin}
 						isLoggingIn={isLoggingIn}
+						loginDisabled={provider.runtime?.available === false}
 						isPending={Boolean(isPending)}
 						label={provider.label}
 						onConfirmLogin={onConfirmLogin}
@@ -133,10 +160,12 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 				)}
 				<CardMoreMenu
 					provider={provider}
+					disabled={isDisabled && !onAdvancedSettings}
 					isClearing={isClearing}
 					isLoginPending={Boolean(isPending)}
 					canClear={provider.configured || isPending}
 					onClear={onClear}
+					onAdvancedSettings={onAdvancedSettings}
 				/>
 			</div>
 		</div>
@@ -144,6 +173,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
 };
 
 const OAuthCardActions: React.FC<{
+	loginDisabled: boolean;
 	canConfirm: boolean;
 	configured: boolean;
 	isCheckingLogin: boolean;
@@ -154,6 +184,7 @@ const OAuthCardActions: React.FC<{
 	onLogin: () => void;
 	onOpenLogin: () => void;
 }> = ({
+	loginDisabled,
 	canConfirm,
 	configured,
 	isCheckingLogin,
@@ -203,7 +234,7 @@ const OAuthCardActions: React.FC<{
 			type="button"
 			variant={configured ? "outline" : "default"}
 			size="sm"
-			disabled={isLoggingIn}
+			disabled={isLoggingIn || loginDisabled}
 			onClick={onLogin}
 			className="rounded-md"
 			title={`打开 ${label} 登录授权`}
@@ -214,15 +245,66 @@ const OAuthCardActions: React.FC<{
 	);
 };
 
-const CardStatusBadge: React.FC<{ configured: boolean; isOAuth: boolean; isPending: boolean }> = ({
-	configured,
-	isOAuth,
-	isPending,
-}) => {
+const CardStatusBadge: React.FC<{
+	configured: boolean;
+	isOAuth: boolean;
+	isPending: boolean;
+	status?: string;
+	runtimeUnavailable?: boolean;
+}> = ({ configured, isOAuth, isPending, status, runtimeUnavailable }) => {
 	if (isPending) {
 		return (
 			<span className="shrink-0 rounded-control bg-warning-surface px-2 py-0.5 text-[11px] font-medium text-warning-foreground">
-				登录中
+				等待授权
+			</span>
+		);
+	}
+	if (runtimeUnavailable) {
+		return (
+			<span className="shrink-0 rounded-control bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+				CLI 不可用
+			</span>
+		);
+	}
+	if (status === "comingSoon") {
+		return (
+			<span className="shrink-0 rounded-control bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+				待接入
+			</span>
+		);
+	}
+	if (status === "unavailable") {
+		return (
+			<span className="shrink-0 rounded-control bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+				不可用
+			</span>
+		);
+	}
+	if (status === "partial") {
+		return (
+			<span className="shrink-0 rounded-control bg-warning-surface px-2 py-0.5 text-[11px] font-medium text-warning-foreground">
+				{isOAuth && configured ? "已登录 · 权限待确认" : "部分配置"}
+			</span>
+		);
+	}
+	if (status === "loginFailed") {
+		return (
+			<span className="shrink-0 rounded-control bg-error-surface px-2 py-0.5 text-[11px] font-medium text-error-foreground">
+				登录失败
+			</span>
+		);
+	}
+	if (status === "managed") {
+		return (
+			<span className="shrink-0 rounded-control bg-success-surface px-2 py-0.5 text-[11px] font-medium text-success-foreground">
+				已托管
+			</span>
+		);
+	}
+	if (status === "pending") {
+		return (
+			<span className="shrink-0 rounded-control bg-warning-surface px-2 py-0.5 text-[11px] font-medium text-warning-foreground">
+				处理中
 			</span>
 		);
 	}
@@ -242,11 +324,21 @@ const CardStatusBadge: React.FC<{ configured: boolean; isOAuth: boolean; isPendi
 
 const CardMoreMenu: React.FC<{
 	provider: APIKeyProvider;
+	disabled?: boolean;
 	isClearing: boolean;
 	isLoginPending: boolean;
 	canClear: boolean;
 	onClear: () => void;
-}> = ({ provider, isClearing, isLoginPending, canClear, onClear }) => {
+	onAdvancedSettings?: () => void;
+}> = ({
+	provider,
+	disabled: menuDisabled = false,
+	isClearing,
+	isLoginPending,
+	canClear,
+	onClear,
+	onAdvancedSettings,
+}) => {
 	const [open, setOpen] = useState(false);
 	const isOAuth = provider.credentialKind === "oauth";
 	const actionLabel = isLoginPending ? "取消登录" : isOAuth ? "退出登录" : "清除 API Key";
@@ -262,12 +354,27 @@ const CardMoreMenu: React.FC<{
 					aria-label={`${provider.label} 更多操作`}
 					aria-haspopup="menu"
 					aria-expanded={open}
+					disabled={menuDisabled}
 					className="size-8 rounded-md text-muted-foreground"
 				>
 					{isClearing ? <Loader2 className="animate-spin" /> : <Ellipsis />}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="end" sideOffset={4} className="w-44 p-1" role="menu">
+				{onAdvancedSettings ? (
+					<button
+						type="button"
+						role="menuitem"
+						onClick={() => {
+							setOpen(false);
+							onAdvancedSettings();
+						}}
+						className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left text-xs font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
+						<Settings2 className="size-4" />
+						<span>高级设置</span>
+					</button>
+				) : null}
 				<button
 					type="button"
 					role="menuitem"

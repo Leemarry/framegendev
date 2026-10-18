@@ -14,11 +14,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation"
+	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation/clitool"
 )
 
 const (
@@ -415,52 +415,7 @@ func (provider *Provider) generateVideo(ctx context.Context, request generation.
 
 // ResolveBinaryPath resolves an explicit binary, a vendored tools directory, or PATH.
 func ResolveBinaryPath(explicitPath string, binDir string) (string, error) {
-	binaryName := executableName(defaultBinaryName)
-	if explicitPath = strings.TrimSpace(explicitPath); explicitPath != "" {
-		return executableFile(explicitPath)
-	}
-	if binDir = strings.TrimSpace(binDir); binDir != "" {
-		candidates := []string{
-			filepath.Join(binDir, defaultBinaryName, binaryName),
-			filepath.Join(binDir, binaryName),
-		}
-		for _, candidate := range candidates {
-			if path, err := executableFile(candidate); err == nil {
-				return path, nil
-			}
-		}
-	}
-
-	path, err := exec.LookPath(binaryName)
-	if err != nil {
-		return "", fmt.Errorf("jimeng CLI binary %q was not found", binaryName)
-	}
-	return path, nil
-}
-
-func executableName(name string) string {
-	if runtime.GOOS == "windows" && !strings.HasSuffix(strings.ToLower(name), ".exe") {
-		return name + ".exe"
-	}
-	return name
-}
-
-func executableFile(path string) (string, error) {
-	resolved, err := filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("resolving jimeng CLI path %s: %w", path, err)
-	}
-	info, err := os.Stat(resolved)
-	if err != nil {
-		return "", err
-	}
-	if info.IsDir() {
-		return "", fmt.Errorf("jimeng CLI path %s is a directory", resolved)
-	}
-	if runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0 {
-		return "", fmt.Errorf("jimeng CLI path %s is not executable", resolved)
-	}
-	return resolved, nil
+	return clitool.ResolvePath(explicitPath, binDir, "dreamina", defaultBinaryName)
 }
 
 type execCommandRunner struct{}

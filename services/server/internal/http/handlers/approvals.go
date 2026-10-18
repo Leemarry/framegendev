@@ -38,8 +38,9 @@ func NewDocumentToolApprovals(store DocumentToolApprovalStore, isNotFound func(e
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/document-tool-approvals [get]
+// @Router /api/v1/agent/document-tool-approvals [get]
 func (handler DocumentToolApprovals) HandleListDocumentToolApprovals(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
@@ -70,8 +71,9 @@ func (handler DocumentToolApprovals) HandleListDocumentToolApprovals(context *gi
 // @Failure 404 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/document-tool-approvals/{approvalId}/decision [post]
+// @Router /api/v1/agent/document-tool-approvals/{approvalId}/decision [post]
 func (handler DocumentToolApprovals) HandleDecideDocumentToolApproval(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}

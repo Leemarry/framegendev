@@ -1,6 +1,7 @@
 import type { MarkdownDocument } from "./types";
 
 const prefix = "mediago-document-recovery-v1";
+export const documentRecoveryChangedEvent = "document-recovery-changed";
 
 const recoveryKey = (projectId: string) => {
 	let windowId = sessionStorage.getItem(`${prefix}-window`);
@@ -14,6 +15,21 @@ const recoveryKey = (projectId: string) => {
 /** Keep each window's unsaved work separate from other windows and projects. */
 export const persistDocumentRecovery = (projectId: string, documents: MarkdownDocument[]) => {
 	const key = recoveryKey(projectId);
+	const entries = [
+		...listOtherWindowRecoveries(projectId),
+		...readRecoveryAtKey(key).map((document) => ({ key, document })),
+	];
+	for (const entry of entries) {
+		const saved = documents.find((document) => document.id === entry.document.id);
+		if (
+			saved &&
+			!saved.isDirty &&
+			!saved.saveConflict &&
+			isRecoveryAlreadySaved(entry.document, saved)
+		) {
+			archiveRecoveryDraft(entry);
+		}
+	}
 	const dirty = documents.filter((document) => document.isDirty);
 	if (dirty.length) localStorage.setItem(key, JSON.stringify(dirty));
 	else localStorage.removeItem(key);
@@ -27,6 +43,7 @@ const readRecoveryAtKey = (key: string): MarkdownDocument[] => {
 			if (!draft || typeof draft !== "object") return false;
 			const local = draft as Partial<MarkdownDocument>;
 			return (
+				localStorage.getItem(`${key}:handled:${local.id}`) !== JSON.stringify(draft) &&
 				typeof local.id === "string" &&
 				typeof local.title === "string" &&
 				typeof local.content === "string" &&
@@ -64,6 +81,12 @@ export interface DocumentRecoveryDraft {
 	document: MarkdownDocument;
 }
 
+/** Retain the exact reviewed snapshot as a backup; later source edits remain discoverable. */
+export const archiveRecoveryDraft = (entry: Pick<DocumentRecoveryDraft, "key" | "document">) => {
+	localStorage.setItem(`${entry.key}:handled:${entry.document.id}`, JSON.stringify(entry.document));
+	window.dispatchEvent(new Event(documentRecoveryChangedEvent));
+};
+
 /** Other windows may still be alive: discovery never adopts or removes their work. */
 export const listOtherWindowRecoveries = (projectId: string): DocumentRecoveryDraft[] => {
 	const ownKey = recoveryKey(projectId);
@@ -85,7 +108,43 @@ export const listOtherWindowRecoveries = (projectId: string): DocumentRecoveryDr
 
 export const recoverDocument = (projectId: string | null, server: MarkdownDocument) => {
 	const local = readRecovery(projectId).find((document) => document.id === server.id);
-	return local ? { ...local, isDirty: true, saveConflict: { server } } : server;
+	return local && !isRecoveryAlreadySaved(local, server)
+		? { ...local, isDirty: true, saveConflict: { server } }
+		: server;
+};
+
+// Compare saved user content, not transport metadata or the old version number.
+const canonical = (value: unknown) =>
+	JSON.stringify(value, (_key, item: unknown) =>
+		item && typeof item === "object" && !Array.isArray(item)
+			? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
+			: item,
+	);
+
+const isRecoveryAlreadySaved = (draft: MarkdownDocument, saved: MarkdownDocument) => {
+	const fields = (document: MarkdownDocument) => [
+		document.id,
+		document.title,
+		document.content,
+		document.parentId,
+		document.folderId ?? null,
+		document.sortOrder,
+		document.category ?? null,
+		document.tags ?? [],
+		document.workbenchDraft ?? null,
+	];
+	const commentValue = (comment: MarkdownDocument["comments"][number]) => ({
+		...comment,
+		documentId: draft.id,
+		updatedAt: comment.updatedAt ?? comment.createdAt,
+	});
+	return (
+		canonical(fields(draft)) === canonical(fields(saved)) &&
+		draft.comments.every((comment) => {
+			const match = saved.comments.find((item) => item.id === comment.id);
+			return match && canonical(commentValue(comment)) === canonical(commentValue(match));
+		})
+	);
 };
 
 /** Deleted remote documents still need a visible, downloadable recovery copy. */

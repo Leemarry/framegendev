@@ -97,7 +97,7 @@ export const AgentRuntimeConfigControls: React.FC<AgentRuntimeConfigControlsProp
 						className="h-6 bg-transparent px-2 text-xs"
 						onClick={onOpenSettings}
 					>
-						前往设置
+						接入 Codex
 					</Button>
 				</div>
 			</div>
@@ -107,6 +107,14 @@ export const AgentRuntimeConfigControls: React.FC<AgentRuntimeConfigControlsProp
 
 	return (
 		<div className="agent-runtime-config">
+			<AgentRuntimeConfigSelect
+				label="模式"
+				icon={LayoutGrid}
+				config={config?.permission}
+				value={permissionValue}
+				disabled={disabled}
+				onChange={onPermissionChange}
+			/>
 			<AgentRuntimeModelSelect
 				label="模型"
 				config={config?.model}
@@ -121,14 +129,6 @@ export const AgentRuntimeConfigControls: React.FC<AgentRuntimeConfigControlsProp
 				value={reasoningValue}
 				disabled={disabled}
 				onChange={onReasoningChange}
-			/>
-			<AgentRuntimeConfigSelect
-				label="模式"
-				icon={LayoutGrid}
-				config={config?.permission}
-				value={permissionValue}
-				disabled={disabled}
-				onChange={onPermissionChange}
 			/>
 		</div>
 	);
@@ -210,12 +210,22 @@ const AgentRuntimeConfigSelect: React.FC<AgentRuntimeConfigSelectProps> = ({
 						title={option.description}
 						className="agent-config-item"
 					>
-						{option.name}
+						{runtimeOptionLabel(label, option.name)}
 					</SelectItem>
 				))}
 			</SelectContent>
 		</Select>
 	);
+};
+
+const runtimeOptionLabel = (label: string, name: string) => {
+	const labels: Record<string, string> =
+		label === "模式"
+			? { "Read-only": "请求批准", Agent: "工作区自动", "Agent (full access)": "完全访问" }
+			: label === "推理强度"
+				? { low: "低", medium: "中", high: "高", xhigh: "超高", max: "最大", ultra: "极高" }
+				: {};
+	return labels[name] ?? name;
 };
 
 const AgentRuntimeModelSelect: React.FC<AgentRuntimeConfigSelectProps> = ({

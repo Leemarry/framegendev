@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
+	"os/exec"
 
 	"github.com/gin-gonic/gin"
 	httpresponse "github.com/mediago-dev/mediago-drama/services/server/internal/http/response"
@@ -41,6 +43,7 @@ func NewAgentRuntime(inspect AgentRuntimeConfigInspector) AgentRuntime {
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 503 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/runtime-config [get]
+// @Router /api/v1/agent/runtime-config [get]
 func (handler AgentRuntime) HandleAgentRuntimeConfig(context *gin.Context) {
 	if handler.inspect == nil {
 		httpresponse.Fail(
@@ -51,7 +54,7 @@ func (handler AgentRuntime) HandleAgentRuntimeConfig(context *gin.Context) {
 		)
 		return
 	}
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
@@ -60,6 +63,8 @@ func (handler AgentRuntime) HandleAgentRuntimeConfig(context *gin.Context) {
 		publicMessage := agentRuntimeUnavailableMessage
 		if serviceacp.IsAuthenticationRequiredError(err) {
 			publicMessage = agentRuntimeAuthenticationRequiredMessage
+		} else if errors.Is(err, exec.ErrNotFound) || errors.Is(err, os.ErrNotExist) {
+			publicMessage = "未找到 Agent 运行程序，请配置 agent.bin_dir 或安装 codex-acp 后重启服务"
 		}
 		httpresponse.Fail(context, http.StatusServiceUnavailable, publicMessage, err)
 		return

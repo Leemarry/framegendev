@@ -1,3 +1,4 @@
+import { AgentQuickStarts } from "./AgentQuickStarts";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -62,9 +63,15 @@ import { useSettingsNavigationStore } from "@/lib/stores/settings";
 
 interface AgentChatProps {
 	projectId?: string | null;
+	globalScope?: boolean;
+	readOnly?: boolean;
 }
 
-export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId }) => {
+export const AgentChat: React.FC<AgentChatProps> = ({
+	projectId: routeProjectId,
+	globalScope = false,
+	readOnly = false,
+}) => {
 	const navigate = useNavigate();
 	const [attachments, setAttachments] = useState<AgentAttachment[]>([]);
 	const [composerContext, setComposerContext] = useState<ComposerContext>("default");
@@ -80,11 +87,18 @@ export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId 
 	const runtimeAlerts = useAgentStore(selectAgentRuntimeAlerts);
 	const composerSeed = useAgentStore(selectAgentComposerSeed);
 	const consumeComposerSeed = useAgentStore(selectConsumeAgentComposerSeed);
-	const openComments = useDocumentsStore(selectActiveDocumentOpenComments);
+	const projectComments = useDocumentsStore(selectActiveDocumentOpenComments);
+	const activeCommentId = useDocumentsStore((state) => state.activeCommentId);
+	const documentSelection = useDocumentsStore((state) => state.selection);
+	const openComments = globalScope
+		? []
+		: activeCommentId
+			? projectComments.filter((comment) => comment.id === activeCommentId)
+			: projectComments;
 	const activeDocumentId = useDocumentsStore((state) => state.activeDocumentId);
 	const deleteComment = useDocumentsStore((state) => state.deleteComment);
 	const storedProjectId = useProjectStore((state) => state.activeProjectId);
-	const projectId = routeProjectId ?? storedProjectId;
+	const projectId = globalScope ? null : (routeProjectId ?? storedProjectId);
 	const persistedRuntimeConfig = useAgentPersistenceStore((state) =>
 		projectId ? state.runtimeConfigByProject[projectId] : undefined,
 	);
@@ -102,7 +116,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId 
 		attachments.filter((attachment) => attachment.status === "ready"),
 	);
 	const hasOpenComments = openComments.length > 0;
-	const runtimeConfigKey = projectId ? agentRuntimeConfigKey(projectId) : null;
+	const runtimeConfigKey = globalScope || projectId ? agentRuntimeConfigKey(projectId) : null;
 	const {
 		data: runtimeConfig,
 		error: runtimeConfigError,
@@ -210,6 +224,10 @@ export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId 
 			),
 			prompt,
 			references: composerValue.references,
+			selection:
+				documentSelection && documentSelection.documentId === activeDocumentId
+					? documentSelection.text
+					: undefined,
 			reasoning: buildRuntimeConfigSelection(
 				runtimeConfigForSelectedModel?.reasoning,
 				selectedReasoning,
@@ -220,14 +238,29 @@ export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId 
 		if (readyAttachments.length > 0) {
 			setIsSavingAttachments(true);
 			try {
-				const uploadedAssets = await Promise.all(
-					readyAttachments.map((attachment) => uploadAttachmentAsset(attachment, projectId)),
-				);
-				await refreshProjectAssets(projectId);
-				pendingSend.references = uniqueAgentReferences([
-					...pendingSend.references,
-					...uploadedAssets.map(projectAssetReference),
-				]);
+				if (globalScope) {
+					pendingSend.references = uniqueAgentReferences([
+						...pendingSend.references,
+						...readyAttachments.map((attachment) => ({
+							kind: "asset" as const,
+							documentId: attachment.id,
+							assetId: attachment.id,
+							assetKind: attachment.kind,
+							mimeType: attachment.mimeType,
+							title: attachment.name,
+							url: attachment.url,
+						})),
+					]);
+				} else {
+					const uploadedAssets = await Promise.all(
+						readyAttachments.map((attachment) => uploadAttachmentAsset(attachment, projectId)),
+					);
+					await refreshProjectAssets(projectId);
+					pendingSend.references = uniqueAgentReferences([
+						...pendingSend.references,
+						...uploadedAssets.map(projectAssetReference),
+					]);
+				}
 			} catch (err) {
 				useAgentStore
 					.getState()
@@ -247,10 +280,12 @@ export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId 
 
 	const startAgentPrompt = async (pendingSend: PendingAttachmentSend) => {
 		const run = runAgentPrompt(pendingSend.prompt, {
+			globalScope,
 			displayMetadata: pendingSend.displayMetadata,
 			displayPrompt: pendingSend.displayPrompt,
 			model: pendingSend.model,
 			comments: pendingSend.comments,
+			selection: pendingSend.selection,
 			references: pendingSend.references,
 			reasoning: pendingSend.reasoning,
 			permission: pendingSend.permission,
@@ -265,7 +300,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId 
 		if (!isRunning || isStopping) return;
 		setIsStopping(true);
 		try {
-			await stopAgentRun();
+			await stopAgentRun(projectId);
 		} finally {
 			setIsStopping(false);
 		}
@@ -305,7 +340,6 @@ export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId 
 	};
 
 	const updateRuntimeConfigValue = (field: AgentRuntimeConfigField, value: string) => {
-		if (!projectId) return;
 		setRuntimeConfigValue(projectId, field, value);
 	};
 
@@ -339,51 +373,67 @@ export const AgentChat: React.FC<AgentChatProps> = ({ projectId: routeProjectId 
 	return (
 		<section className="agent-chat-shell flex h-full min-h-0 flex-col bg-ide-panel">
 			<div className="min-h-0 flex-1 overflow-hidden">
-				<AgentTimeline
-					className="h-full"
-					messages={messages}
-					isRunning={isRunning}
-					isHydrating={isChatHydrating}
-					runtimeAlerts={runtimeAlerts}
-				/>
+				{!readOnly &&
+				!isChatHydrating &&
+				!isRunning &&
+				messages.length === 0 &&
+				runtimeAlerts.length === 0 ? (
+					<AgentQuickStarts globalScope={globalScope} />
+				) : (
+					<AgentTimeline
+						className="h-full"
+						messages={messages}
+						isRunning={isRunning}
+						isHydrating={isChatHydrating}
+						runtimeAlerts={runtimeAlerts}
+					/>
+				)}
 			</div>
-			<PendingPermissionRequests />
-			<AgentLivePlan isRunning={isRunning} messages={messages} />
-			<AgentChatComposerForm
-				attachments={attachments}
-				canSubmit={canSubmit}
-				composerContext={composerContext}
-				composerRef={composerRef}
-				disabled={isRunning || isSavingAttachments}
-				fileInputRef={fileInputRef}
-				isRuntimeConfigLoading={
-					isRuntimeConfigLoading || isRuntimeConfigValidating || !isAgentPersistenceHydrated
-				}
-				isSkillsLoading={isSkillsLoading}
-				isStopping={isStopping}
-				openComments={openComments}
-				permissionValue={selectedPermission}
-				reasoningValue={selectedReasoning}
-				runtimeConfig={runtimeConfigForSelectedModel}
-				runtimeConfigErrorMessage={
-					runtimeConfigError ? getRuntimeConfigError(runtimeConfigError) : ""
-				}
-				selectedModel={selectedModel}
-				skillItems={skillItems}
-				skillsErrorMessage={skillsError ? "Skill 列表加载失败" : ""}
-				onAttachFiles={(event) => void attachFiles(event)}
-				onComposerChange={handleComposerChange}
-				onModelChange={(value) => updateRuntimeConfigValue("model", value)}
-				onOpenRuntimeSettings={openRuntimeSettings}
-				onPermissionChange={(value) => updateRuntimeConfigValue("permission", value)}
-				onReasoningChange={(value) => updateRuntimeConfigValue("reasoning", value)}
-				onRemoveAttachment={removeAttachment}
-				onRemoveComment={removeComment}
-				onRetryRuntimeConfig={() => void retryRuntimeConfig()}
-				onRunPrompt={() => void runPrompt()}
-				onStopRun={() => void stopRun()}
-				onSubmit={submit}
-			/>
+			{!readOnly && <PendingPermissionRequests />}
+			{!readOnly && <AgentLivePlan isRunning={isRunning} messages={messages} />}
+			{readOnly ? (
+				<p className="shrink-0 border-t border-border px-4 py-3 text-center text-xs text-muted-foreground">
+					已归档会话 · 只读
+				</p>
+			) : (
+				<AgentChatComposerForm
+					attachments={attachments}
+					canSubmit={canSubmit}
+					composerContext={composerContext}
+					composerRef={composerRef}
+					disabled={readOnly || isRunning || isSavingAttachments}
+					readOnly={readOnly}
+					globalScope={globalScope}
+					fileInputRef={fileInputRef}
+					isRuntimeConfigLoading={
+						isRuntimeConfigLoading || isRuntimeConfigValidating || !isAgentPersistenceHydrated
+					}
+					isSkillsLoading={isSkillsLoading}
+					isStopping={isStopping}
+					openComments={openComments}
+					permissionValue={selectedPermission}
+					reasoningValue={selectedReasoning}
+					runtimeConfig={runtimeConfigForSelectedModel}
+					runtimeConfigErrorMessage={
+						runtimeConfigError ? getRuntimeConfigError(runtimeConfigError) : ""
+					}
+					selectedModel={selectedModel}
+					skillItems={skillItems}
+					skillsErrorMessage={skillsError ? "Skill 列表加载失败" : ""}
+					onAttachFiles={(event) => void attachFiles(event)}
+					onComposerChange={handleComposerChange}
+					onModelChange={(value) => updateRuntimeConfigValue("model", value)}
+					onOpenRuntimeSettings={openRuntimeSettings}
+					onPermissionChange={(value) => updateRuntimeConfigValue("permission", value)}
+					onReasoningChange={(value) => updateRuntimeConfigValue("reasoning", value)}
+					onRemoveAttachment={removeAttachment}
+					onRemoveComment={removeComment}
+					onRetryRuntimeConfig={() => void retryRuntimeConfig()}
+					onRunPrompt={() => void runPrompt()}
+					onStopRun={() => void stopRun()}
+					onSubmit={submit}
+				/>
+			)}
 		</section>
 	);
 };
@@ -454,6 +504,7 @@ interface PendingAttachmentSend {
 	reasoning: RuntimeConfigSelection;
 	references: AgentComposerValue["references"];
 	comments: DocumentComment[];
+	selection?: string;
 }
 
 const uniqueAgentAttachments = (attachments: AgentAttachment[]) => {

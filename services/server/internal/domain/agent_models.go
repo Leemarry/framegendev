@@ -10,6 +10,7 @@ type AgentSessionModel struct {
 	ACPSessionID           string     `gorm:"column:acp_session_id;not null;default:''"`
 	ACPInstructionHash     string     `gorm:"column:acp_instruction_hash;not null;default:''"`
 	LastStatus             string     `gorm:"column:last_status;not null;default:'';index:agent_sessions_status_idx"`
+	Lifecycle              string     `gorm:"column:lifecycle;not null;default:'active';index:agent_sessions_lifecycle_idx"`
 	LastMessage            string     `gorm:"column:last_message;not null;default:''"`
 	ActiveWorkflowID       *string    `gorm:"column:active_workflow_id;index:agent_sessions_active_workflow_idx"`
 	PendingFinalDeliveryID *string    `gorm:"column:pending_final_delivery_id;index:agent_sessions_pending_final_idx"`

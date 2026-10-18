@@ -63,10 +63,11 @@ export class ManagedEventSource {
 			fetchEventSource: options.fetchEventSource ?? fetchEventSource,
 			heartbeatTimeoutMs: options.heartbeatTimeoutMs ?? defaultHeartbeatTimeoutMs,
 			maxReconnectDelayMs: options.maxReconnectDelayMs ?? defaultMaxReconnectDelayMs,
-			openWhenHidden: options.openWhenHidden ?? true,
+			openWhenHidden: options.openWhenHidden ?? false,
 			reconnectDelayMs: options.reconnectDelayMs ?? defaultReconnectDelayMs,
 		};
 		this.lastEventId = options.initialLastEventId?.trim() || null;
+		document.addEventListener("visibilitychange", this.handleVisibilityChange);
 		this.connect();
 		this.startHeartbeatMonitor();
 	}
@@ -93,6 +94,7 @@ export class ManagedEventSource {
 
 	close() {
 		this.closed = true;
+		document.removeEventListener("visibilitychange", this.handleVisibilityChange);
 		this.clearReconnectTimer();
 		this.clearHeartbeatTimer();
 		this.abortActiveConnection();
@@ -103,7 +105,7 @@ export class ManagedEventSource {
 	}
 
 	private connect() {
-		if (this.closed) return;
+		if (this.closed || (!this.options.openWhenHidden && document.hidden)) return;
 
 		this.lastActivityAt = Date.now();
 		const connectionId = ++this.connectionId;
@@ -112,7 +114,8 @@ export class ManagedEventSource {
 		this.readyStateValue = connectingReadyState;
 
 		const requestOptions: FetchEventSourceInit = {
-			openWhenHidden: this.options.openWhenHidden,
+			// Visibility is handled here so reconnect URLs retain the last event id.
+			openWhenHidden: true,
 			signal: abortController.signal,
 			onclose: () => {
 				if (!this.isActiveConnection(connectionId, abortController)) return;
@@ -143,6 +146,17 @@ export class ManagedEventSource {
 			() => this.scheduleReconnect(connectionId, abortController),
 		);
 	}
+
+	private handleVisibilityChange = () => {
+		if (this.closed || this.options.openWhenHidden) return;
+		if (document.hidden) {
+			// Release HTTP/1 connection slots for the foreground tab's API requests.
+			this.clearReconnectTimer();
+			this.abortActiveConnection();
+		} else if (!this.abortController) {
+			this.connect();
+		}
+	};
 
 	private createUrl() {
 		return typeof this.options.url === "function"

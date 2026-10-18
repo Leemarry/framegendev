@@ -38,8 +38,9 @@ func NewAgentSelections(store AgentSelectionStore, isNotFound func(error) bool) 
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/selections [get]
+// @Router /api/v1/agent/selections [get]
 func (handler AgentSelections) HandleListAgentSelections(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
@@ -68,8 +69,9 @@ func (handler AgentSelections) HandleListAgentSelections(context *gin.Context) {
 // @Failure 404 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/selections/{selectionId} [get]
+// @Router /api/v1/agent/selections/{selectionId} [get]
 func (handler AgentSelections) HandleGetAgentSelection(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
@@ -103,8 +105,9 @@ func (handler AgentSelections) HandleGetAgentSelection(context *gin.Context) {
 // @Failure 404 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/selections/{selectionId}/decision [post]
+// @Router /api/v1/agent/selections/{selectionId}/decision [post]
 func (handler AgentSelections) HandleDecideAgentSelection(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}

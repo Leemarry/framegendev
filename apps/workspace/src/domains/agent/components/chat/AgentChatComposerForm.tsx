@@ -18,6 +18,7 @@ import {
 import type { DocumentComment } from "@/domains/documents/stores";
 
 const defaultComposerPlaceholder = "告诉智能体要在当前文档中插入或改写什么";
+const globalComposerPlaceholder = "向 Drami 提问，或让它创建和修改技能包内容";
 const referenceComposerPlaceholder =
 	"问我关于这份资料的任何问题：整理前 30 章、梳理人物与剧情、概括全文…";
 
@@ -26,6 +27,8 @@ export type ComposerContext = "default" | "reference";
 export const AgentChatComposerForm: React.FC<{
 	attachments: AgentAttachment[];
 	canSubmit: boolean;
+	globalScope?: boolean;
+	readOnly?: boolean;
 	composerContext: ComposerContext;
 	composerRef: React.RefObject<AgentComposerHandle | null>;
 	disabled: boolean;
@@ -56,9 +59,11 @@ export const AgentChatComposerForm: React.FC<{
 }> = ({
 	attachments,
 	canSubmit,
+	globalScope = false,
 	composerContext,
 	composerRef,
 	disabled,
+	readOnly = false,
 	fileInputRef,
 	isRuntimeConfigLoading,
 	isSkillsLoading,
@@ -115,12 +120,15 @@ export const AgentChatComposerForm: React.FC<{
 				ref={composerRef}
 				className="agent-composer-main"
 				disabled={disabled}
+				globalScope={globalScope}
 				placeholder={
 					openComments.length > 0
 						? "可直接发送，让智能体处理未解决批注"
-						: composerContext === "reference"
-							? referenceComposerPlaceholder
-							: defaultComposerPlaceholder
+						: globalScope
+							? globalComposerPlaceholder
+							: composerContext === "reference"
+								? referenceComposerPlaceholder
+								: defaultComposerPlaceholder
 				}
 				onChange={onComposerChange}
 				onSubmit={() => {
@@ -133,41 +141,46 @@ export const AgentChatComposerForm: React.FC<{
 			/>
 		</div>
 		<div className="agent-composer-footer">
-			<AgentRuntimeConfigControls
-				config={runtimeConfig}
-				modelValue={selectedModel}
-				reasoningValue={reasoningValue}
-				permissionValue={permissionValue}
-				disabled={disabled}
-				errorMessage={runtimeConfigErrorMessage}
-				isLoading={isRuntimeConfigLoading}
-				onModelChange={onModelChange}
-				onOpenSettings={onOpenRuntimeSettings}
-				onReasoningChange={onReasoningChange}
-				onPermissionChange={onPermissionChange}
-				onRetry={onRetryRuntimeConfig}
-			/>
-			<div className="agent-composer-actions">
-				<span className="agent-composer-hint">@ 引用文档 · Enter 发送</span>
+			<div className="flex min-w-0 flex-wrap items-center gap-1">
 				<Button
 					type="button"
 					variant="outline"
 					size="icon"
 					className="agent-composer-icon-button"
 					aria-label="上传附件"
-					disabled={disabled}
+					disabled={disabled || readOnly}
 					onClick={() => fileInputRef.current?.click()}
 				>
 					<Paperclip />
 				</Button>
-				{disabled ? (
+				<AgentRuntimeConfigControls
+					config={runtimeConfig}
+					modelValue={selectedModel}
+					reasoningValue={reasoningValue}
+					permissionValue={permissionValue}
+					disabled={disabled}
+					errorMessage={runtimeConfigErrorMessage}
+					isLoading={isRuntimeConfigLoading}
+					onModelChange={onModelChange}
+					onOpenSettings={onOpenRuntimeSettings}
+					onReasoningChange={onReasoningChange}
+					onPermissionChange={onPermissionChange}
+					onRetry={onRetryRuntimeConfig}
+				/>
+			</div>
+			<div className="agent-composer-actions">
+				<span className="agent-composer-hint">
+					{globalScope ? "/ 选择技能包内容 · Enter 发送" : "@ 引用文档 · / 调起 Skill · Enter 发送"}
+				</span>
+
+				{readOnly ? null : disabled ? (
 					<Button
 						type="button"
 						size="sm"
 						variant="destructive"
 						className="agent-stop-button h-8 px-2.5"
 						aria-label="终止运行"
-						disabled={isStopping}
+						disabled={isStopping || readOnly}
 						onClick={onStopRun}
 					>
 						{isStopping ? <Loader2 className="animate-spin" /> : <Square />}
@@ -179,7 +192,7 @@ export const AgentChatComposerForm: React.FC<{
 						size="sm"
 						className="agent-send-button h-8 px-2.5"
 						aria-label="发送消息"
-						disabled={!canSubmit}
+						disabled={!canSubmit || readOnly}
 					>
 						<SendHorizontal />
 						<span>发送</span>

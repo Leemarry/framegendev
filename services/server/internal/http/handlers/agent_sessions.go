@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	httpresponse "github.com/mediago-dev/mediago-drama/services/server/internal/http/response"
+	"github.com/mediago-dev/mediago-drama/services/server/internal/repository"
 	service "github.com/mediago-dev/mediago-drama/services/server/internal/service/agent"
 )
 
@@ -17,6 +19,13 @@ type SessionService interface {
 	List(projectID string) []service.AgentSessionSummary
 	Status(sessionID string) service.AgentSessionStatus
 	CancelRun(sessionID string) (service.AgentSessionStatus, bool)
+}
+
+type sessionLifecycleService interface {
+	ListArchivedGlobal() []service.AgentSessionSummary
+	Archive(string) error
+	Restore(string) error
+	Delete(string) error
 }
 
 // AgentSessions handles agent session HTTP routes.
@@ -53,8 +62,9 @@ func NewAgentSessions(
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/sessions [post]
+// @Router /api/v1/agent/sessions [post]
 func (handler AgentSessions) HandleCreateSession(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
@@ -108,15 +118,134 @@ func (handler AgentSessions) HandleCreateSession(context *gin.Context) {
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/sessions [get]
+// @Router /api/v1/agent/sessions [get]
 func (handler AgentSessions) HandleListAgentSessions(context *gin.Context) {
 	writeNoStoreHeaders(context)
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}
 	httpresponse.OK(context, service.AgentSessionsResponse{
 		Sessions: handler.store.List(projectID),
 	})
+}
+
+// HandleListRunningAgentSessions godoc
+// @Summary 获取运行中的 Agent 会话
+// @Tags Agent
+// @Produce json
+// @Success 200 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/agent/sessions/running [get]
+// @Router /api/v1/agent/sessions/running [get]
+func (handler AgentSessions) HandleListRunningAgentSessions(context *gin.Context) {
+	writeNoStoreHeaders(context)
+	projectID, ok := agentProjectID(context)
+	if !ok {
+		return
+	}
+	sessions := handler.store.List(projectID)
+	running := make([]service.AgentSessionSummary, 0, len(sessions))
+	for _, session := range sessions {
+		if session.Running {
+			running = append(running, session)
+		}
+	}
+	httpresponse.OK(context, service.AgentSessionsResponse{Sessions: running})
+}
+
+// HandleListArchivedAgentSessions godoc
+// @Summary 获取归档 Agent 会话
+// @Tags Agent
+// @Produce json
+// @Success 200 {object} SwaggerEnvelope
+// @Router /api/v1/agent/sessions/archived [get]
+// @Router /api/v1/projects/{projectId}/agent/sessions/archived [get]
+func (handler AgentSessions) HandleListArchivedAgentSessions(context *gin.Context) {
+	writeNoStoreHeaders(context)
+	if scoped, ok := handler.store.(sessionLifecycleService); ok {
+		httpresponse.OK(context, service.AgentSessionsResponse{Sessions: scoped.ListArchivedGlobal()})
+		return
+	}
+	httpresponse.OK(context, service.AgentSessionsResponse{Sessions: []service.AgentSessionSummary{}})
+}
+
+func (handler AgentSessions) mutateLifecycle(context *gin.Context, action string) {
+	sessionID, ok := requiredPathParam(context, "sessionId", "sessionId")
+	if !ok {
+		return
+	}
+	projectID, ok := agentProjectID(context)
+	if !ok {
+		return
+	}
+	if projectID == "" && handler.status(sessionID).ProjectID != "" {
+		httpresponse.Error(context, http.StatusNotFound, "全局会话不存在")
+		return
+	}
+	scoped, ok := handler.store.(sessionLifecycleService)
+	if !ok {
+		httpresponse.Error(context, http.StatusServiceUnavailable, "agent session lifecycle is unavailable")
+		return
+	}
+	var err error
+	switch action {
+	case "archive":
+		err = scoped.Archive(sessionID)
+	case "restore":
+		err = scoped.Restore(sessionID)
+	case "delete":
+		err = scoped.Delete(sessionID)
+	}
+	if err != nil {
+		if errors.Is(err, repository.ErrAgentCommandConflict) {
+			httpresponse.Error(context, http.StatusConflict, "运行中的会话不能归档")
+			return
+		}
+		if errors.Is(err, repository.ErrRecordNotFound) {
+			httpresponse.Error(context, http.StatusNotFound, "会话不存在")
+			return
+		}
+		httpresponse.Fail(context, http.StatusInternalServerError, "internal error", err)
+		return
+	}
+	if action == "delete" {
+		httpresponse.OK(context, map[string]bool{"deleted": true})
+		return
+	}
+	httpresponse.OK(context, handler.status(sessionID))
+}
+
+// HandleArchiveAgentSession godoc
+// @Summary 归档 Agent 会话
+// @Tags Agent
+// @Produce json
+// @Success 200 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId}/archive [post]
+// @Router /api/v1/agent/sessions/{sessionId}/archive [post]
+func (handler AgentSessions) HandleArchiveAgentSession(context *gin.Context) {
+	handler.mutateLifecycle(context, "archive")
+}
+
+// HandleRestoreAgentSession godoc
+// @Summary 恢复 Agent 会话
+// @Tags Agent
+// @Produce json
+// @Success 200 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId}/restore [post]
+// @Router /api/v1/agent/sessions/{sessionId}/restore [post]
+func (handler AgentSessions) HandleRestoreAgentSession(context *gin.Context) {
+	handler.mutateLifecycle(context, "restore")
+}
+
+// HandleDeleteAgentSession godoc
+// @Summary 永久删除 Agent 会话
+// @Tags Agent
+// @Produce json
+// @Success 200 {object} SwaggerEnvelope
+// @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId} [delete]
+// @Router /api/v1/agent/sessions/{sessionId} [delete]
+func (handler AgentSessions) HandleDeleteAgentSession(context *gin.Context) {
+	handler.mutateLifecycle(context, "delete")
 }
 
 // HandleAgentSessionStatus godoc
@@ -131,6 +260,7 @@ func (handler AgentSessions) HandleListAgentSessions(context *gin.Context) {
 // @Failure 404 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId}/status [get]
+// @Router /api/v1/agent/sessions/{sessionId}/status [get]
 func (handler AgentSessions) HandleAgentSessionStatus(context *gin.Context) {
 	writeNoStoreHeaders(context)
 	sessionID, ok := requiredPathParam(context, "sessionId", "sessionId")
@@ -161,6 +291,7 @@ func (handler AgentSessions) HandleAgentSessionStatus(context *gin.Context) {
 // @Failure 404 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId}/cancel [post]
+// @Router /api/v1/agent/sessions/{sessionId}/cancel [post]
 func (handler AgentSessions) HandleCancelAgentSession(context *gin.Context) {
 	sessionID, ok := requiredPathParam(context, "sessionId", "sessionId")
 	if !ok {

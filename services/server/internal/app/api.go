@@ -25,6 +25,7 @@ import (
 	servicesettings "github.com/mediago-dev/mediago-drama/services/server/internal/service/settings"
 	serviceshared "github.com/mediago-dev/mediago-drama/services/server/internal/service/shared"
 	serviceskill "github.com/mediago-dev/mediago-drama/services/server/internal/service/skill"
+	serviceworkflow "github.com/mediago-dev/mediago-drama/services/server/internal/service/workflow"
 	serviceworkspaceevent "github.com/mediago-dev/mediago-drama/services/server/internal/service/workspaceevent"
 )
 
@@ -46,6 +47,8 @@ type apiHandler struct {
 	billing           *servicebilling.Service
 	generation        *servicegeneration.GenerationService
 	selection         *serviceselection.Service
+	workflows         *serviceworkflow.Service
+	workflowExecution *serviceworkflow.ExecutionService
 	jianyingDraft     *servicejianyingdraft.Service
 	mediaAssets       *servicemedia.MediaAssets
 	previewStreamer   *servicemedia.FFmpegPreviewStreamer

@@ -52,7 +52,27 @@ const emitMessage = (call: FetchEventSourceCall, event: string, data: string, id
 
 describe("ManagedEventSource", () => {
 	afterEach(() => {
+		vi.restoreAllMocks();
 		vi.useRealTimers();
+	});
+
+	it("releases hidden tab connections and resumes from the latest event without reconnecting after close", () => {
+		const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+		const { calls, fetchEventSource } = createFetchEventSourceHarness();
+		const managed = new ManagedEventSource({
+			url: (id) => `/events?after=${id ?? ""}`,
+			fetchEventSource,
+		});
+		emitMessage(calls[0]!, "message", "{}", "42");
+		hidden.mockReturnValue(true);
+		document.dispatchEvent(new Event("visibilitychange"));
+		expect(calls[0]!.aborted).toBe(true);
+		hidden.mockReturnValue(false);
+		document.dispatchEvent(new Event("visibilitychange"));
+		expect(calls[1]!.input).toBe("/events?after=42");
+		managed.close();
+		document.dispatchEvent(new Event("visibilitychange"));
+		expect(calls).toHaveLength(2);
 	});
 
 	it("reconnects with the latest SSE id and preserves event listeners", async () => {

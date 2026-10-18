@@ -39,6 +39,7 @@ func NewAgentPermissions(resolver AgentPermissionResolver) AgentPermissions {
 // @Failure 409 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId}/permission-requests/{requestId}/decision [post]
+// @Router /api/v1/agent/sessions/{sessionId}/permission-requests/{requestId}/decision [post]
 func (handler AgentPermissions) HandleDecideAgentPermission(context *gin.Context) {
 	if handler.resolver == nil {
 		httpresponse.Error(context, http.StatusServiceUnavailable, "agent runtime is unavailable")

@@ -524,3 +524,10 @@
 		--rjv-null-color: var(--muted-foreground);
 	}
 }
+
+:root {
+	--drami-face-light: #c7defe;
+	--drami-face-mid: #76a5f5;
+	--drami-face-dark: #2456c0;
+	--drami-eye: #1c2c40;
+}

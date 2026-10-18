@@ -45,6 +45,7 @@ import {
 import {
 	agentProjectPath,
 	agentProjectRouteState,
+	getRouteAgentSessionId,
 	getRouteAssetId,
 	getRouteDocumentId,
 	getRouteProjectId,
@@ -65,7 +66,11 @@ import { openAgentProjectCreateDialog } from "./AgentProjectCreateDialog";
 import { openNewDocumentDialog, type NewDocumentDialogChoice } from "./NewDocumentDialog";
 import { openNewReferenceDocumentDialog } from "./NewReferenceDocumentDialog";
 import { SettingsSidebarPanel, StudioSessionsScreen } from "./ProjectNavigatorPanels";
-import { ProjectSidebarPanel, ProjectsSidebarPanel } from "./ProjectNavigatorProjectPanels";
+import {
+	GlobalAgentSidebarPanel,
+	ProjectSidebarPanel,
+	ProjectsSidebarPanel,
+} from "./ProjectNavigatorProjectPanels";
 import type { StudioTab } from "./ProjectNavigatorTypes";
 import { ProjectDocumentSearchDialog } from "./ProjectDocumentSearchDialog";
 import { subscribeDesktopMenuCommands } from "@/shared/desktop/actions";
@@ -180,19 +185,15 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 		setAgentLayoutTab("document");
 	}, [setAgentLayoutTab]);
 
-	const showAgentPane = useCallback(() => {
-		setAgentLayoutTab("agent");
-	}, [setAgentLayoutTab]);
-
 	const openProject = useCallback(
 		(project: WorkspaceProject) => {
-			showAgentPane();
+			showDocumentPane();
 			setActiveProjectId(project.id);
 			navigate(agentProjectPath(project.id), {
-				state: agentProjectRouteState("agent"),
+				state: agentProjectRouteState("document"),
 			});
 		},
-		[navigate, setActiveProjectId, showAgentPane],
+		[navigate, setActiveProjectId, showDocumentPane],
 	);
 
 	const archiveSidebarProject = useCallback(
@@ -392,6 +393,13 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 		navigate("/");
 	}, [navigate, setActiveProjectId]);
 
+	const openGlobalSession = useCallback(
+		(sessionId: string) => {
+			navigate(sessionId ? `/agent?agentSessionId=${encodeURIComponent(sessionId)}` : "/agent");
+		},
+		[navigate],
+	);
+
 	const returnFromSettings = useCallback(() => {
 		const target = resolveSettingsReturn(
 			location.state,
@@ -542,10 +550,10 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 				const project = await createProject({ name: projectName });
 				await mutate();
 				await mutateSWR(projectsKey);
-				showAgentPane();
+				showDocumentPane();
 				setActiveProjectId(project.id);
 				navigate(agentProjectPath(project.id), {
-					state: agentProjectRouteState("agent"),
+					state: agentProjectRouteState("document"),
 				});
 				toast.success("项目已创建", { description: project.name });
 			} catch (err) {
@@ -555,7 +563,7 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 				setIsCreating(false);
 			}
 		},
-		[isCreating, mutate, navigate, setActiveProjectId, showAgentPane, toast],
+		[isCreating, mutate, navigate, setActiveProjectId, showDocumentPane, toast],
 	);
 
 	const openAgentCreateDialog = useCallback(() => {
@@ -683,6 +691,30 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ activeProjec
 								id: "studio-conversations",
 								level: sidebarScreenLevel("studio-conversations"),
 								node: null,
+							},
+							{
+								id: "global-agent",
+								level: sidebarScreenLevel("global-agent"),
+								node: (
+									<GlobalAgentSidebarPanel
+										activeSessionId={getRouteAgentSessionId(location.search)}
+										onBack={returnToProjects}
+										onOpenArchive={() => navigate("/agent/archived")}
+										onOpenSession={openGlobalSession}
+									/>
+								),
+							},
+							{
+								id: "global-agent-archive",
+								level: sidebarScreenLevel("global-agent-archive"),
+								node: (
+									<GlobalAgentSidebarPanel
+										activeSessionId={getRouteAgentSessionId(location.search)}
+										archived
+										onBack={() => navigate("/agent")}
+										onOpenSession={openGlobalSession}
+									/>
+								),
 							},
 							{
 								id: "settings",

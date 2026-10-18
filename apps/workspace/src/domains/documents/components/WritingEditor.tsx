@@ -61,6 +61,10 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({
 	const [commentOffsets, setCommentOffsets] = useState<Record<string, number>>({});
 	const [historyOpen, setHistoryOpen] = useState(false);
 	const editorRef = useRef<MarkdownHybridEditorHandle>(null);
+	const setEditorHandle = useCallback((handle: MarkdownHybridEditorHandle | null) => {
+		editorRef.current = handle;
+		registerEditor(handle);
+	}, []);
 	const mainRef = useRef<HTMLElement>(null);
 	const location = useLocation();
 	const projectId = getRouteProjectId(location.search);
@@ -111,11 +115,6 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({
 		setSelectionRange(null);
 	}, [activeDocument?.id]);
 
-	useEffect(() => {
-		registerEditor(editorRef.current);
-		return () => registerEditor(null);
-	}, [activeDocument?.id]);
-
 	const measureCommentMarkers = useCallback(() => {
 		const container = mainRef.current;
 		const editorRoot = document.querySelector<HTMLElement>(".tiptap-content");
@@ -125,7 +124,7 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({
 		const anchorResolver = createDOMTextAnchorResolver(editorRoot);
 		const nextOffsets: Record<string, number> = {};
 		for (const comment of activeDocument.comments) {
-			const anchorRect = anchorResolver.findRect(comment.anchor, { fallbackToToken: true });
+			const anchorRect = anchorResolver.findRect(comment.anchor);
 			if (anchorRect) {
 				nextOffsets[comment.id] = anchorRect.top - containerRect.top + container.scrollTop;
 			}
@@ -167,10 +166,18 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({
 
 	const focusCommentAnchor = useCallback(
 		(commentId: string) => {
+			const comment = activeDocument?.comments.find((item) => item.id === commentId);
 			focusComment(commentId);
+			if (comment) {
+				editorRef.current?.setSelection({
+					blockId: "",
+					range: { start: 0, end: 0 },
+					quote: comment.anchor.quote || comment.anchorText,
+				});
+			}
 			setSelectionCoords(null);
 		},
-		[focusComment],
+		[activeDocument?.comments, focusComment],
 	);
 
 	const openSectionGeneration = useCallback(
@@ -200,7 +207,11 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({
 
 	return (
 		<>
-			<main ref={mainRef} className="relative h-full min-h-0 flex-1 overflow-y-auto bg-ide-editor">
+			<main
+				ref={mainRef}
+				data-document-scroll-container=""
+				className="relative h-full min-h-0 min-w-0 flex-1 overflow-y-auto bg-ide-editor"
+			>
 				<div className="project-writing-page mx-auto min-h-full w-full max-w-6xl px-4 py-4 transition-[padding-bottom] duration-200 ease-out">
 					<section className="min-w-0">
 						{showHeaderActions ? (
@@ -275,7 +286,7 @@ export const WritingEditor: React.FC<WritingEditorProps> = ({
 						>
 							<MarkdownHybridEditor
 								key={activeDocument.id}
-								ref={editorRef}
+								ref={setEditorHandle}
 								activeCommentId={activeCommentId}
 								comments={activeDocument.comments}
 								documentId={activeDocument.id}

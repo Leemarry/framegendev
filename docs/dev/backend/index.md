@@ -10,6 +10,7 @@ Generic template Viper/Zap examples and paths differ; reuse verified code.
 | [Database](database-guidelines.md)            | Repositories and migrations |
 | [Errors](error-handling.md)                   | Envelopes and safe failures |
 | [Logging](logging-guidelines.md)              | Existing slog platform      |
+| [Codex runtime](codex-runtime.md)             | Codex agent backend setup   |
 | [Quality](quality-guidelines.md)              | Gates and isolation         |
 
 

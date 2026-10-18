@@ -93,7 +93,7 @@ describe("AgentRuntimeConfigControls", () => {
 		expect(screen.queryByLabelText("模型")).toBeNull();
 
 		fireEvent.click(screen.getByRole("button", { name: "重试" }));
-		fireEvent.click(screen.getByRole("button", { name: "前往设置" }));
+		fireEvent.click(screen.getByRole("button", { name: "接入 Codex" }));
 
 		expect(onRetry).toHaveBeenCalledTimes(1);
 		expect(onOpenSettings).toHaveBeenCalledTimes(1);

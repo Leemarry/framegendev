@@ -66,6 +66,8 @@ export type {
 
 export type AgentSession = AgentSessionResponse;
 
+export type AgentScope = { kind: "global" } | { kind: "project"; projectId: string };
+
 export type AgentSessionsPayload = AgentSessionsResponse;
 
 export type AgentMessageAccepted = AgentMessageResponse;
@@ -104,10 +106,18 @@ export type AgentChatAppendRequest = Omit<GeneratedAgentChatAppendRequest, "mess
 	messages: AgentMessage[];
 };
 
-const projectAgentPath = (projectId: string | null | undefined, path: string) => {
-	const id = projectId?.trim();
+export const agentScopePath = (scope: AgentScope, path: string) => {
+	if (scope.kind === "global") return `/agent${path}`;
+	const id = scope.projectId.trim();
 	if (!id) throw new Error("projectId is required");
 	return `/projects/${encodeURIComponent(id)}/agent${path}`;
+};
+
+const projectAgentPath = (projectId: string | null | undefined, path: string) => {
+	const id = projectId?.trim();
+	return id
+		? agentScopePath({ kind: "project", projectId: id }, path)
+		: agentScopePath({ kind: "global" }, path);
 };
 
 export type AgentRuntimeACPLocation = GeneratedAgentACPLocation;
@@ -220,6 +230,7 @@ export const isAgentRuntimeConfigKey = (key: unknown) =>
 export const getAgentRuntimeConfig = async (projectId?: string | null) => {
 	const response = await httpClient.get<AgentRuntimeConfigPayload>(
 		agentRuntimeConfigKey(projectId),
+		{ timeout: 60000 },
 	);
 	return response.data;
 };
@@ -267,6 +278,34 @@ export const listAgentSessions = async (projectId?: string | null) => {
 		noStoreGetConfig(),
 	);
 	return response.data.sessions;
+};
+
+export const listArchivedAgentSessions = async () => {
+	const response = await httpClient.get<AgentSessionsPayload>(
+		agentScopePath({ kind: "global" }, "/sessions/archived"),
+		noStoreGetConfig(),
+	);
+	return response.data.sessions;
+};
+
+export const archiveAgentSession = async (sessionId: string, projectId?: string | null) => {
+	const response = await httpClient.post<AgentSessionStatus>(
+		projectAgentPath(projectId, `/sessions/${encodeURIComponent(sessionId)}/archive`),
+	);
+	return response.data;
+};
+
+export const restoreAgentSession = async (sessionId: string, projectId?: string | null) => {
+	const response = await httpClient.post<AgentSessionStatus>(
+		projectAgentPath(projectId, `/sessions/${encodeURIComponent(sessionId)}/restore`),
+	);
+	return response.data;
+};
+
+export const deleteAgentSession = async (sessionId: string, projectId?: string | null) => {
+	await httpClient.delete(
+		projectAgentPath(projectId, `/sessions/${encodeURIComponent(sessionId)}`),
+	);
 };
 
 export const sendAgentMessage = async (request: AgentMessageRequest, projectId?: string | null) => {

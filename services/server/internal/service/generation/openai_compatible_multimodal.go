@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	coregeneration "github.com/mediago-dev/mediago-drama/packages/core/pkg/generation"
+	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation/custom"
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/generation/runtime"
 	"github.com/mediago-dev/mediago-drama/packages/core/pkg/multimodal"
 )
@@ -115,6 +116,13 @@ func (workflow *GenerationService) CompleteMultimodal(ctx context.Context, reque
 }
 
 func (workflow *GenerationService) newMultimodalProvider(ctx context.Context, route coregeneration.ModelRoute) (multimodal.Provider, error) {
+	if strings.HasPrefix(route.ID, "custom-") {
+		d, m, key, err := workflow.settings.ResolveCustomRoute(ctx, route.ID)
+		if err != nil {
+			return nil, err
+		}
+		return &custom.TextProvider{Definition: d, Model: m, APIKey: key}, nil
+	}
 	factory := workflow.multimodalTextProviderFactory
 	if factory == nil {
 		factory = defaultMultimodalTextProviderFactory

@@ -25,7 +25,7 @@ export const getRouteDocumentWorkbench = (search: string): AgentDocumentWorkbenc
 	return value === "timeline" || value === "canvas" ? value : null;
 };
 
-export const isAgentRoute = (pathname: string) => pathname === "/projects";
+export const isAgentRoute = (pathname: string) => pathname === "/projects" || pathname === "/agent";
 
 export const isProjectSettingsRoute = (pathname: string, search: string) =>
 	pathname === "/project-settings" ||

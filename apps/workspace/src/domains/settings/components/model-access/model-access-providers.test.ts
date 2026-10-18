@@ -90,7 +90,7 @@ describe("groupModelAccessProviders", () => {
 			customProvidersEnabled: true,
 		});
 		expect(groups.cli.map((item) => item.id)).toEqual(["jimeng", "libtv", "xiaoyunque"]);
-		// Without platform metadata, aggregators are not surfaced anywhere.
+		// The 0.1.17 surface remains visible when an older backend omits platform metadata.
 		expect(groups.official.map((item) => item.id)).toEqual([
 			"volcengine",
 			"openai",
@@ -99,8 +99,8 @@ describe("groupModelAccessProviders", () => {
 			"aliyun",
 			"minimax",
 		]);
-		expect(groups.aggregator).toEqual([]);
-		expect(groups.mediago).toBeUndefined();
+		expect(groups.aggregator.map((item) => item.id)).toEqual(["openrouter", "dmx"]);
+		expect(groups.mediago?.id).toBe("mediago");
 	});
 
 	it("hides custom aggregation providers when the build flag disables them", () => {
@@ -119,6 +119,23 @@ describe("groupModelAccessProviders", () => {
 		expect(all.some((item) => item.id.includes("kling"))).toBe(false);
 	});
 
+	it("keeps the three CLI slots visible when optional CLI platforms are disabled", () => {
+		const groups = groupModelAccessProviders(
+			allProviders().filter((item) => item.id === "jimeng"),
+			[platform("jimeng", "cli", "即梦")],
+			{ customProvidersEnabled: true },
+		);
+
+		expect(groups.cli.map((item) => item.id)).toEqual(["jimeng", "libtv", "xiaoyunque"]);
+		expect(groups.cli.find((item) => item.id === "jimeng")?.status).not.toBe("unavailable");
+		expect(
+			groups.cli
+				.filter((item) => item.id !== "jimeng")
+				.every((item) => item.status === "unavailable"),
+		).toBe(true);
+		expect(groups.official.every((item) => item.status === "unavailable")).toBe(true);
+	});
+
 	it("returns an icon for every built-in provider and a fallback for unknown ones", () => {
 		for (const id of [
 			"jimeng",
@@ -134,4 +151,17 @@ describe("groupModelAccessProviders", () => {
 		}
 		expect(providerIconFor("some-new-provider")).toBeTruthy();
 	});
+});
+
+it("keeps dynamic custom providers out of built-in official and aggregator cards", () => {
+	const groups = groupModelAccessProviders(
+		[...allProviders(), provider({ id: "custom-demo", label: "Dynamic" })],
+		platforms(),
+		{ customProvidersEnabled: true },
+	);
+	expect(
+		[...groups.official, ...groups.aggregator, ...groups.cli].some(
+			(item) => item.id === "custom-demo",
+		),
+	).toBe(false);
 });

@@ -38,6 +38,12 @@ afterEach(() => {
 });
 
 describe("local workflow editing", () => {
+	it("keeps unconnected execution disabled while the local canvas remains editable", () => {
+		render(<WorkflowGenerationSurface projectId="project" section={section} />);
+		expect(screen.getByRole("button", { name: "执行工作流" })).toBeDisabled();
+		expect(screen.getByText(/本地画布尚未同步至服务端/)).toBeInTheDocument();
+		expect(screen.getByLabelText("节点提示词")).toBeEnabled();
+	});
 	it("saves typing immediately, survives close, and isolates resource scopes", () => {
 		const first = render(<WorkflowGenerationSurface projectId="project" section={section} />);
 		fireEvent.change(screen.getByLabelText("节点提示词"), { target: { value: "镜头缓慢推进" } });

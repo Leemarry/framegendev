@@ -103,3 +103,33 @@ check tasks stay available:
 task check
 task test
 ```
+
+## Replacing generation CLI packages
+
+Login and generation both read the prepared `tool.json` (`id`, `bin`, `version`,
+`platform`). Keep the whole `dist/tools/<tool-id>/` directory together; Electron
+stages it unchanged into `resources/tools/<tool-id>/`. `bin` is a relative path,
+so a replacement can use a different filename or a version subdirectory. It must
+be an executable entry compatible with the provider's CLI command contract, not
+a GUI-only application. Windows uses a native executable; Unix also supports
+executable scripts. Dependencies and Skills may travel beside the entry.
+
+For example, a Windows Dreamina package can contain:
+
+```json
+{"id":"dreamina","bin":"1.4.20/dreamina.exe","version":"1.4.20","platform":"win32-x64"}
+```
+
+Use `libtv` and `pippit` as the other package IDs. Set `MEDIAGO_JIMENG_BIN_DIR`,
+`MEDIAGO_LIBTV_BIN_DIR`, and `MEDIAGO_PIPPIT_BIN_DIR` to the tools directory for
+web/server deployments; Electron sets these automatically. Explicit `*_PATH`
+overrides take precedence. Without a manifest, legacy filenames and PATH still
+work. A malformed manifest, missing entry, escaped path or wrong platform fails
+closed. The model access page shows the selected path and declared package
+version separately from credentials and membership access.
+
+Stop active CLI jobs before replacing a whole package, retain the previous
+folder for rollback, and restart the server to discard cached generation
+providers. Update `tools.json` release metadata when preparing a new bundled
+version. CLI command/output changes still require adapter compatibility tests;
+replacing the executable alone does not guarantee protocol compatibility.

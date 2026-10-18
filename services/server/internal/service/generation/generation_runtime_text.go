@@ -62,7 +62,7 @@ func (workflow *GenerationService) StreamGenerationText(
 		return workflow.streamGenerationTextWithExecutor(ctx, payload, hasScopeFilter, emit)
 	}
 
-	route, err := ResolveGenerationRoute(payload)
+	route, err := workflow.resolveGenerationRoute(payload)
 	if err != nil {
 		return http.StatusBadRequest, err
 	}
@@ -369,7 +369,7 @@ func (workflow *GenerationService) prepareTextPromptOptimization(
 		return status, err
 	}
 	optimization := NormalizeGenerationPromptOptimizationRequest(payload.PromptOptimization)
-	if err := ValidateGenerationPromptOptimizationRequest(optimization); err != nil {
+	if err := workflow.validatePromptOptimization(optimization); err != nil {
 		return http.StatusBadRequest, err
 	}
 	payload.Prompt = promptOptimizationUserPrompt(optimization, payload.Prompt)

@@ -6,6 +6,7 @@ import {
 } from "@/domains/workspace/api/workspace";
 import { useDocumentsStore, type MarkdownDocument } from "@/domains/documents/stores";
 import { DocumentConflictNotice } from "./DocumentConflictNotice";
+import { listOtherWindowRecoveries } from "@/domains/documents/stores/document-recovery";
 
 vi.mock("@/domains/workspace/api/workspace", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@/domains/workspace/api/workspace")>()),
@@ -63,6 +64,37 @@ afterEach(() => {
 });
 
 describe("prior-window recovery notice", () => {
+	it("archives reviewed drafts without changing the current document or deleting the source", async () => {
+		render(<DocumentConflictNotice />);
+		fireEvent.click(await screen.findByRole("button", { name: "查看恢复草稿" }));
+		fireEvent.click(screen.getByRole("button", { name: "保留当前正文，归档此草稿" }));
+		expect(listOtherWindowRecoveries("project-a")).toHaveLength(1);
+		fireEvent.click(screen.getByRole("button", { name: "保留当前正文，归档此草稿" }));
+		await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+		expect(useDocumentsStore.getState().documents).toEqual([server]);
+		expect(localStorage.getItem(sourceKey)).toBe(JSON.stringify([draft]));
+		expect(updateWorkspaceDocumentRecord).not.toHaveBeenCalled();
+	});
+
+	it("finishes recovery and saving without offering the same source again after reload", async () => {
+		localStorage.removeItem("mediago-document-recovery-v1:old-window-b:project-a");
+		vi.mocked(updateWorkspaceDocumentRecord).mockResolvedValue({
+			document: { ...draft, isDirty: false, version: 6 },
+			state: payload([{ ...draft, isDirty: false, version: 6 }]),
+		});
+		const view = render(<DocumentConflictNotice />);
+		fireEvent.click(await screen.findByRole("button", { name: "查看恢复草稿" }));
+		fireEvent.click(screen.getByRole("button", { name: "载入为待合并稿" }));
+		fireEvent.click(await screen.findByRole("button", { name: "保存合并版本" }));
+		await waitFor(() => expect(useDocumentsStore.getState().documents[0].isDirty).toBe(false));
+		expect(listOtherWindowRecoveries("project-a")).toEqual([]);
+		view.unmount();
+		sessionStorage.clear();
+		render(<DocumentConflictNotice />);
+		expect(screen.queryByRole("alert")).toBeNull();
+		expect(localStorage.getItem(sourceKey)).toBe(JSON.stringify([draft]));
+	});
+
 	it("previews two competing drafts and cancels without any server or source write", async () => {
 		render(<DocumentConflictNotice />);
 		fireEvent.click(await screen.findByRole("button", { name: "查看恢复草稿" }));
@@ -138,7 +170,7 @@ describe("prior-window recovery notice", () => {
 			documents: [{ ...server, content: "new local work", isDirty: true }],
 		});
 		complete?.(payload());
-		expect(await screen.findByText("本窗口已有未保存修改，请先处理后再载入草稿")).toBeVisible();
+		expect(await screen.findByText(/本窗口已有未保存修改，请先处理后再载入草稿/)).toBeVisible();
 		expect(useDocumentsStore.getState().documents[0].content).toBe("new local work");
 		expect(updateWorkspaceDocumentRecord).not.toHaveBeenCalled();
 	});
@@ -157,12 +189,34 @@ describe("prior-window recovery notice", () => {
 		expect(updateWorkspaceDocumentRecord).not.toHaveBeenCalled();
 	});
 
+	it("explains HTTP timeouts, preserves the draft and lets the user retry", async () => {
+		// The HTTP client rejects with an ApiError object, not an Error instance.
+		vi.mocked(getWorkspaceDocuments).mockRejectedValueOnce({
+			code: -1,
+			message: "请求超时，请稍后重试",
+		});
+		render(<DocumentConflictNotice />);
+		fireEvent.click(await screen.findByRole("button", { name: "查看恢复草稿" }));
+		fireEvent.click(screen.getByRole("button", { name: "载入为待合并稿" }));
+		expect(screen.getByRole("button", { name: "正在读取服务器版本…" })).toBeDisabled();
+		expect(await screen.findByText(/请求超时，请稍后重试。恢复草稿仍保留/)).toBeVisible();
+		expect(useDocumentsStore.getState().documents).toEqual([server]);
+		expect(localStorage.getItem(sourceKey)).toBe(JSON.stringify([draft]));
+		fireEvent.click(screen.getByRole("button", { name: "载入为待合并稿" }));
+		await waitFor(() =>
+			expect(useDocumentsStore.getState().documents[0].saveConflict?.server).toEqual(server),
+		);
+		expect(useDocumentsStore.getState().documents[0].content).toBe(draft.content);
+		expect(updateWorkspaceDocumentRecord).not.toHaveBeenCalled();
+		expect(localStorage.getItem(sourceKey)).toBe(JSON.stringify([draft]));
+	});
+
 	it("does not stage a draft after request failure or a project switch", async () => {
 		vi.mocked(getWorkspaceDocuments).mockRejectedValueOnce(new Error("offline recovery read"));
 		render(<DocumentConflictNotice />);
 		fireEvent.click(await screen.findByRole("button", { name: "查看恢复草稿" }));
 		fireEvent.click(screen.getByRole("button", { name: "载入为待合并稿" }));
-		expect(await screen.findByText("offline recovery read")).toBeVisible();
+		expect(await screen.findByText(/offline recovery read/)).toBeVisible();
 		expect(useDocumentsStore.getState().documents).toEqual([server]);
 		let complete: ((value: ReturnType<typeof payload>) => void) | undefined;
 		vi.mocked(getWorkspaceDocuments).mockImplementation(

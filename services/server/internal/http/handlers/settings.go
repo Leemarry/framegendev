@@ -52,6 +52,18 @@ type CodexRelayCheckRequest struct {
 	ProfileID string `json:"profileId"`
 }
 
+// CodexRelayChannelRequest selects the active Codex channel.
+type CodexRelayChannelRequest struct {
+	Type      string `json:"type"`
+	ProfileID string `json:"profileId,omitempty"`
+}
+
+// GenerationProviderSettingsRequest updates non-sensitive provider settings.
+type GenerationProviderSettingsRequest struct {
+	Revision string            `json:"revision,omitempty"`
+	Values   map[string]string `json:"values"`
+}
+
 // HandleAPIKeys godoc
 // @Summary 获取 API Key 配置
 // @Description 返回模型供应商 API Key 的配置和脱敏状态。
@@ -79,6 +91,54 @@ func (handler Settings) HandleAPIKeys(context *gin.Context) {
 // @Router /api/v1/settings/model-platforms [get]
 func (handler Settings) HandleModelPlatforms(context *gin.Context) {
 	httpresponse.OK(context, handler.service.ListModelPlatforms(context.Request.Context()))
+}
+
+// HandleGenerationProviders godoc
+// @Summary 获取模型接入 provider
+// @Description 返回模型接入页使用的 provider 状态、平台分组和模型分组，以及本地 CLI 路径、工具包版本和安装可用性（不代表登录或生成成功）。
+// @Tags Settings
+// @Produce json
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/settings/generation/providers [get]
+func (handler Settings) HandleGenerationProviders(context *gin.Context) {
+	providers, err := handler.service.ListGenerationProviders(context.Request.Context())
+	if err != nil {
+		writeSettingsError(context, err)
+		return
+	}
+	httpresponse.OK(context, providers)
+}
+
+// HandlePutGenerationProviderSettings godoc
+// @Summary 保存模型接入 provider 设置
+// @Description 保存指定 provider 的非敏感配置。
+// @Tags Settings
+// @Accept json
+// @Produce json
+// @Param providerId path string true "Provider ID"
+// @Param payload body GenerationProviderSettingsRequest true "Provider settings"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 404 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/settings/generation/providers/{providerId} [put]
+func (handler Settings) HandlePutGenerationProviderSettings(context *gin.Context) {
+	payload, err := decodeJSON[GenerationProviderSettingsRequest](context)
+	if err != nil {
+		httpresponse.ErrorFromStatus(context, http.StatusBadRequest, err)
+		return
+	}
+	providers, err := handler.service.SaveGenerationProviderSettings(
+		context.Request.Context(),
+		context.Param("providerId"),
+		service.GenerationProviderSettingsMutation{Revision: payload.Revision, Values: payload.Values},
+	)
+	if err != nil {
+		writeSettingsError(context, err)
+		return
+	}
+	httpresponse.OK(context, providers)
 }
 
 // HandleJianyingDraftSettings godoc
@@ -129,6 +189,22 @@ func (handler Settings) HandlePutJianyingDraftSettings(context *gin.Context) {
 	httpresponse.OK(context, settings)
 }
 
+// HandleImportLocalCodex godoc
+// @Summary 接入本地 Codex 配置或登录凭据
+// @Tags Settings
+// @Produce json
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Router /api/v1/settings/codex-account/import [post]
+func (handler Settings) HandleImportLocalCodex(context *gin.Context) {
+	settings, err := handler.service.ImportLocalCodex(context.Request.Context())
+	if err != nil {
+		writeSettingsError(context, err)
+		return
+	}
+	httpresponse.OK(context, settings)
+}
+
 // HandleCodexAccount godoc
 // @Summary 获取全局 Codex 账号
 // @Description 返回内置 Codex 读取到的全局 ChatGPT 登录状态，不包含任何凭证。
@@ -155,7 +231,8 @@ func (handler Settings) HandleCodexAccount(context *gin.Context) {
 // @Failure 503 {object} SwaggerEnvelope
 // @Router /api/v1/settings/codex-account/login [post]
 func (handler Settings) HandlePostCodexAccountLogin(context *gin.Context) {
-	login, err := handler.service.BeginCodexLogin(context.Request.Context())
+	forceBrowser := context.Query("forceBrowser") == "true"
+	login, err := handler.service.BeginCodexLogin(context.Request.Context(), forceBrowser)
 	if err != nil {
 		writeSettingsError(context, err)
 		return
@@ -251,6 +328,36 @@ func (handler Settings) HandlePutCodexRelaySettings(context *gin.Context) {
 	}
 
 	settings, err := handler.service.SaveCodexRelaySettings(context.Request.Context(), payload)
+	if err != nil {
+		writeSettingsError(context, err)
+		return
+	}
+
+	httpresponse.OK(context, settings)
+}
+
+// HandlePutCodexRelayChannel godoc
+// @Summary 切换 Codex 渠道
+// @Description 在 ChatGPT 官方订阅与中转 Profile 之间切换当前 Codex 渠道。
+// @Tags Settings
+// @Accept json
+// @Produce json
+// @Param payload body CodexRelayChannelRequest true "Codex channel"
+// @Success 200 {object} SwaggerEnvelope
+// @Failure 400 {object} SwaggerEnvelope
+// @Failure 500 {object} SwaggerEnvelope
+// @Router /api/v1/settings/codex-relay/channel [put]
+func (handler Settings) HandlePutCodexRelayChannel(context *gin.Context) {
+	payload, err := decodeJSON[CodexRelayChannelRequest](context)
+	if err != nil {
+		httpresponse.ErrorFromStatus(context, http.StatusBadRequest, err)
+		return
+	}
+
+	settings, err := handler.service.SetCodexRelayChannel(
+		context.Request.Context(),
+		service.CodexRelayChannelMutation{Type: payload.Type, ProfileID: payload.ProfileID},
+	)
 	if err != nil {
 		writeSettingsError(context, err)
 		return
@@ -499,7 +606,7 @@ func (handler Settings) HandlePostProviderLogin(context *gin.Context) {
 
 // HandlePostProviderLoginCheck godoc
 // @Summary 检查供应商登录
-// @Description 使用设备码或挑战码完成供应商登录检查。
+// @Description 单次检查设备授权，返回 pending/completed/expired/denied 状态；账号查询失败不丢弃已完成的授权。
 // @Tags Settings
 // @Accept json
 // @Produce json
@@ -509,6 +616,7 @@ func (handler Settings) HandlePostProviderLogin(context *gin.Context) {
 // @Failure 400 {object} SwaggerEnvelope
 // @Failure 404 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
+// @Failure 502 {object} SwaggerEnvelope
 // @Router /api/v1/settings/api-keys/{provider}/login/check [post]
 func (handler Settings) HandlePostProviderLoginCheck(context *gin.Context) {
 	payload, err := decodeJSON[ProviderLoginCheckRequest](context)
@@ -695,6 +803,10 @@ func (handler Settings) HandleDeleteAgentModelProfileAPIKey(context *gin.Context
 
 func writeSettingsError(context *gin.Context, err error) {
 	switch {
+	case errors.Is(err, service.ErrProviderLoginCheckFailed):
+		httpresponse.Error(context, http.StatusBadGateway, service.ErrProviderLoginCheckFailed.Error())
+	case errors.Is(err, service.ErrLocalCLIPermission):
+		httpresponse.ErrorFromStatus(context, http.StatusConflict, err)
 	case errors.Is(err, service.ErrAPIKeyProviderNotFound):
 		httpresponse.ErrorFromStatus(context, http.StatusNotFound, err)
 	case errors.Is(err, service.ErrAPIKeyRequired):

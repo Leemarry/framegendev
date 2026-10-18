@@ -13,6 +13,16 @@ import (
 	"gorm.io/gorm"
 )
 
+func TestJimengLoginCheckErrorIsActionable(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
+	response := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(response)
+	writeSettingsError(ctx, service.ErrProviderLoginCheckFailed)
+	if response.Code != http.StatusBadGateway || !strings.Contains(response.Body.String(), "即梦授权检查失败") {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 type fakeAPIKeyStore struct {
 	values map[string]string
 }

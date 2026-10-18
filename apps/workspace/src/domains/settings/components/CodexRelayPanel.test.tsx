@@ -3,6 +3,7 @@ import useSWR, { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CodexRelaySettingsResponse } from "@/domains/settings/api/settings";
 import {
+	activateCodexRelayChannel,
 	checkCodexRelaySettings,
 	getCodexRelaySettings,
 	saveCodexRelayProfileAPIKey,
@@ -16,6 +17,7 @@ const toastMock = vi.hoisted(() => ({
 }));
 
 vi.mock("@/domains/settings/api/settings", () => ({
+	activateCodexRelayChannel: vi.fn(),
 	checkCodexRelaySettings: vi.fn(),
 	codexRelaySettingsKey: "/settings/codex-relay",
 	clearCodexRelayProfileAPIKey: vi.fn(),
@@ -46,7 +48,9 @@ describe("CodexRelayPanel", () => {
 
 	it("auto-saves relay enabled state from the header switch", async () => {
 		vi.mocked(getCodexRelaySettings).mockResolvedValue(responseWithRelay());
-		vi.mocked(saveCodexRelaySettings).mockResolvedValue(responseWithRelay({}, { enabled: false }));
+		vi.mocked(activateCodexRelayChannel).mockResolvedValue(
+			responseWithRelay({}, { enabled: false, activeProfileId: "" }),
+		);
 
 		renderPanel();
 
@@ -55,20 +59,7 @@ describe("CodexRelayPanel", () => {
 		fireEvent.click(enabledSwitch);
 
 		await waitFor(() =>
-			expect(saveCodexRelaySettings).toHaveBeenCalledWith({
-				enabled: false,
-				activeProfileId: "relay",
-				profiles: [
-					{
-						id: "relay",
-						name: "Relay",
-						baseURL: "https://relay.example.com/v1",
-						model: "gpt-5.5",
-						protocol: "responses",
-						enabled: true,
-					},
-				],
-			}),
+			expect(activateCodexRelayChannel).toHaveBeenCalledWith({ type: "official" }),
 		);
 		await waitFor(() => expect(enabledSwitch.getAttribute("aria-checked")).toBe("false"));
 		expect(checkCodexRelaySettings).not.toHaveBeenCalled();
@@ -77,16 +68,18 @@ describe("CodexRelayPanel", () => {
 
 	it("rolls back the header switch and shows the save error when settings are invalid", async () => {
 		vi.mocked(getCodexRelaySettings).mockResolvedValue(responseWithRelay());
-		vi.mocked(saveCodexRelaySettings).mockRejectedValue(new Error("Base URL 不合法"));
+		vi.mocked(activateCodexRelayChannel).mockRejectedValue(new Error("Base URL 不合法"));
 
 		renderPanel();
 
 		const enabledSwitch = await screen.findByRole("switch", { name: "Codex 中转启用状态" });
 		fireEvent.click(enabledSwitch);
 
-		await waitFor(() => expect(saveCodexRelaySettings).toHaveBeenCalled());
+		await waitFor(() =>
+			expect(activateCodexRelayChannel).toHaveBeenCalledWith({ type: "official" }),
+		);
 		await waitFor(() => expect(enabledSwitch.getAttribute("aria-checked")).toBe("true"));
-		expect(toastMock.error).toHaveBeenCalledWith("保存失败", {
+		expect(toastMock.error).toHaveBeenCalledWith("切换失败", {
 			description: "Base URL 不合法",
 		});
 	});
@@ -94,10 +87,7 @@ describe("CodexRelayPanel", () => {
 	it("shows the API error message when enabling relay check fails", async () => {
 		const runtimeConfigFetcher = vi.fn().mockResolvedValue({});
 		vi.mocked(getCodexRelaySettings).mockResolvedValue(responseWithRelay({}, { enabled: false }));
-		vi.mocked(saveCodexRelaySettings)
-			.mockResolvedValueOnce(responseWithRelay())
-			.mockResolvedValueOnce(responseWithRelay({}, { enabled: false }));
-		vi.mocked(checkCodexRelaySettings).mockRejectedValue({
+		vi.mocked(activateCodexRelayChannel).mockRejectedValue({
 			message: "Codex 中转配置不可用：上游返回 401，请检查 API Key 和 Base URL",
 		});
 
@@ -108,13 +98,15 @@ describe("CodexRelayPanel", () => {
 		expect(enabledSwitch.getAttribute("aria-checked")).toBe("false");
 		fireEvent.click(enabledSwitch);
 
-		await waitFor(() => expect(checkCodexRelaySettings).toHaveBeenCalledTimes(1));
+		await waitFor(() =>
+			expect(activateCodexRelayChannel).toHaveBeenCalledWith({ type: "relay", profileId: "relay" }),
+		);
 		await waitFor(() => expect(enabledSwitch.getAttribute("aria-checked")).toBe("false"));
-		expect(toastMock.error).toHaveBeenCalledWith("启用失败", {
+		expect(toastMock.error).toHaveBeenCalledWith("切换失败", {
 			description: "Codex 中转配置不可用：上游返回 401，请检查 API Key 和 Base URL",
 		});
 		await act(async () => Promise.resolve());
-		await waitFor(() => expect(runtimeConfigFetcher).toHaveBeenCalledTimes(2));
+		expect(runtimeConfigFetcher).toHaveBeenCalledTimes(1);
 	});
 
 	it("marks the active relay profile as the current channel", async () => {
@@ -144,9 +136,37 @@ describe("CodexRelayPanel", () => {
 		expect(within(officialCard).getByText("当前渠道")).toBeInTheDocument();
 	});
 
+	it("renders the official and relay channels in one counted container", async () => {
+		vi.mocked(getCodexRelaySettings).mockResolvedValue(responseWithTwoRelays());
+
+		renderPanel(undefined, officialChannel());
+
+		const container = await screen.findByTestId("codex-channel-container");
+		expect(
+			within(container).getByText("选择请求使用的 ChatGPT 官方订阅或中转渠道。"),
+		).toBeInTheDocument();
+		expect(within(container).getByText("3 项")).toBeInTheDocument();
+		expect(within(container).getByTestId("official-channel-card")).toBeInTheDocument();
+		expect(within(container).getByTestId("relay-channel-relay")).toBeInTheDocument();
+		expect(within(container).getByTestId("relay-channel-relay-2")).toBeInTheDocument();
+	});
+
+	it("shows the empty relay action inside the channel container", async () => {
+		vi.mocked(getCodexRelaySettings).mockResolvedValue(emptyResponse());
+
+		renderPanel(undefined, officialChannel());
+
+		const container = await screen.findByTestId("codex-channel-container");
+		expect(
+			within(container).getByRole("button", { name: "新增第一个中转渠道" }),
+		).toBeInTheDocument();
+	});
+
 	it("switches from a relay to the official login when the official card is clicked", async () => {
 		vi.mocked(getCodexRelaySettings).mockResolvedValue(responseWithRelay());
-		vi.mocked(saveCodexRelaySettings).mockResolvedValue(responseWithRelay({}, { enabled: false }));
+		vi.mocked(activateCodexRelayChannel).mockResolvedValue(
+			responseWithRelay({}, { enabled: false, activeProfileId: "" }),
+		);
 
 		renderPanel(undefined, officialChannel());
 
@@ -154,20 +174,7 @@ describe("CodexRelayPanel", () => {
 		fireEvent.click(within(officialCard).getByRole("button", { name: "使用 ChatGPT 官方订阅" }));
 
 		await waitFor(() =>
-			expect(saveCodexRelaySettings).toHaveBeenCalledWith({
-				enabled: false,
-				activeProfileId: "relay",
-				profiles: [
-					{
-						id: "relay",
-						name: "Relay",
-						baseURL: "https://relay.example.com/v1",
-						model: "gpt-5.5",
-						protocol: "responses",
-						enabled: true,
-					},
-				],
-			}),
+			expect(activateCodexRelayChannel).toHaveBeenCalledWith({ type: "official" }),
 		);
 		expect(checkCodexRelaySettings).not.toHaveBeenCalled();
 	});
@@ -206,8 +213,8 @@ describe("CodexRelayPanel", () => {
 		await waitFor(() =>
 			expect(checkCodexRelaySettings).toHaveBeenCalledWith({ profileId: "relay" }),
 		);
-		expect(toastMock.success).toHaveBeenCalledWith("连通性测试通过", {
-			description: "https://relay.example.com/v1",
+		expect(toastMock.success).toHaveBeenCalledWith("模型列表读取成功", {
+			description: "凭据可读取模型列表；实际生成能力仍需调用验证。",
 		});
 	});
 
@@ -255,15 +262,15 @@ describe("CodexRelayPanel", () => {
 		await waitFor(() =>
 			expect(checkCodexRelaySettings).toHaveBeenCalledWith({ profileId: "relay-2" }),
 		);
-		expect(toastMock.success).toHaveBeenCalledWith("连通性测试通过", {
-			description: "https://relay-two.example.com/v1",
+		expect(toastMock.success).toHaveBeenCalledWith("模型列表读取成功", {
+			description: "凭据可读取模型列表；实际生成能力仍需调用验证。",
 		});
 	});
 
 	it("switches channels when a relay card is clicked", async () => {
 		const settings = responseWithTwoRelays();
 		vi.mocked(getCodexRelaySettings).mockResolvedValue(settings);
-		vi.mocked(saveCodexRelaySettings).mockResolvedValue({
+		vi.mocked(activateCodexRelayChannel).mockResolvedValue({
 			...settings,
 			activeProfileId: "relay-2",
 		});
@@ -274,33 +281,15 @@ describe("CodexRelayPanel", () => {
 		fireEvent.click(within(relayCard).getByRole("button", { name: "使用中转渠道 Relay 2" }));
 
 		await waitFor(() =>
-			expect(saveCodexRelaySettings).toHaveBeenCalledWith({
-				enabled: true,
-				activeProfileId: "relay-2",
-				profiles: [
-					{
-						id: "relay",
-						name: "Relay",
-						baseURL: "https://relay.example.com/v1",
-						model: "gpt-5.5",
-						protocol: "responses",
-						enabled: true,
-					},
-					{
-						id: "relay-2",
-						name: "Relay 2",
-						baseURL: "https://relay-two.example.com/v1",
-						model: "gpt-5.5",
-						protocol: "responses",
-						enabled: true,
-					},
-				],
+			expect(activateCodexRelayChannel).toHaveBeenCalledWith({
+				type: "relay",
+				profileId: "relay-2",
 			}),
 		);
 		expect(toastMock.success).toHaveBeenCalledWith("已切换 Codex 渠道", {
 			description: "Relay 2",
 		});
-		expect(checkCodexRelaySettings).toHaveBeenCalledTimes(1);
+		expect(checkCodexRelaySettings).not.toHaveBeenCalled();
 	});
 
 	it("opens one editor for relay settings and the configured API key", async () => {
@@ -497,6 +486,7 @@ const officialChannel = (): CodexOfficialChannel => ({
 	onLogin: vi.fn(),
 	onLogout: vi.fn(),
 	onReopen: vi.fn(),
+	onSwitchAccount: vi.fn(),
 	status: "loggedIn",
 });
 

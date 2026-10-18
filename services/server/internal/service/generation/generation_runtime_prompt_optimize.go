@@ -106,7 +106,7 @@ func (workflow *GenerationService) CreatePromptOptimizedGenerationMessage(
 	if payload.PromptOptimization == nil {
 		return GenerationOptimizeAndGenerateResponse{}, http.StatusBadRequest, fmt.Errorf("缺少 promptOptimization")
 	}
-	if err := ValidateGenerationPromptOptimizationRequest(payload.PromptOptimization); err != nil {
+	if err := workflow.validatePromptOptimization(payload.PromptOptimization); err != nil {
 		return GenerationOptimizeAndGenerateResponse{}, http.StatusBadRequest, err
 	}
 	if err := workflow.applyGenerationDocumentContext(&payload); err != nil {
@@ -130,7 +130,7 @@ func (workflow *GenerationService) CreatePromptOptimizedGenerationMessage(
 		return GenerationOptimizeAndGenerateResponse{}, status, err
 	}
 
-	route, err := ResolveGenerationRoute(payload)
+	route, err := workflow.resolveGenerationRoute(payload)
 	if err != nil {
 		return GenerationOptimizeAndGenerateResponse{}, http.StatusBadRequest, err
 	}

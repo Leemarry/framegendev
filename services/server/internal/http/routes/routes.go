@@ -40,6 +40,8 @@ type Handlers struct {
 	DocumentOperations    httphandlers.DocumentOperations
 	GenerationTasks       httphandlers.GenerationTasks
 	GenerationPreferences httphandlers.GenerationPreferences
+	Workflows             httphandlers.Workflows
+	WorkflowExecution     *httphandlers.WorkflowExecutionHandler
 	InternalEvents        httphandlers.InternalEvents
 	AgentEvents           httphandlers.AgentEvents
 	AgentRuntime          httphandlers.AgentRuntime
@@ -56,6 +58,8 @@ func Register(router *gin.Engine, handlers Handlers) {
 	registerCoreRoutes(apiRoutes, handlers)
 	registerSettingsRoutes(apiRoutes, handlers)
 	registerGenerationRoutes(apiRoutes, handlers)
+	registerWorkflowRoutes(apiRoutes, handlers)
+	registerAgentRoutes(apiRoutes, handlers)
 	registerProjectRoutes(apiRoutes.Group("/projects/:projectId"), handlers)
 }
 
@@ -155,12 +159,14 @@ func registerSettingsRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
 	apiRoutes.GET("/settings/jianying-draft", handlers.Settings.HandleJianyingDraftSettings)
 	apiRoutes.PUT("/settings/jianying-draft", handlers.Settings.HandlePutJianyingDraftSettings)
 	apiRoutes.GET("/settings/codex-account", handlers.Settings.HandleCodexAccount)
+	apiRoutes.POST("/settings/codex-account/import", handlers.Settings.HandleImportLocalCodex)
 	apiRoutes.POST("/settings/codex-account/login", handlers.Settings.HandlePostCodexAccountLogin)
 	apiRoutes.GET("/settings/codex-account/login/:loginId", handlers.Settings.HandleCodexAccountLogin)
 	apiRoutes.DELETE("/settings/codex-account/login/:loginId", handlers.Settings.HandleDeleteCodexAccountLogin)
 	apiRoutes.DELETE("/settings/codex-account", handlers.Settings.HandleDeleteCodexAccount)
 	apiRoutes.GET("/settings/codex-relay", handlers.Settings.HandleCodexRelaySettings)
 	apiRoutes.PUT("/settings/codex-relay", handlers.Settings.HandlePutCodexRelaySettings)
+	apiRoutes.PUT("/settings/codex-relay/channel", handlers.Settings.HandlePutCodexRelayChannel)
 	apiRoutes.POST("/settings/codex-relay/check", handlers.Settings.HandleCheckCodexRelaySettings)
 	apiRoutes.PUT(
 		"/settings/codex-relay/profiles/:profileId/api-key",
@@ -171,6 +177,17 @@ func registerSettingsRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
 		handlers.Settings.HandleDeleteCodexRelayProfileAPIKey,
 	)
 	apiRoutes.GET("/settings/model-platforms", handlers.Settings.HandleModelPlatforms)
+	apiRoutes.GET("/settings/custom-providers", handlers.Settings.HandleCustomProviders)
+	apiRoutes.POST("/settings/custom-providers", handlers.Settings.HandleSaveCustomProvider)
+	apiRoutes.POST("/settings/custom-providers/validate", handlers.Settings.HandleValidateCustomProvider)
+	apiRoutes.POST("/settings/custom-providers/discover-models", handlers.Settings.HandleDiscoverCustomModels)
+	apiRoutes.PUT("/settings/custom-providers/:id", handlers.Settings.HandleSaveCustomProvider)
+	apiRoutes.DELETE("/settings/custom-providers/:id", handlers.Settings.HandleDeleteCustomProvider)
+	apiRoutes.PUT("/settings/custom-providers/:id/api-key", handlers.Settings.HandleCustomProviderKey)
+	apiRoutes.DELETE("/settings/custom-providers/:id/api-key", handlers.Settings.HandleCustomProviderKey)
+	apiRoutes.POST("/settings/custom-providers/:id/test", handlers.Settings.HandleTestCustomProvider)
+	apiRoutes.GET("/settings/generation/providers", handlers.Settings.HandleGenerationProviders)
+	apiRoutes.PUT("/settings/generation/providers/:providerId", handlers.Settings.HandlePutGenerationProviderSettings)
 	apiRoutes.GET("/settings/api-keys", handlers.Settings.HandleAPIKeys)
 	apiRoutes.PUT("/settings/api-keys/:provider", handlers.Settings.HandlePutAPIKey)
 	apiRoutes.DELETE("/settings/api-keys/:provider", handlers.Settings.HandleDeleteAPIKey)
@@ -285,6 +302,34 @@ func registerGenerationRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
 		"/generation/tasks/:taskId/result",
 		handlers.GenerationTasks.HandleGenerationVideo,
 	)
+}
+
+func registerWorkflowRoutes(apiRoutes *gin.RouterGroup, handlers Handlers) {
+	apiRoutes.GET("/workflows", handlers.Workflows.HandleListWorkflows)
+	apiRoutes.POST("/workflows", handlers.Workflows.HandleCreateWorkflow)
+	apiRoutes.GET("/workflows/:id", handlers.Workflows.HandleGetWorkflow)
+	apiRoutes.PUT("/workflows/:id", handlers.Workflows.HandleUpdateWorkflow)
+	apiRoutes.DELETE("/workflows/:id", handlers.Workflows.HandleDeleteWorkflow)
+	apiRoutes.GET("/workflow-templates", handlers.Workflows.HandleListWorkflowTemplates)
+	if handlers.WorkflowExecution != nil {
+		apiRoutes.POST("/workflows/:id/execute", handlers.WorkflowExecution.ExecuteWorkflow)
+		apiRoutes.GET("/workflows/:id/executions/:execId", handlers.WorkflowExecution.GetExecution)
+		apiRoutes.DELETE("/workflows/:id/executions/:execId", handlers.WorkflowExecution.CancelExecution)
+		apiRoutes.POST("/workflows/:id/executions/:execId/retry", handlers.WorkflowExecution.RetryExecution)
+		apiRoutes.POST("/workflows/outputs", handlers.WorkflowExecution.CreateOutputBinding)
+		apiRoutes.GET("/workflows/:id/outputs", handlers.WorkflowExecution.ListOutputBindings)
+		apiRoutes.PATCH("/workflows/outputs/:id", handlers.WorkflowExecution.UpdateOutputBinding)
+		apiRoutes.DELETE("/workflows/outputs/:id", handlers.WorkflowExecution.DeleteOutputBinding)
+		apiRoutes.POST("/workflows/:id/outputs/main", handlers.WorkflowExecution.SetMainBinding)
+		apiRoutes.POST("/workflows/assets", handlers.WorkflowExecution.RegisterAsset)
+		apiRoutes.GET("/workflows/:id/assets", handlers.WorkflowExecution.ListWorkflowAssets)
+		apiRoutes.GET("/workflows/:id/nodes/:nodeId/assets", handlers.WorkflowExecution.ListNodeAssets)
+		apiRoutes.DELETE("/workflows/assets/:id", handlers.WorkflowExecution.DeleteAsset)
+		apiRoutes.POST("/workflows/nodes/execute", handlers.WorkflowExecution.ExecuteNode)
+		apiRoutes.GET("/workflows/:id/nodes/:nodeId/task", handlers.WorkflowExecution.GetNodeTask)
+		apiRoutes.GET("/workflows/:id/tasks", handlers.WorkflowExecution.ListNodeTasks)
+		apiRoutes.PATCH("/workflows/tasks/:id/status", handlers.WorkflowExecution.UpdateNodeTaskStatus)
+	}
 }
 
 func registerProjectRoutes(projectRoutes *gin.RouterGroup, handlers Handlers) {
@@ -445,6 +490,8 @@ func registerAgentRoutes(projectRoutes *gin.RouterGroup, handlers Handlers) {
 	projectRoutes.DELETE("/agent/chat", handlers.AgentChat.HandleDeleteAgentChat)
 	projectRoutes.GET("/agent/runtime-config", handlers.AgentRuntime.HandleAgentRuntimeConfig)
 	projectRoutes.GET("/agent/sessions", handlers.AgentSessions.HandleListAgentSessions)
+	projectRoutes.GET("/agent/sessions/archived", handlers.AgentSessions.HandleListArchivedAgentSessions)
+	projectRoutes.GET("/agent/sessions/running", handlers.AgentSessions.HandleListRunningAgentSessions)
 	projectRoutes.POST("/agent/sessions", handlers.AgentSessions.HandleCreateSession)
 	projectRoutes.GET(
 		"/agent/sessions/:sessionId/status",
@@ -454,6 +501,9 @@ func registerAgentRoutes(projectRoutes *gin.RouterGroup, handlers Handlers) {
 		"/agent/sessions/:sessionId/cancel",
 		handlers.AgentSessions.HandleCancelAgentSession,
 	)
+	projectRoutes.POST("/agent/sessions/:sessionId/archive", handlers.AgentSessions.HandleArchiveAgentSession)
+	projectRoutes.POST("/agent/sessions/:sessionId/restore", handlers.AgentSessions.HandleRestoreAgentSession)
+	projectRoutes.DELETE("/agent/sessions/:sessionId", handlers.AgentSessions.HandleDeleteAgentSession)
 	projectRoutes.POST(
 		"/agent/sessions/:sessionId/messages",
 		handlers.AgentMessages.HandleAgentMessage,

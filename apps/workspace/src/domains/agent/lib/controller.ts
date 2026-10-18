@@ -47,6 +47,7 @@ export {
 } from "@/domains/agent/lib/streaming-events";
 
 interface RunAgentPromptOptions {
+	globalScope?: boolean;
 	projectId?: string;
 	documentId?: string;
 	anchorText?: string;
@@ -75,7 +76,10 @@ export const runAgentPrompt = async (prompt: string, options: RunAgentPromptOpti
 		references: options.references,
 	});
 	const taskPrompt =
-		referencedPrompt || optionTaskPrompt || defaultStructuredAgentDisplayPrompt(context);
+		referencedPrompt ||
+		optionTaskPrompt ||
+		trimmed ||
+		(options.globalScope ? trimmed : defaultStructuredAgentDisplayPrompt(context));
 	// With renderable display metadata (attachment cards / chips) an empty
 	// display prompt is intentional — the bubble shows the cards alone instead
 	// of the machine prompt with its `@Title` prefixes. A metadata object
@@ -84,7 +88,10 @@ export const runAgentPrompt = async (prompt: string, options: RunAgentPromptOpti
 		options.displayPrompt?.trim() ||
 		(displayMetadataHasContent(options.displayMetadata)
 			? ""
-			: referencedPrompt || optionTaskPrompt || defaultStructuredAgentDisplayPrompt(context));
+			: referencedPrompt ||
+				optionTaskPrompt ||
+				trimmed ||
+				(options.globalScope ? trimmed : defaultStructuredAgentDisplayPrompt(context)));
 
 	if (options.reuseCurrentRun) {
 		agentStore.beginPendingRun();
@@ -109,26 +116,30 @@ const buildExecutionContext = (
 	options: RunAgentPromptOptions,
 ): AgentExecutionContext | null => {
 	const documentsStore = useDocumentsStore.getState();
-	const projectId = useProjectStore.getState().activeProjectId ?? documentsStore.projectId;
+	const projectId = options.globalScope
+		? null
+		: (useProjectStore.getState().activeProjectId ?? documentsStore.projectId);
 	if (
 		(options.projectId &&
 			(options.projectId !== projectId || options.projectId !== documentsStore.projectId)) ||
 		(options.documentId && !documentsStore.documents.some((item) => item.id === options.documentId))
 	)
 		return null;
-	const activeDocument =
-		(options.documentId
-			? documentsStore.documents.find((item) => item.id === options.documentId)
-			: selectActiveDocument()) ?? fallbackAgentDocument();
+	const activeDocument = options.globalScope
+		? fallbackAgentDocument()
+		: ((options.documentId
+				? documentsStore.documents.find((item) => item.id === options.documentId)
+				: selectActiveDocument()) ?? fallbackAgentDocument());
 
-	const ambientSelection =
-		!trimmedPrompt &&
-		documentsStore.selection &&
-		documentsStore.selection.documentId === activeDocument.id
+	const ambientSelection = options.globalScope
+		? ""
+		: !trimmedPrompt &&
+			  documentsStore.selection &&
+			  documentsStore.selection.documentId === activeDocument.id
 			? documentsStore.selection.text
 			: "";
 	const selection = (options.selection?.trim() || ambientSelection || "").trim();
-	const comments = options.comments ?? activeDocument.comments;
+	const comments = options.globalScope ? [] : (options.comments ?? activeDocument.comments);
 	const firstOpenComment = comments.find((comment) => !comment.resolved);
 	const hasOpenComments = Boolean(firstOpenComment);
 	const hasReferences = (options.references?.length ?? 0) > 0;
@@ -145,7 +156,9 @@ const buildExecutionContext = (
 	return {
 		activeDocument,
 		comments,
-		documentSnapshots: documentsStore.documents.map(toAgentDocumentSnapshot),
+		documentSnapshots: options.globalScope
+			? []
+			: documentsStore.documents.map(toAgentDocumentSnapshot),
 		// Use the active project as the source of truth so the run and its streamed
 		// events agree with the project filter in handleStreamingAgentEvent. documentsStore.projectId
 		// lags behind navigation (it only updates after workspace state loads); preferring it here
@@ -212,11 +225,12 @@ const runLocalDocumentAgent = async (
 	agentStore.finishRun();
 };
 
-export const stopAgentRun = async () => {
+export const stopAgentRun = async (scopeProjectId?: string | null) => {
 	const agentStore = useAgentStore.getState();
 	const sessionId = agentStore.sessionId;
-	const projectId = useProjectStore.getState().activeProjectId;
-	if (sessionId && projectId) {
+	const projectId =
+		scopeProjectId === undefined ? useProjectStore.getState().activeProjectId : scopeProjectId;
+	if (sessionId) {
 		try {
 			await cancelAgentSession(sessionId, projectId);
 		} catch {
@@ -273,7 +287,7 @@ const runStreamingACPAgent = async (
 			displayPrompt: options.displayPrompt?.trim() || undefined,
 			displayMetadata: options.displayMetadata,
 			projectId: projectId ?? undefined,
-			document: toAgentDocumentSnapshot(activeDocument),
+			document: options.globalScope ? undefined : toAgentDocumentSnapshot(activeDocument),
 			documents: documentSnapshots,
 			references: options.references,
 			anchorText: requestAnchorText || undefined,

@@ -52,8 +52,9 @@ func NewAgentEvents(service AgentEventService) AgentEvents {
 // @Failure 404 {object} SwaggerEnvelope
 // @Failure 500 {object} SwaggerEnvelope
 // @Router /api/v1/projects/{projectId}/agent/sessions/{sessionId}/events [get]
+// @Router /api/v1/agent/sessions/{sessionId}/events [get]
 func (handler AgentEvents) HandleAgentEvents(context *gin.Context) {
-	projectID, ok := requiredProjectID(context)
+	projectID, ok := agentProjectID(context)
 	if !ok {
 		return
 	}

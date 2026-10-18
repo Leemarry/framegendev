@@ -32,6 +32,7 @@ func (store *SessionService) persistSessionUnlocked(sessionID string, session *a
 		ACPInstructionHash: strings.TrimSpace(session.ACPInstructionHash),
 		LastStatus:         strings.TrimSpace(session.lastStatus),
 		LastMessage:        strings.TrimSpace(session.lastMessage),
+		Lifecycle:          session.lifecycleOrActive(),
 		UpdatedAt:          domain.TimeFromString(now),
 	}
 	_ = store.repo.UpsertAgentSession(model)
@@ -64,6 +65,7 @@ func (store *SessionService) loadSessionUnlocked(sessionID string) (*agentSessio
 		runs:               map[string]*AgentRun{},
 		lastStatus:         sessionModel.LastStatus,
 		lastMessage:        sessionModel.LastMessage,
+		lifecycle:          modelLifecycle(sessionModel.Lifecycle),
 		lastRootRunID:      "",
 	}
 	return session, true

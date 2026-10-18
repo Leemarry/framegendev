@@ -36,6 +36,15 @@ func requiredProjectID(context *gin.Context) (string, bool) {
 	return projectID, true
 }
 
+// agentProjectID resolves the project scope for both project and global Agent routes.
+// A missing path parameter is the global namespace and is represented by "".
+func agentProjectID(context *gin.Context) (string, bool) {
+	if strings.TrimSpace(context.Param("projectId")) == "" {
+		return optionalProjectID(context), true
+	}
+	return requiredProjectID(context)
+}
+
 func optionalProjectID(context *gin.Context) string {
 	return domain.CleanProjectID(firstNonEmptyParam(pathParam(context, "projectId"), context.Query("projectId")))
 }
