@@ -3,3 +3,11 @@ project_doc_fallback_filenames = ["AGENTS.md"]
 
 [agents]
 max_depth = 1
+
+# Local TOMC runtime; the database is dedicated to this project and kept outside Git.
+[mcp_servers.tomc_framegendev]
+command = "E:/AI/tools/TOMC/.venv/Scripts/python.exe"
+args = ["E:/AI/tools/TOMC/src/server.py"]
+
+[mcp_servers.tomc_framegendev.env]
+TOMC_MEMORY_PATH = "E:/AI/tools/TOMC-data/framegendev.sqlite3"

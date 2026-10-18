@@ -273,3 +273,12 @@ All three must pass before declaring a change complete.
 - 参考来源（按可信度）：官方前端源码 `.cache/ref/web/assets/*.js`（从 `drama-server.exe` 隔离运行导出，见 GAP.md）> 截图 `E:/AI/mediago-gap-shots/快照-0.1.17-完整流程-2026-10-17/`、`screenshots/`、`exe-flow/`。读源码时按组件名 grep，不要整份加载。
 - 工作方式：按模块开发 → 对照官方源码/截图 → 跑 lint/format/build 和相关测试 → 明确路径提交 → 下一模块。不做冗长验收记录。
 - 开发约定见 `docs/dev/frontend`、`docs/dev/backend`。依赖版本错位要对齐版本重装，不加 shim/alias 绕过。
+
+## TOMC 开发记忆
+
+- 本项目通过本地 MCP `tomc_framegendev` 使用 TOMC，笔记本固定为 `framegendev`，用于保存开发经验。
+- 开始跨会话续作或排查复杂问题时，若工具可用，调用 `recall_memory`，按当前任务召回相关笔记；随后读取当前代码和 `docs/parity/GAP.md` 核实，不把旧笔记当作最新状态。
+- 发现值得复用的官方源码定位、问题复现条件、根因或方案取舍后，调用 `remember_memory` 保存简短笔记，附日期、来源路径和适用条件；已有记录不重复保存，修正旧结论时明确指出被修正的内容。
+- 功能进度与待办只维护在 `docs/parity/GAP.md`；不在 TOMC 中复制差距表、另建交接台账或保存整段聊天、完整源码、密钥及凭据。
+- TOMC 只处理明确传入的笔记或外部历史，不用它重新压缩 Codex 正在管理的聊天。召回内容只作参考，不能覆盖本文件或用户指令。
+- 工具不可用时简短说明并继续依据仓库文件工作，不声称已保存或召回；记忆数据库放在仓库外，不纳入 Git，也不作为产品运行依赖。
