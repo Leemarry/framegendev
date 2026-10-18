@@ -7,8 +7,10 @@ export const refreshAgentChatTranscript = async (
 	sessionId?: string | null,
 	projectId?: string | null,
 ) => {
-	const hasExplicitProjectId = projectId !== undefined && projectId !== null;
-	const targetProjectId = projectId ?? useProjectStore.getState().activeProjectId;
+	const hasExplicitProjectId = projectId !== undefined;
+	const targetProjectId = hasExplicitProjectId
+		? projectId
+		: useProjectStore.getState().activeProjectId;
 	const trimmedSessionId = sessionId?.trim() || null;
 	if (
 		!hasExplicitProjectId &&
@@ -54,9 +56,7 @@ export const refreshAgentChatTranscript = async (
 			revalidate: false,
 		});
 	}
-	if (targetProjectId) {
-		await mutateSWR(agentSessionsKey(targetProjectId));
-	}
+	await mutateSWR(agentSessionsKey(targetProjectId));
 };
 
 export interface LocalTranscriptReconcileInput {

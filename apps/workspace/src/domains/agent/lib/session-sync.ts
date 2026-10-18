@@ -84,7 +84,7 @@ export const waitForStreamingRun = (sessionId: string, projectId: string | null)
 
 		const syncStatus = async () => {
 			if (settled || isPolling) return;
-			if (!isCurrentAgentProject(projectId)) {
+			if (!isCurrentAgentProject(projectId, sessionId)) {
 				settle();
 				return;
 			}

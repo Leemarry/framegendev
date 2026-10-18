@@ -104,6 +104,7 @@ func run(args []string) error {
 		return err
 	}
 	applySidecarDefaults(&config)
+	applyAgentDefaults(&config)
 	applyPackagedToolDefaults(&config)
 
 	staticFS, err := workspace.StaticFS()
@@ -335,6 +336,26 @@ func applyEnvOverrides(config *serverconfig.ServerConfig) error {
 }
 
 var executablePath = os.Executable
+
+func applyAgentDefaults(config *serverconfig.ServerConfig) {
+	if config == nil || strings.TrimSpace(config.Agent.BinDir) != "" || strings.TrimSpace(config.ACPCommand) != "" {
+		return
+	}
+	executable, err := executablePath()
+	if err != nil {
+		return
+	}
+	id := displayAgentID(config.Agent.ID)
+	// Development binaries live in bin/ beside agents/; desktop binaries in
+	// resources/bin/ beside ../agents/. Never discover packages in another checkout.
+	for _, relative := range []string{"agents", filepath.Join("..", "agents")} {
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), relative))
+		if info, err := os.Stat(filepath.Join(candidate, id, "agent.json")); err == nil && info.Mode().IsRegular() {
+			config.Agent.BinDir = candidate
+			return
+		}
+	}
+}
 
 func applyPackagedToolDefaults(config *serverconfig.ServerConfig) {
 	if config == nil {

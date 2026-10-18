@@ -95,6 +95,7 @@ export const App: React.FC = () => {
 				projectManagement={routeDescriptor.sidebarScreen === "projects"}
 				projectWorkspace={projectWorkspace}
 				globalSettings={globalSettings}
+				globalAgent={isGlobalAgentRoute}
 				navigationKey={
 					location.pathname + location.search + (globalSettings ? `:${globalSettingsTab}` : "")
 				}

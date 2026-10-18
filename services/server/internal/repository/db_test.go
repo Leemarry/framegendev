@@ -8,10 +8,100 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/glebarez/sqlite"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/domain"
 	"github.com/mediago-dev/mediago-drama/services/server/internal/testutil"
 	"gorm.io/gorm"
 )
+
+func TestAgentSessionGlobalScopeMigration(t *testing.T) {
+	for _, legacy := range []bool{false, true} {
+		t.Run(map[bool]string{false: "fresh", true: "legacy"}[legacy], func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "sessions.sqlite")
+			db, err := OpenGormSQLite(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			testutil.CloseDB(t, db)
+			if legacy {
+				if err := db.AutoMigrate(&domain.WorkspaceProjectModel{}); err != nil {
+					t.Fatal(err)
+				}
+				seedRepositoryProject(t, db, "project-existing")
+				for _, statement := range []string{
+					`CREATE TABLE agent_sessions (session_id TEXT PRIMARY KEY, project_id TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '', updated_at DATETIME NOT NULL, CONSTRAINT fk_agent_sessions_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE)`,
+					`INSERT INTO agent_sessions (session_id, project_id, title, updated_at) VALUES ('existing', 'project-existing', 'preserve me', '2026-10-18T00:00:00Z')`,
+					`CREATE TABLE session_child (id TEXT PRIMARY KEY, session_id TEXT REFERENCES agent_sessions(session_id) ON DELETE CASCADE)`,
+					`INSERT INTO session_child VALUES ('child', 'existing')`,
+				} {
+					if err := db.Exec(statement).Error; err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			if err := EnsureWorkspaceSchema(db); err != nil {
+				t.Fatal(err)
+			}
+			if !legacy {
+				seedRepositoryProject(t, db, "project-existing")
+			}
+			repo := NewAgentSessionRepository(db)
+			if legacy {
+				existing, err := repo.GetAgentSession("existing")
+				if err != nil || existing.Title != "preserve me" {
+					t.Fatalf("lost session: %#v, %v", existing, err)
+				}
+				var count int64
+				if err := db.Table("session_child").Count(&count).Error; err != nil || count != 1 {
+					t.Fatalf("lost child: %d, %v", count, err)
+				}
+			}
+			for _, session := range []domain.AgentSessionModel{
+				{SessionID: "global", Title: "global reply", LastStatus: "completed"},
+				{SessionID: "scoped", ProjectID: "project-existing", Title: "project reply"},
+			} {
+				if err := repo.UpsertAgentSession(session); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := repo.UpsertAgentSession(domain.AgentSessionModel{SessionID: "missing", ProjectID: "missing"}); err == nil {
+				t.Fatal("accepted missing project")
+			}
+			if err := db.Model(&domain.AgentSessionModel{}).Where("session_id = ?", "scoped").Update("project_id", "missing").Error; err == nil {
+				t.Fatal("accepted update to missing project")
+			}
+			if err := repo.UpsertAgentSession(domain.AgentSessionModel{SessionID: "global", ProjectID: "project-existing"}); !errors.Is(err, ErrAgentCommandConflict) {
+				t.Fatalf("cross-scope move: %v", err)
+			}
+			if err := EnsureWorkspaceSchema(db); err != nil {
+				t.Fatalf("repeat migration: %v", err)
+			}
+			if !db.Migrator().HasIndex(&domain.AgentSessionModel{}, "agent_sessions_project_idx") {
+				t.Fatal("missing session index")
+			}
+			var foreignKeys int
+			if err := db.Raw("PRAGMA foreign_keys").Scan(&foreignKeys).Error; err != nil || foreignKeys != 1 {
+				t.Fatalf("foreign keys disabled: %d, %v", foreignKeys, err)
+			}
+			if err := db.Delete(&domain.WorkspaceProjectModel{}, "id = ?", "project-existing").Error; err != nil {
+				t.Fatal(err)
+			}
+			if _, err := repo.GetAgentSession("scoped"); !errors.Is(err, ErrRecordNotFound) {
+				t.Fatalf("cascade failed: %v", err)
+			}
+			// A separate connection verifies persisted global history after reopening.
+			reopened, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			testutil.CloseDB(t, reopened)
+			sessions, err := NewAgentSessionRepository(reopened).ListAgentSessions("")
+			if err != nil || len(sessions) != 1 || sessions[0].Title != "global reply" {
+				t.Fatalf("global history: %#v, %v", sessions, err)
+			}
+		})
+	}
+}
 
 func TestOpenWorkspaceDBMigratesWorkspaceSchema(t *testing.T) {
 	db, err := OpenWorkspaceDB(filepath.Join(t.TempDir(), "workspace.sqlite"))

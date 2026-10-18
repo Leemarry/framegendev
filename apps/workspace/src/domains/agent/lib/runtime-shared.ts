@@ -8,8 +8,14 @@ import { getWorkspaceState } from "@/domains/workspace/api/workspace";
 // streaming-events, session-sync, document-streaming). Keep this file free of
 // imports from those modules so the dependency graph stays acyclic.
 
-export const isCurrentAgentProject = (projectId: string | null) =>
-	useProjectStore.getState().activeProjectId === projectId;
+export const isCurrentAgentProject = (projectId: string | null, sessionId?: string | null) => {
+	const currentSessionId = useAgentStore.getState().sessionId;
+	if (sessionId && currentSessionId && sessionId !== currentSessionId) return false;
+	// Global Drami has its own session while the project store remembers the
+	// last visited project. Scope global events by session, not that stale project.
+	if (projectId === null && sessionId) return true;
+	return useProjectStore.getState().activeProjectId === projectId;
+};
 
 export const eventRunId = (event: AgentRuntimeEvent) => event.runId?.trim() || undefined;
 

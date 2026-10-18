@@ -21,7 +21,8 @@ type AgentSessionModel struct {
 	RootRunLeaseToken      uint64     `gorm:"column:root_run_lease_token;not null;default:0"`
 	UpdatedAt              time.Time  `gorm:"column:updated_at;not null;autoUpdateTime:nano"`
 
-	Project WorkspaceProjectModel `gorm:"foreignKey:ProjectID;references:ID;constraint:OnDelete:CASCADE"`
+	// Empty ProjectID denotes a global session. Repository schema triggers enforce
+	// references and cascade deletion for nonempty project IDs.
 }
 
 // TableName returns the backing table name.

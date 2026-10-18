@@ -48,7 +48,8 @@ const pendingAssistantDeltas = new Map<
 	}
 >();
 
-const resumedEventStreamKey = (projectId: string, sessionId: string) => `${projectId}:${sessionId}`;
+const resumedEventStreamKey = (projectId: string | null, sessionId: string) =>
+	JSON.stringify([projectId, sessionId]);
 const assistantDeltaScope = (runId?: string, identity?: AgentItemIdentity) =>
 	identity?.turnId?.trim() || runId?.trim() || "__default__";
 const assistantDeltaBufferKey = (runId?: string, identity?: AgentItemIdentity) =>
@@ -96,7 +97,6 @@ const flushAllAssistantDeltas = () => {
 };
 
 export const closeResumedAgentEventStream = (sessionId: string, projectId: string | null) => {
-	if (!projectId) return;
 	resumedEventStreams.get(resumedEventStreamKey(projectId, sessionId.trim()))?.();
 };
 
@@ -118,7 +118,7 @@ const scheduleTranscriptResync = (
 	projectId: string | null,
 ) => {
 	const trimmedSessionId = sessionId?.trim();
-	if (!trimmedSessionId || !projectId) return;
+	if (!trimmedSessionId) return;
 	const key = resumedEventStreamKey(projectId, trimmedSessionId);
 	const existing = transcriptResyncTimers.get(key);
 	if (existing) clearTimeout(existing);
@@ -163,7 +163,7 @@ export const resumeAgentSessionEventStream = (
 	afterEventId?: string | null,
 ) => {
 	const trimmedSessionId = sessionId.trim();
-	if (!trimmedSessionId || !projectId) return;
+	if (!trimmedSessionId) return;
 	const key = resumedEventStreamKey(projectId, trimmedSessionId);
 	if (resumedEventStreams.has(key)) return;
 
@@ -333,7 +333,7 @@ export const handleStreamingAgentEvent = (
 		setLatestDelta: (delta: string) => void;
 	},
 ) => {
-	if (!isCurrentAgentProject(context.projectId)) return;
+	if (!isCurrentAgentProject(context.projectId, event.sessionId)) return;
 	if (event.projectId && event.projectId !== context.projectId) return;
 
 	const agentStore = useAgentStore.getState();

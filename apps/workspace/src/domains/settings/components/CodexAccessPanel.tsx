@@ -169,7 +169,8 @@ export const CodexAccessPanel: React.FC<{ embedded?: boolean }> = ({ embedded = 
 				<div>
 					<p className="text-sm font-medium">本地 Codex</p>
 					<p className="text-xs text-muted-foreground">
-						读取本机中转配置或 ChatGPT 登录凭据，在项目独立目录运行。
+						导入本机中转配置或 ChatGPT
+						登录凭据，在项目独立目录运行。本机配置更改后，请重新接入；也可直接编辑下方中转。
 					</p>
 				</div>
 				<Button

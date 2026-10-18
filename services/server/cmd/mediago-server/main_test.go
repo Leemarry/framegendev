@@ -85,6 +85,46 @@ func TestApplyEnvOverrides(t *testing.T) {
 	}
 }
 
+func TestApplyAgentDefaults(t *testing.T) {
+	for _, tc := range []struct {
+		name, relative, explicit, command string
+		missing                           bool
+	}{
+		{name: "development", relative: "agents"},
+		{name: "desktop", relative: "../agents"},
+		{name: "explicit directory wins", relative: "agents", explicit: "configured/agents"},
+		{name: "custom command wins", relative: "agents", command: "custom-acp"},
+		{name: "no package keeps PATH", missing: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			bin := filepath.Join(root, "bin", "mediago-server.exe")
+			candidate := filepath.Clean(filepath.Join(filepath.Dir(bin), tc.relative))
+			if !tc.missing {
+				manifest := filepath.Join(candidate, "codex", "agent.json")
+				if err := os.MkdirAll(filepath.Dir(manifest), 0o700); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(manifest, []byte(`{"id":"codex"}`), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			previous := executablePath
+			executablePath = func() (string, error) { return bin, nil }
+			t.Cleanup(func() { executablePath = previous })
+			config := serverconfig.ServerConfig{ACPCommand: tc.command, Agent: serverconfig.AgentConfig{BinDir: tc.explicit}}
+			applyAgentDefaults(&config)
+			want := candidate
+			if tc.explicit != "" || tc.command != "" || tc.missing {
+				want = tc.explicit
+			}
+			if config.Agent.BinDir != want {
+				t.Fatalf("Agent.BinDir = %q, want %q", config.Agent.BinDir, want)
+			}
+		})
+	}
+}
+
 func TestApplyEnvOverridesRejectsInvalidServerPort(t *testing.T) {
 	t.Setenv("MEDIAGO_SERVER_PORT", "70000")
 

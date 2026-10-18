@@ -173,6 +173,17 @@ func TestMergeACPProcessEnvDoesNotForceAPIKeyAuthWithoutKey(t *testing.T) {
 	}
 }
 
+func TestManagedCodexInstructionsIgnoreInheritedConfig(t *testing.T) {
+	t.Setenv("CODEX_CONFIG", `{"model":"desktop-model","model_provider":"desktop-relay"}`)
+	got, err := withCodexDeveloperInstructions(map[string]string{"CODEX_HOME": "isolated"}, "instructions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(got["CODEX_CONFIG"], "desktop-") {
+		t.Fatal("managed runtime inherited desktop routing")
+	}
+}
+
 func TestMergeCodexConfigWithDeveloperInstructionsPreservesExistingFields(t *testing.T) {
 	rawConfig := `{
 		"model":"gpt-5.6-sol",

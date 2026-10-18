@@ -17,6 +17,19 @@ vi.mock("@/domains/agent/api/agent", () => ({
 }));
 
 describe("refreshAgentChatTranscript", () => {
+	it("keeps an explicit global scope when a previous project is still selected", async () => {
+		useProjectStore.setState({ activeProjectId: "previous-project" });
+		useAgentStore.setState({ sessionId: "global-session" });
+		vi.mocked(getAgentChatState).mockResolvedValue({
+			sessionId: "global-session",
+			messages: [],
+			activity: [],
+			running: false,
+		});
+		await refreshAgentChatTranscript("global-session", null);
+		expect(getAgentChatState).toHaveBeenCalledWith(null, "global-session");
+		expect(mutateSWR).toHaveBeenCalledWith("sessions:");
+	});
 	afterEach(() => {
 		vi.mocked(getAgentChatState).mockReset();
 		vi.mocked(mutateSWR).mockReset();

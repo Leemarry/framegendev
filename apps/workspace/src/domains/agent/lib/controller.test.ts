@@ -76,6 +76,40 @@ const pendingRequest = (requestId: string) => ({
 });
 
 describe("agent controller", () => {
+	it("accepts global session events despite a remembered project and rejects other sessions", () => {
+		useProjectStore.setState({ activeProjectId: "previous-project" });
+		useAgentStore.setState({
+			sessionId: "global-session",
+			isRunning: true,
+			rootRunId: "global-run",
+		});
+		const event: AgentRuntimeEvent = {
+			id: "global-event",
+			sessionId: "other-session",
+			runId: "global-run",
+			type: "agent.run.failed",
+			message: "Upstream model unavailable",
+			createdAt: new Date().toISOString(),
+		};
+		handleStreamingAgentEvent(event, { ...eventContext(), projectId: null });
+		expect(useAgentStore.getState().isRunning).toBe(true);
+		handleStreamingAgentEvent(
+			{ ...event, sessionId: "global-session" },
+			{ ...eventContext(), projectId: null },
+		);
+		expect(useAgentStore.getState().isRunning).toBe(false);
+	});
+
+	it("resumes and closes global streams without a project id", () => {
+		const source = { addEventListener: vi.fn(), removeEventListener: vi.fn(), close: vi.fn() };
+		vi.mocked(createAgentEventSource).mockReturnValue(
+			source as unknown as ReturnType<typeof createAgentEventSource>,
+		);
+		resumeAgentSessionEventStream("global-session", null);
+		expect(createAgentEventSource).toHaveBeenCalledWith("global-session", null, undefined);
+		closeResumedAgentEventStream("global-session", null);
+		expect(source.close).toHaveBeenCalledOnce();
+	});
 	afterEach(() => {
 		closeAllResumedAgentEventStreams();
 		vi.useRealTimers();

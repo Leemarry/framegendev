@@ -185,12 +185,17 @@ func newAPIHandler(config Config) *apiHandler {
 					Env:                        env,
 					NativeInstructionsInjected: nativeInstructions,
 				}
-				if strings.TrimSpace(request.PreferredModel) == "" {
+				if codexConfig.Configured {
+					processConfig.RestrictModelValues = true
+					processConfig.AllowedModelValues = []string{codexConfig.Model}
+					processConfig.DiscoveredModelValues = []string{codexConfig.Model}
+				}
+				if codexConfig.Configured && strings.TrimSpace(request.PreferredModel) == "" {
 					check, checkErr := settings.CheckCodexRelay(ctx, servicesettings.CodexRelayCheckRequest{})
 					if checkErr == nil && len(check.Models) > 0 {
 						processConfig.RestrictModelValues = true
-						processConfig.AllowedModelValues = append([]string(nil), check.Models...)
-						processConfig.DiscoveredModelValues = append([]string(nil), check.Models...)
+						processConfig.AllowedModelValues = append(processConfig.AllowedModelValues, check.Models...)
+						processConfig.DiscoveredModelValues = append(processConfig.DiscoveredModelValues, check.Models...)
 					}
 				}
 				return processConfig, nil
@@ -462,7 +467,7 @@ func withCodexDeveloperInstructionsForGOOS(env map[string]string, instructions s
 		result[key] = value
 	}
 	rawConfig, exists := result["CODEX_CONFIG"]
-	if !exists {
+	if !exists && strings.TrimSpace(result["CODEX_HOME"]) == "" {
 		rawConfig = os.Getenv("CODEX_CONFIG")
 	}
 	mergedConfig, err := mergeCodexConfigWithDeveloperInstructions(rawConfig, instructions)

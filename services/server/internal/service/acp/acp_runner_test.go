@@ -376,6 +376,28 @@ func TestMergedProcessEnvOverridesRuntimeConfigVariables(t *testing.T) {
 	}
 }
 
+func TestManagedCodexHomeDoesNotInheritDesktopRouting(t *testing.T) {
+	for _, key := range []string{"CODEX_CONFIG", "MODEL_PROVIDER", "DEFAULT_AUTH_REQUEST", "CODEX_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL"} {
+		t.Setenv(key, "desktop-only")
+	}
+	for _, relay := range []bool{false, true} {
+		config := ProcessConfig{Env: map[string]string{"CODEX_HOME": "isolated-home", "CODEX_CONFIG": `{}`}}
+		if relay {
+			config.Env["OPENAI_API_KEY"] = "local-relay"
+			config.Env["MODEL_PROVIDER"] = "project-relay"
+		}
+		env := mergedProcessEnv(config)
+		for _, entry := range env {
+			if strings.Contains(entry, "desktop-only") {
+				t.Fatalf("inherited desktop override: %s", strings.SplitN(entry, "=", 2)[0])
+			}
+		}
+		if relay && envValue(env, "OPENAI_API_KEY") != "local-relay" {
+			t.Fatal("lost managed relay auth")
+		}
+	}
+}
+
 func TestMergedProcessEnvBypassesProxiesForLoopback(t *testing.T) {
 	t.Setenv("NO_PROXY", "internal.example")
 	t.Setenv("no_proxy", "localhost,legacy.example")

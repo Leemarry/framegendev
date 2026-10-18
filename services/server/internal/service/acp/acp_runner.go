@@ -191,6 +191,8 @@ func (runner *acpAgentRunner) SetProcessConfigProvider(provider ProcessConfigPro
 
 // InspectSessionConfig probes ACP runtime config for a project.
 func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectID string, projectDir string) (config agentRuntimeConfigResponse, inspectErr error) {
+	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	defer cancel()
 	command, args := runner.activeCommandArgv()
 	workspaceDir := runner.absoluteWorkspaceDir()
 	request := agentRunRequest{
@@ -218,6 +220,7 @@ func (runner *acpAgentRunner) InspectSessionConfig(ctx context.Context, projectI
 	defer func() {
 		if inspectErr != nil {
 			acpLog().Warn("acp config probe failed", append(logArgs, "stage", stage, "error", inspectErr)...)
+			inspectErr = &RuntimeProbeError{Stage: stage, Err: inspectErr}
 		}
 	}()
 
@@ -426,6 +429,16 @@ func mergedProcessEnv(processConfig ProcessConfig) []string {
 		key, value, ok := strings.Cut(item, "=")
 		if ok {
 			env[key] = value
+		}
+	}
+	if strings.TrimSpace(processConfig.Env["CODEX_HOME"]) != "" {
+		// A managed Codex home owns its authentication and routing. Desktop or
+		// shell overrides must not redirect it to another provider or credential.
+		for key := range env {
+			switch strings.ToUpper(key) {
+			case "CODEX_HOME", "CODEX_CONFIG", "MODEL_PROVIDER", "DEFAULT_AUTH_REQUEST", "OPENAI_API_KEY", "CODEX_API_KEY", "OPENAI_BASE_URL":
+				delete(env, key)
+			}
 		}
 	}
 	for key, value := range processConfig.Env {

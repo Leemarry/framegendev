@@ -13,7 +13,9 @@ import (
 
 	acpsdk "github.com/coder/acp-go-sdk"
 	"github.com/gin-gonic/gin"
+	serviceacp "github.com/mediago-dev/mediago-drama/services/server/internal/service/acp"
 	serviceagent "github.com/mediago-dev/mediago-drama/services/server/internal/service/agent"
+	servicesettings "github.com/mediago-dev/mediago-drama/services/server/internal/service/settings"
 )
 
 func TestHandleAgentRuntimeConfig(t *testing.T) {
@@ -39,6 +41,31 @@ func TestHandleAgentRuntimeConfig(t *testing.T) {
 		wantModelConfigID string
 		forbiddenBodyText string
 	}{
+		{
+			name: "probe failure identifies phase without leaking stderr",
+			inspect: func(context.Context, string) (serviceagent.AgentRuntimeConfigResponse, error) {
+				return serviceagent.AgentRuntimeConfigResponse{}, &serviceacp.RuntimeProbeError{Stage: "initialize", Err: errors.New(secret)}
+			},
+			wantStatus:        http.StatusServiceUnavailable,
+			wantMessage:       "Codex 协议初始化失败，请检查 Codex 与 ACP 适配器版本是否兼容",
+			forbiddenBodyText: secret,
+		},
+		{
+			name: "missing active relay key",
+			inspect: func(context.Context, string) (serviceagent.AgentRuntimeConfigResponse, error) {
+				return serviceagent.AgentRuntimeConfigResponse{}, &serviceacp.RuntimeProbeError{Stage: "prepare", Err: servicesettings.ErrCodexRelayNotConfigured}
+			},
+			wantStatus:  http.StatusServiceUnavailable,
+			wantMessage: "当前 Codex 中转缺少可用配置或 API Key，请在模型接入中检查当前渠道",
+		},
+		{
+			name: "probe timeout",
+			inspect: func(context.Context, string) (serviceagent.AgentRuntimeConfigResponse, error) {
+				return serviceagent.AgentRuntimeConfigResponse{}, &serviceacp.RuntimeProbeError{Stage: "session_new", Err: context.DeadlineExceeded}
+			},
+			wantStatus:  http.StatusServiceUnavailable,
+			wantMessage: "Codex 运行配置读取超时，请检查当前渠道和本机运行环境后重试",
+		},
 		{
 			name: "missing executable is actionable",
 			inspect: func(context.Context, string) (serviceagent.AgentRuntimeConfigResponse, error) {

@@ -183,6 +183,21 @@ func ensureSchemaOnce(
 
 // EnsureWorkspaceSchema creates every project/workspace-owned table.
 func EnsureWorkspaceSchema(db *gorm.DB) error {
+	// The original FK rejected global sessions (project_id = ''). Replace it
+	// with conditional constraints while retaining existing session data.
+	if db.Migrator().HasConstraint(&domain.AgentSessionModel{}, "fk_agent_sessions_project") {
+		// SQLite rebuilds the table to drop a constraint. Pin the connection and
+		// suspend FK actions only during that rebuild so dependent rows survive.
+		if err := db.Connection(func(conn *gorm.DB) (err error) {
+			if err = conn.Exec("PRAGMA foreign_keys = OFF").Error; err != nil {
+				return err
+			}
+			defer func() { err = errors.Join(err, conn.Exec("PRAGMA foreign_keys = ON").Error) }()
+			return conn.Migrator().DropConstraint(&domain.AgentSessionModel{}, "fk_agent_sessions_project")
+		}); err != nil {
+			return fmt.Errorf("migrating global agent session scope: %w", err)
+		}
+	}
 	legacySelectionOwnerColumnMissing := db.Migrator().HasTable(&domain.AgentSelectionModel{}) &&
 		!db.Migrator().HasColumn(&domain.AgentSelectionModel{}, "submission_owner")
 	if err := normalizeLegacyAgentSelectionOwnership(db); err != nil {
@@ -226,6 +241,9 @@ func EnsureWorkspaceSchema(db *gorm.DB) error {
 	); err != nil {
 		return fmt.Errorf("initializing workspace database: %w", err)
 	}
+	if err := ensureAgentSessionProjectConstraints(db); err != nil {
+		return err
+	}
 	if db.Migrator().HasColumn(&domain.AgentSessionModel{}, "lifecycle") {
 		if err := db.Exec(`UPDATE agent_sessions SET lifecycle = 'active' WHERE lifecycle IS NULL OR TRIM(lifecycle) = ''`).Error; err != nil {
 			return fmt.Errorf("backfilling agent session lifecycle: %w", err)
@@ -240,6 +258,27 @@ func EnsureWorkspaceSchema(db *gorm.DB) error {
 	}
 	if err := normalizeLegacyAgentSelectionOwnership(db); err != nil {
 		return err
+	}
+	return nil
+}
+
+func ensureAgentSessionProjectConstraints(db *gorm.DB) error {
+	for _, statement := range []string{
+		`CREATE TRIGGER IF NOT EXISTS agent_sessions_project_insert
+		BEFORE INSERT ON agent_sessions
+		WHEN NEW.project_id <> '' AND NOT EXISTS (SELECT 1 FROM projects WHERE id = NEW.project_id)
+		BEGIN SELECT RAISE(ABORT, 'agent session project does not exist'); END`,
+		`CREATE TRIGGER IF NOT EXISTS agent_sessions_project_update
+		BEFORE UPDATE OF project_id ON agent_sessions
+		WHEN NEW.project_id <> '' AND NOT EXISTS (SELECT 1 FROM projects WHERE id = NEW.project_id)
+		BEGIN SELECT RAISE(ABORT, 'agent session project does not exist'); END`,
+		`CREATE TRIGGER IF NOT EXISTS agent_sessions_project_delete
+		AFTER DELETE ON projects
+		BEGIN DELETE FROM agent_sessions WHERE project_id = OLD.id AND project_id <> ''; END`,
+	} {
+		if err := db.Exec(statement).Error; err != nil {
+			return fmt.Errorf("ensuring agent session project constraints: %w", err)
+		}
 	}
 	return nil
 }

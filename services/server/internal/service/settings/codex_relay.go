@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/mediago-dev/mediago-drama/services/server/internal/service/shared"
+	"github.com/pelletier/go-toml/v2"
 )
 
 const (
@@ -114,6 +115,7 @@ type CodexRelayRuntimeConfig struct {
 	CodexHome  string
 	Env        map[string]string
 	Configured bool
+	Model      string
 }
 
 // CodexRuntimeHomeDescriptor describes an optional isolated Codex home without preparing it.
@@ -305,6 +307,13 @@ func (service *Settings) PrepareCodexRelayRuntimeConfig(ctx context.Context, wor
 	active, _, err := service.activeCodexRelayProfile()
 	if err != nil {
 		if err == ErrCodexRelayNotConfigured {
+			stored, loadErr := service.loadCodexRelayStoredSettings()
+			if loadErr != nil {
+				return CodexRelayRuntimeConfig{}, loadErr
+			}
+			if stored.Enabled {
+				return CodexRelayRuntimeConfig{}, ErrCodexRelayNotConfigured
+			}
 			if service.codexAccount != nil && service.codexAccount.homePath != "" {
 				home := service.codexAccount.homePath
 				if err := os.MkdirAll(home, 0o700); err != nil {
@@ -326,6 +335,17 @@ func (service *Settings) PrepareCodexRelayRuntimeConfig(ctx context.Context, wor
 		return CodexRelayRuntimeConfig{}, fmt.Errorf("creating codex relay home: %w", err)
 	}
 	configText := renderCodexRelayConfig(active, relayBaseURL)
+	// ACP passes CODEX_CONFIG to thread/start. Include the same non-secret
+	// settings as config.toml, so inherited overrides cannot select another
+	// model/provider and resident process fingerprints change with the model.
+	var configValues map[string]any
+	if err := toml.Unmarshal([]byte(configText), &configValues); err != nil {
+		return CodexRelayRuntimeConfig{}, fmt.Errorf("encoding Codex runtime config: %w", err)
+	}
+	configJSON, err := json.Marshal(configValues)
+	if err != nil {
+		return CodexRelayRuntimeConfig{}, fmt.Errorf("encoding Codex runtime config: %w", err)
+	}
 	if err := os.WriteFile(filepath.Join(codexHome, "config.toml"), []byte(configText), 0o600); err != nil {
 		return CodexRelayRuntimeConfig{}, fmt.Errorf("writing codex relay config: %w", err)
 	}
@@ -337,8 +357,11 @@ func (service *Settings) PrepareCodexRelayRuntimeConfig(ctx context.Context, wor
 		ConfigDir:  codexHome,
 		CodexHome:  codexHome,
 		Configured: true,
+		Model:      active.Model,
 		Env: map[string]string{
 			"CODEX_HOME":     codexHome,
+			"CODEX_CONFIG":   string(configJSON),
+			"MODEL_PROVIDER": codexRelayProviderID,
 			"OPENAI_API_KEY": codexRelayLocalBearerToken,
 		},
 	}, nil

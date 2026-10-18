@@ -16,6 +16,7 @@ interface AppLayoutProps {
 	projectManagement?: boolean;
 	projectWorkspace?: boolean;
 	globalSettings?: boolean;
+	globalAgent?: boolean;
 	navigationKey?: string;
 	sidebar: React.ReactNode;
 	sidebarHidden?: boolean;
@@ -34,6 +35,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 	projectManagement = false,
 	projectWorkspace = false,
 	globalSettings = false,
+	globalAgent = false,
 	navigationKey = "",
 	sidebar,
 	sidebarHidden = false,
@@ -41,8 +43,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 	const [navigatorWidth, setNavigatorWidth] = useWorkspaceSidebarWidth();
 	const narrow = useSyncExternalStore(subscribeNarrowViewport, isNarrowViewport, () => false);
 	const [mobileNavigation, setMobileNavigation] = useState({ key: navigationKey, open: false });
-	const hasNarrowNavigation = (projectWorkspace || globalSettings) && narrow;
-	const navigationLabel = globalSettings ? "设置导航" : "项目导航";
+	const globalNavigation = globalSettings || globalAgent;
+	const hasNarrowNavigation = (projectWorkspace || globalNavigation) && narrow;
+	const navigationLabel = globalSettings ? "设置导航" : globalAgent ? "会话导航" : "项目导航";
 	const mobileOpen =
 		hasNarrowNavigation && mobileNavigation.key === navigationKey && mobileNavigation.open;
 	const toggleRef = useRef<HTMLButtonElement>(null);
@@ -79,7 +82,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 			resizeStep={workspaceSidebarWidth.resizeStep}
 			showDesktopDragRegion
 			sidebar={
-				projectWorkspace || globalSettings ? (
+				projectWorkspace || globalNavigation ? (
 					<div
 						ref={sidebarRef}
 						className="h-full"
@@ -88,7 +91,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 						aria-label={mobileOpen ? navigationLabel : undefined}
 						onClick={(event) => {
 							if (
-								globalSettings &&
+								globalNavigation &&
 								mobileOpen &&
 								event.target instanceof Element &&
 								event.target.closest("[data-sidebar-navigation-item]")
@@ -137,7 +140,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 					sidebar
 				)
 			}
-			sidebarClassName={`text-ide-sidebar-foreground${globalSettings && narrow ? " absolute inset-y-0 left-0 z-30 max-w-[calc(100vw-48px)] border-r border-border bg-ide-sidebar shadow-lg" : ""}`}
+			sidebarClassName={`text-ide-sidebar-foreground${globalNavigation && narrow ? " absolute inset-y-0 left-0 z-30 max-w-[calc(100vw-48px)] border-r border-border bg-ide-sidebar shadow-lg" : ""}`}
 			sidebarHidden={effectiveSidebarHidden}
 			sidebarWidth={projectManagement || projectWorkspace ? 325 : navigatorWidth}
 			onSidebarWidthChange={
@@ -145,7 +148,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 			}
 		>
 			<div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-ide-editor text-ide-editor-foreground">
-				{showHeader || (globalSettings && narrow) ? (
+				{showHeader || (globalNavigation && narrow) ? (
 					<AppHeader
 						title={globalSettings ? "软件设置" : headerTitle}
 						actions={headerActions}
@@ -161,7 +164,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 						onClick={closeNavigation}
 					/>
 				) : null}
-				<div className="min-h-0 flex-1 overflow-hidden" inert={globalSettings && mobileOpen}>
+				<div className="min-h-0 flex-1 overflow-hidden" inert={globalNavigation && mobileOpen}>
 					{children}
 				</div>
 			</div>

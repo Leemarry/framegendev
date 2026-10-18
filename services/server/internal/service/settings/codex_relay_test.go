@@ -2,6 +2,7 @@ package settings
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -217,6 +218,16 @@ func TestPrepareCodexRelayRuntimeConfigWritesLocalCodexHomeWithoutSecret(t *test
 	if config.Env["OPENAI_API_KEY"] == "sk-real-secret" {
 		t.Fatalf("OPENAI_API_KEY should not contain upstream secret")
 	}
+	var runtimeConfig map[string]any
+	if err := json.Unmarshal([]byte(config.Env["CODEX_CONFIG"]), &runtimeConfig); err != nil {
+		t.Fatal(err)
+	}
+	if runtimeConfig["model"] != "gpt-5.6-sol" || config.Model != "gpt-5.6-sol" || config.Env["MODEL_PROVIDER"] != codexRelayProviderID {
+		t.Fatal("ACP session does not use the configured relay model/provider")
+	}
+	if strings.Contains(config.Env["CODEX_CONFIG"], "sk-real-secret") {
+		t.Fatal("runtime override exposes upstream key")
+	}
 	configText := readTextFile(t, filepath.Join(wantHome, "config.toml"))
 	if strings.Contains(configText, "sk-real-secret") {
 		t.Fatalf("config.toml leaks secret:\n%s", configText)
@@ -233,6 +244,41 @@ func TestPrepareCodexRelayRuntimeConfigWritesLocalCodexHomeWithoutSecret(t *test
 	authText := readTextFile(t, filepath.Join(wantHome, "auth.json"))
 	if strings.Contains(authText, "sk-real-secret") {
 		t.Fatalf("auth.json leaks secret: %s", authText)
+	}
+}
+
+func TestCodexRelayModelChangeInvalidatesRuntimeAndMissingKeyFailsClosed(t *testing.T) {
+	service := NewSettingsWithStores(&memoryAPIKeyStore{values: map[string]string{}}, nil, &memoryAppSettingStore{values: map[string]string{}})
+	ctx := context.Background()
+	saveCodexRelayRuntimeHomeFixture(t, service, true, true)
+	workspaceDir := t.TempDir()
+	before, err := service.PrepareCodexRelayRuntimeConfig(ctx, workspaceDir, "http://127.0.0.1/relay")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := service.loadCodexRelayStoredSettings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored.Profiles[0].Model = "different-model"
+	_, err = service.SaveCodexRelaySettings(ctx, CodexRelaySettingsMutation{Enabled: true, ActiveProfileID: stored.ActiveProfileID, Profiles: stored.Profiles})
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := service.PrepareCodexRelayRuntimeConfig(ctx, workspaceDir, "http://127.0.0.1/relay")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before.Env["CODEX_CONFIG"] == after.Env["CODEX_CONFIG"] {
+		t.Fatal("model change invisible to resident process fingerprint")
+	}
+	if _, err := service.ClearCodexRelayProfileAPIKey(ctx, "relay"); err != nil {
+		t.Fatal(err)
+	}
+	service.SetCodexCLIPath("unused")
+	service.SetCodexAccountHome(filepath.Join(workspaceDir, "official"))
+	if _, err := service.PrepareCodexRelayRuntimeConfig(ctx, workspaceDir, "http://127.0.0.1/relay"); !errors.Is(err, ErrCodexRelayNotConfigured) {
+		t.Fatalf("missing active relay key must not fall back to official account: %v", err)
 	}
 }
 

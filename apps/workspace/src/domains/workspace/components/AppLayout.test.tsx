@@ -5,6 +5,23 @@ import { useUIPreferencesStore } from "@/shared/stores/ui-preferences";
 import { AppLayout } from "./AppLayout";
 
 describe("AppLayout", () => {
+	it("keeps global chat full width on narrow screens with accessible session navigation", () => {
+		vi.stubGlobal("matchMedia", () => ({
+			matches: true,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn(),
+		}));
+		const { container } = render(
+			<AppLayout globalAgent headerTitle="Drami" sidebar={<button type="button">历史会话</button>}>
+				<div>聊天内容</div>
+			</AppLayout>,
+		);
+		expect(container.querySelector("aside")).toHaveAttribute("inert");
+		fireEvent.click(screen.getByRole("button", { name: "打开会话导航" }));
+		expect(screen.getByRole("dialog", { name: "会话导航" })).toBeInTheDocument();
+		fireEvent.keyDown(screen.getByRole("button", { name: "历史会话" }), { key: "Escape" });
+		expect(container.querySelector("aside")).toHaveAttribute("inert");
+	});
 	afterEach(() => {
 		cleanup();
 		vi.unstubAllGlobals();
