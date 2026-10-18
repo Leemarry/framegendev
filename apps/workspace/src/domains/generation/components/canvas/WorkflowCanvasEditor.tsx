@@ -3,6 +3,16 @@ import type React from "react";
 import useSWR from "swr";
 import { useToast } from "@/hooks/useToast";
 import { getMediaAssets, uploadMediaAsset, type MediaAsset } from "@/domains/workspace/api/media";
+import { WorkflowGroupView } from "./WorkflowGroupView";
+import { WorkflowRunControls } from "./WorkflowRunControls";
+import {
+	getGenerationModels,
+	sendGenerationMessage,
+	getGenerationVideo,
+	getGenerationTasks,
+	streamGenerationText,
+} from "../../api/generation";
+import { workflowNodeRequest, workflowNodeResult } from "../../lib/workflow-node-generation";
 import { MaterialLibraryImportDialog } from "../MaterialLibraryImportDialog";
 import {
 	NodeConfigContext,
@@ -12,6 +22,14 @@ import {
 } from "./WorkflowNodeView";
 import {
 	arrangeWorkflowNodes,
+	groupWorkflowNodes,
+	ungroupWorkflowNodes,
+	workflowSelectionTree,
+	workflowAbsolutePosition,
+	arrangeWorkflowSelection,
+	connectionToNewNode,
+	type PendingConnection,
+	type SelectionLayout,
 	pasteWorkflowNodes,
 	type CanvasOperation,
 } from "../../lib/workflow-canvas-editing";
@@ -61,7 +79,21 @@ interface WorkflowCanvasEditorProps {
 
 type CanvasEdge = Edge & WorkflowEdge;
 function asCanvasNode(node: WorkflowNode): CanvasNode {
-	return { id: node.id, type: "workflow", position: node.position, data: { node } };
+	return {
+		id: node.id,
+		type: node.type === "canvasGroup" ? "workflowGroup" : "workflow",
+		position: node.position,
+		parentId: node.parentId,
+		...(node.type === "canvasGroup"
+			? {
+					style: { width: node.width ?? 400, height: node.height ?? 260 },
+					width: node.width ?? 400,
+					height: node.height ?? 260,
+					zIndex: -1,
+				}
+			: {}),
+		data: { node },
+	};
 }
 function makeNode(type: string, position: { x: number; y: number }): WorkflowNode {
 	return {
@@ -77,7 +109,7 @@ function makeNode(type: string, position: { x: number; y: number }): WorkflowNod
 	};
 }
 
-const nodeTypes = { workflow: WorkflowNodeView };
+const nodeTypes = { workflow: WorkflowNodeView, workflowGroup: WorkflowGroupView };
 
 function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorProps) {
 	const [nodes, setNodes] = useState<CanvasNode[]>(() =>
@@ -88,6 +120,7 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 	const [snapEnabled, setSnapEnabled] = useState(true);
 	const [showEdges, setShowEdges] = useState(true);
 	const [showMap, setShowMap] = useState(false);
+	const [generationLocked, setGenerationLocked] = useState(false);
 	const toast = useToast();
 	const [picker, setPicker] = useState<{
 		kind: "image" | "video" | "audio";
@@ -99,6 +132,10 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 	);
 	const [libraryOpen, setLibraryOpen] = useState(false);
 	const [helpOpen, setHelpOpen] = useState(false);
+	const [zoomOpen, setZoomOpen] = useState(false);
+	const [searchOpen, setSearchOpen] = useState(false);
+	const [search, setSearch] = useState("");
+	const [layoutSnapshot, setLayoutSnapshot] = useState<WorkflowGraph | null>(null);
 	const [edgeMenu, setEdgeMenu] = useState<{ id: string; x: number; y: number } | null>(null);
 	const [history, setHistory] = useState<{ past: CanvasOperation[]; future: CanvasOperation[] }>({
 		past: [],
@@ -114,6 +151,8 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 		y: number;
 		position: { x: number; y: number };
 		nodeId?: string;
+		selection?: boolean;
+		connection?: PendingConnection;
 		mode: "actions" | "nodes";
 	} | null>(null);
 	const [status, setStatus] = useState<"idle" | "pending" | "saving" | "saved" | "error">("idle");
@@ -125,6 +164,8 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 	const updateRef = useRef(onUpdate);
 	const flowRef = useRef<ReactFlowInstance<CanvasNode, CanvasEdge> | null>(null);
 	const canvasRef = useRef<HTMLDivElement>(null);
+	const mounted = useRef(true);
+	const runningNodes = useRef(new Set<string>());
 	updateRef.current = onUpdate;
 	const graphFrom = (
 		nextNodes: CanvasNode[],
@@ -132,7 +173,16 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 		nextViewport = viewport,
 	): WorkflowGraph => ({
 		...graphRef.current,
-		nodes: nextNodes.map((node) => ({ ...node.data.node, position: node.position })),
+		nodes: nextNodes.map((node) => ({
+			...node.data.node,
+			position: node.position,
+			...(node.data.node.type === "canvasGroup"
+				? {
+						width: node.width ?? node.measured?.width,
+						height: node.height ?? node.measured?.height,
+					}
+				: {}),
+		})),
 		edges: nextEdges,
 		viewport: nextViewport,
 	});
@@ -197,9 +247,22 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 	);
 
 	const onNodesChange = (changes: NodeChange<CanvasNode>[]) => {
-		const next = applyNodeChanges(changes, nodes);
+		let next = applyNodeChanges(changes, nodes);
+		const removed = changes.filter((change) => change.type === "remove").map((change) => change.id);
+		if (removed.length) {
+			const ids = new Set(
+				workflowSelectionTree(graphRef.current.nodes, removed).map((node) => node.id),
+			);
+			next = next.filter((node) => !ids.has(node.id));
+		}
 		setNodes(next);
-		if (changes.some((change) => change.type !== "select" && change.type !== "dimensions")) {
+		if (
+			changes.some(
+				(change) =>
+					change.type !== "select" &&
+					(change.type !== "dimensions" || change.resizing !== undefined),
+			)
+		) {
 			const ids = new Set(next.map((node) => node.id));
 			const remainingEdges = graphRef.current.edges.filter(
 				(edge) => ids.has(edge.source) && ids.has(edge.target),
@@ -208,9 +271,17 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 			scheduleSave(
 				graphFrom(next, remainingEdges),
 				"移动或删除节点",
-				changes.some((change) => change.type === "position") ? "drag" : undefined,
+				changes.some((change) => change.type === "position" || change.type === "dimensions")
+					? "drag"
+					: undefined,
 			);
-			if (changes.some((change) => change.type === "position" && change.dragging === false))
+			if (
+				changes.some(
+					(change) =>
+						(change.type === "position" && change.dragging === false) ||
+						(change.type === "dimensions" && change.resizing === false),
+				)
+			)
 				editGroup.current = null;
 		}
 	};
@@ -255,21 +326,35 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 	};
 	const addNode = (type: string) => {
 		if (!contextMenu) return;
-		const next = [...nodes, asCanvasNode(makeNode(type, contextMenu.position))];
+		const node = makeNode(type, contextMenu.position);
+		const connection = contextMenu.connection
+			? connectionToNewNode(graphRef.current, contextMenu.connection, node)
+			: undefined;
+		if (contextMenu.connection && !connection) return;
+		const next = [
+			...nodes.map((item) => ({ ...item, selected: false })),
+			{ ...asCanvasNode(node), selected: true },
+		];
+		const nextEdges = connection ? [...edges, connection] : edges;
 		setNodes(next);
-		scheduleSave(graphFrom(next, edges));
+		setEdges(nextEdges);
+		scheduleSave(graphFrom(next, nextEdges), "创建节点");
 		setContextMenu(null);
 	};
 	const removeNode = (id: string) => {
-		const nextNodes = nodes.filter((node) => node.id !== id);
-		const nextEdges = edges.filter((edge) => edge.source !== id && edge.target !== id);
+		const ids = new Set(workflowSelectionTree(graphRef.current.nodes, [id]).map((node) => node.id));
+		const nextNodes = nodes.filter((node) => !ids.has(node.id));
+		const nextEdges = edges.filter((edge) => !ids.has(edge.source) && !ids.has(edge.target));
 		setNodes(nextNodes);
 		setEdges(nextEdges);
 		scheduleSave(graphFrom(nextNodes, nextEdges));
 		setContextMenu(null);
 	};
 	const applyGraph = (graph: WorkflowGraph, label: string, record = true) => {
-		setNodes(graph.nodes.map(asCanvasNode));
+		const selected = new Set(nodes.filter((node) => node.selected).map((node) => node.id));
+		setNodes(
+			graph.nodes.map((node) => ({ ...asCanvasNode(node), selected: selected.has(node.id) })),
+		);
 		setEdges(graph.edges);
 		scheduleSave(graph, label, undefined, record);
 	};
@@ -295,7 +380,10 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 	};
 	const selection = (id?: string) => {
 		const selected = new Set(
-			id ? [id] : nodes.filter((node) => node.selected).map((node) => node.id),
+			workflowSelectionTree(
+				graphRef.current.nodes,
+				id ? [id] : nodes.filter((node) => node.selected).map((node) => node.id),
+			).map((node) => node.id),
 		);
 		return {
 			nodes: graphRef.current.nodes.filter((node) => selected.has(node.id)),
@@ -303,6 +391,54 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 				(edge) => selected.has(edge.source) && selected.has(edge.target),
 			),
 		};
+	};
+	const removeSelection = () => {
+		const ids = new Set(selection().nodes.map((node) => node.id));
+		applyGraph(
+			{
+				...graphRef.current,
+				nodes: graphRef.current.nodes.filter((node) => !ids.has(node.id)),
+				edges: graphRef.current.edges.filter(
+					(edge) => !ids.has(edge.source) && !ids.has(edge.target),
+				),
+			},
+			"删除选中节点",
+		);
+		setContextMenu(null);
+	};
+	const arrangeSelection = (layout: SelectionLayout) => {
+		applyGraph(
+			arrangeWorkflowSelection(
+				graphRef.current,
+				selection().nodes.map((node) => node.id),
+				layout,
+				new Map(nodes.map((node) => [node.id, node.measured ?? {}])),
+			),
+			"整理选中节点",
+		);
+		setContextMenu(null);
+	};
+	const groupSelection = () => {
+		applyGraph(
+			groupWorkflowNodes(
+				graphRef.current,
+				selection().nodes.map((node) => node.id),
+				new Map(nodes.map((node) => [node.id, node.measured ?? {}])),
+			),
+			"成组",
+		);
+		setContextMenu(null);
+	};
+	const ungroupSelection = (id?: string) => {
+		applyGraph(
+			ungroupWorkflowNodes(graphRef.current, id ? [id] : selection().nodes.map((node) => node.id)),
+			"解组",
+		);
+		setContextMenu(null);
+	};
+	const setZoom = (value: number) => {
+		if (Number.isFinite(value))
+			void flowRef.current?.zoomTo(Math.max(0.2, Math.min(8, value)), { duration: 150 });
 	};
 	const copy = (id?: string) => {
 		const copied = selection(id);
@@ -324,7 +460,7 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 	const duplicateNode = (id?: string) => {
 		const copied = selection(id);
 		if (!copied.nodes.length) return;
-		const first = copied.nodes[0].position;
+		const first = workflowAbsolutePosition(copied.nodes[0], graphRef.current.nodes);
 		applyGraph(
 			pasteWorkflowNodes(graphRef.current, copied, { x: first.x + 32, y: first.y + 32 }),
 			"创建副本",
@@ -332,17 +468,157 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 		setContextMenu(null);
 	};
 	const updateNodeData = (id: string, data: Partial<WorkflowNode["data"]>) => {
-		const next = nodes.map((node) =>
-			node.id === id
-				? {
-						...node,
-						data: { node: { ...node.data.node, data: { ...node.data.node.data, ...data } } },
-					}
-				: node,
+		const nextGraph = {
+			...graphRef.current,
+			nodes: graphRef.current.nodes.map((node) =>
+				node.id === id ? { ...node, data: { ...node.data, ...data } } : node,
+			),
+		};
+		setNodes((current) =>
+			current.map((node) =>
+				node.id === id
+					? {
+							...node,
+							data: { node: { ...node.data.node, data: { ...node.data.node.data, ...data } } },
+						}
+					: node,
+			),
 		);
-		setNodes(next);
-		scheduleSave(graphFrom(next, edges), "配置节点", `config:${id}`);
+		scheduleSave(nextGraph, "配置节点", `config:${id}`);
 	};
+	const generateNode = async (id: string) => {
+		if (runningNodes.current.has(id)) return;
+		const node = graphRef.current.nodes.find((item) => item.id === id);
+		if (!node || node.data.status === "generating") return;
+		runningNodes.current.add(id);
+		try {
+			const catalog = await getGenerationModels();
+			if (!mounted.current || !graphRef.current.nodes.some((item) => item.id === id)) return;
+			const request = workflowNodeRequest(
+				graphRef.current,
+				graphRef.current.nodes.find((item) => item.id === id)!,
+				catalog,
+				{ projectId: workflow.projectId, documentId: workflow.documentId, workflowId: workflow.id },
+			);
+			updateNodeData(id, {
+				status: "generating",
+				error: undefined,
+				taskId: undefined,
+				generationStartedAt: new Date().toISOString(),
+			});
+			let generatedText = "";
+			const result =
+				request.kind === "text"
+					? await streamGenerationText(request, {
+							onStart: (event) => {
+								if (mounted.current && event.taskId) updateNodeData(id, { taskId: event.taskId });
+							},
+							onDelta: (delta) => {
+								generatedText += delta;
+								const current = graphRef.current.nodes.find((item) => item.id === id);
+								if (!mounted.current || !current) return;
+								const handle = current.data.handles.find((item) => item.type === "source");
+								updateNodeData(id, {
+									outputs: {
+										...current.data.outputs,
+										[handle?.id ?? "output"]: { dataType: "TEXT", value: generatedText },
+									},
+								});
+							},
+						})
+					: await sendGenerationMessage(request);
+			if (!mounted.current) return;
+			const latest = graphRef.current.nodes.find((item) => item.id === id);
+			if (latest) updateNodeData(id, workflowNodeResult(latest, result));
+		} catch (error) {
+			if (mounted.current) {
+				updateNodeData(id, {
+					status: "failed",
+					error: error instanceof Error ? error.message : String(error),
+					taskId: undefined,
+				});
+				toast.error("生成失败", { description: String(error) });
+			}
+		} finally {
+			runningNodes.current.delete(id);
+		}
+	};
+	const activeTasks = nodes
+		.filter((node) => node.data.node.data.status === "generating")
+		.map((node) => ({
+			nodeId: node.id,
+			taskId: node.data.node.data.taskId,
+			startedAt: node.data.node.data.generationStartedAt,
+		}));
+	const taskResults = useSWR(
+		activeTasks.length ? ["workflow-node-results", workflow.id, activeTasks] : null,
+		async () => {
+			const missing = activeTasks.some(
+				(task) => !task.taskId && task.startedAt && !runningNodes.current.has(task.nodeId),
+			);
+			const tasks = missing
+				? (await getGenerationTasks(null, undefined, undefined, workflow.projectId)).tasks
+				: [];
+			return Promise.all(
+				activeTasks.map(async ({ nodeId, taskId, startedAt }) => {
+					if (!taskId && (!startedAt || runningNodes.current.has(nodeId))) return null;
+					const recovered = taskId
+						? undefined
+						: tasks
+								.filter(
+									(task) =>
+										task.sessionId === `workflow-${workflow.id}-${nodeId}` &&
+										Date.parse(task.createdAt) >= Date.parse(startedAt!) - 1000,
+								)
+								.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
+					const resolvedId = taskId ?? recovered?.id;
+					if (!resolvedId) return null;
+					return {
+						nodeId,
+						taskId,
+						recoveredId: resolvedId,
+						startedAt,
+						result: await getGenerationVideo(resolvedId),
+					};
+				}),
+			);
+		},
+		{ refreshInterval: 3000, revalidateOnFocus: false },
+	);
+	useEffect(() => {
+		if (!taskResults.data) return;
+		let graph = graphRef.current;
+		for (const entry of taskResults.data) {
+			if (!entry) continue;
+			const { nodeId, taskId, recoveredId, startedAt, result } = entry;
+			const node = graph.nodes.find((item) => item.id === nodeId);
+			if (
+				!node ||
+				node.data.status !== "generating" ||
+				node.data.taskId !== taskId ||
+				node.data.generationStartedAt !== startedAt
+			)
+				continue;
+			const data = workflowNodeResult(node, result);
+			if (data.status === "generating" && node.data.taskId === recoveredId) continue;
+			if (data.status === "generating") data.taskId = recoveredId;
+			graph = {
+				...graph,
+				nodes: graph.nodes.map((item) =>
+					item.id === nodeId ? { ...item, data: { ...item.data, ...data } } : item,
+				),
+			};
+		}
+		if (graph !== graphRef.current) {
+			setNodes((current) =>
+				current.map((item) => ({
+					...item,
+					data: { node: graph.nodes.find((node) => node.id === item.id) ?? item.data.node },
+				})),
+			);
+			scheduleSave(graph, "生成结果");
+		}
+	}, [taskResults.data, scheduleSave]);
 	const insertAssets = (
 		assets: MediaAsset[],
 		position: { x: number; y: number },
@@ -428,12 +704,31 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 		}
 	};
 
-	useEffect(() => () => flush(false), [flush]);
+	useEffect(() => {
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+			flush(false);
+		};
+	}, [flush]);
 
 	return (
 		<NodeConfigContext.Provider
 			value={{
 				update: updateNodeData,
+				generate: (id) => void generateNode(id),
+				generationLocked,
+				remove: removeNode,
+				duplicate: duplicateNode,
+				copy,
+				graph: graphRef.current,
+				disconnect: (id) =>
+					applyGraph(
+						{ ...graphRef.current, edges: graphRef.current.edges.filter((edge) => edge.id !== id) },
+						"移除引用",
+					),
+				projectId: workflow.projectId,
+				insertAssets,
 				pickMedia: (id) => {
 					const node = nodes.find((item) => item.id === id);
 					if (node)
@@ -498,17 +793,31 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 						event.target.closest("input,textarea,select,[contenteditable=true]")
 					)
 						return;
-					if (event.key === "Escape" && (contextMenu || edgeMenu || helpOpen || libraryOpen)) {
+					if (
+						event.key === "Escape" &&
+						(contextMenu || edgeMenu || helpOpen || libraryOpen || zoomOpen || searchOpen)
+					) {
 						event.preventDefault();
 						event.stopPropagation();
 						setContextMenu(null);
 						setEdgeMenu(null);
 						setHelpOpen(false);
 						setLibraryOpen(false);
+						setZoomOpen(false);
+						setSearchOpen(false);
 						return;
 					}
 					if (!(event.ctrlKey || event.metaKey)) return;
 					const key = event.key.toLowerCase();
+					if (key === "g") {
+						event.preventDefault();
+						if (event.shiftKey) ungroupSelection();
+						else groupSelection();
+					}
+					if (key === "f") {
+						event.preventDefault();
+						setSearchOpen(true);
+					}
 					if (key === "z") {
 						event.preventDefault();
 						if (event.shiftKey) redo();
@@ -556,6 +865,47 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 					onNodesChange={onNodesChange}
 					onEdgesChange={onEdgesChange}
 					onConnect={onConnect}
+					isValidConnection={(connection) => {
+						const source = graphRef.current.nodes.find((node) => node.id === connection.source);
+						const target = graphRef.current.nodes.find((node) => node.id === connection.target);
+						return (
+							!!source &&
+							!!target &&
+							!!connection.sourceHandle &&
+							!!connection.targetHandle &&
+							validateConnection(
+								source,
+								connection.sourceHandle,
+								target,
+								connection.targetHandle,
+								graphRef.current.edges,
+							).valid
+						);
+					}}
+					onConnectEnd={(event, state) => {
+						if (
+							state.isValid ||
+							!state.fromNode ||
+							!state.fromHandle ||
+							!(event.target instanceof Element) ||
+							!event.target.closest(".react-flow__pane")
+						)
+							return;
+						const point = "changedTouches" in event ? event.changedTouches[0] : event;
+						if (!point || !state.fromHandle.id) return;
+						const rect = canvasRef.current?.getBoundingClientRect();
+						setContextMenu({
+							x: point.clientX - (rect?.left ?? 0),
+							y: point.clientY - (rect?.top ?? 0),
+							position: canvasPosition(point),
+							mode: "nodes",
+							connection: {
+								nodeId: state.fromNode.id,
+								handleId: state.fromHandle.id,
+								type: state.fromHandle.type,
+							},
+						});
+					}}
 					onInit={(flow) => {
 						flowRef.current = flow;
 					}}
@@ -571,6 +921,31 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 					zoomOnDoubleClick={false}
 					onNodeDragStart={() => {
 						editGroup.current = null;
+						setContextMenu(null);
+					}}
+					onNodeDoubleClick={(event, node) => {
+						if (
+							event.target instanceof Element &&
+							event.target.closest("input,textarea,button,[contenteditable=true]")
+						)
+							return;
+						void flowRef.current?.fitView({
+							nodes: [{ id: node.id }],
+							padding: 0.5,
+							maxZoom: 1.5,
+							duration: 250,
+						});
+					}}
+					onSelectionContextMenu={(event) => {
+						event.preventDefault();
+						const rect = canvasRef.current?.getBoundingClientRect();
+						setContextMenu({
+							x: event.clientX - (rect?.left ?? 0),
+							y: event.clientY - (rect?.top ?? 0),
+							position: canvasPosition(event),
+							mode: "actions",
+							selection: true,
+						});
 					}}
 					onDoubleClick={(event) => {
 						if (!(event.target instanceof Element) || !event.target.closest(".react-flow__pane"))
@@ -599,6 +974,7 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 							y: event.clientY - (canvasRef.current?.getBoundingClientRect().top ?? 0),
 							position: node.position,
 							nodeId: node.id,
+							selection: node.selected && nodes.filter((item) => item.selected).length > 1,
 							mode: "actions",
 						});
 					}}
@@ -624,8 +1000,22 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 					attributionPosition="bottom-left"
 				>
 					<Background gap={16} size={1} />
-					{showMap && <MiniMap pannable zoomable />}
+					{showMap && <MiniMap pannable zoomable position="bottom-left" style={{ bottom: 56 }} />}
 				</ReactFlow>
+				<WorkflowRunControls
+					graph={graphRef.current}
+					generate={generateNode}
+					onActiveChange={setGenerationLocked}
+					focus={(id) => {
+						setNodes((current) => current.map((node) => ({ ...node, selected: node.id === id })));
+						void flowRef.current?.fitView({
+							nodes: [{ id }],
+							padding: 0.6,
+							maxZoom: 1,
+							duration: 250,
+						});
+					}}
+				/>
 				<div
 					role="status"
 					className="absolute right-4 top-4 flex items-center gap-2 rounded-md border border-border bg-background/95 px-3 py-2 text-sm shadow-sm"
@@ -652,7 +1042,14 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 					<ToolButton
 						label="整理画布"
 						onClick={() => {
-							applyGraph(arrangeWorkflowNodes(graphRef.current), "整理画布");
+							setLayoutSnapshot(graphRef.current);
+							applyGraph(
+								arrangeWorkflowNodes(
+									graphRef.current,
+									new Map(nodes.map((node) => [node.id, node.measured ?? {}])),
+								),
+								"整理画布",
+							);
 							requestAnimationFrame(() => {
 								void flowRef.current?.fitView({ padding: 0.2, duration: 300 });
 							});
@@ -690,9 +1087,18 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 					<ToolButton label="缩小" onClick={() => flowRef.current?.zoomOut({ duration: 150 })}>
 						<Minus />
 					</ToolButton>
-					<span className="min-w-12 text-center text-xs text-muted-foreground">
+					<button
+						aria-label="缩放菜单"
+						aria-expanded={zoomOpen}
+						onClick={() => setZoomOpen(!zoomOpen)}
+						onWheel={(event) => {
+							event.stopPropagation();
+							setZoom(viewport.zoom * (event.deltaY < 0 ? 1.1 : 1 / 1.1));
+						}}
+						className="min-w-12 text-center text-xs text-muted-foreground"
+					>
 						{Math.round(viewport.zoom * 100)}%
-					</span>
+					</button>
 					<ToolButton label="放大" onClick={() => flowRef.current?.zoomIn({ duration: 150 })}>
 						<Plus />
 					</ToolButton>
@@ -710,9 +1116,137 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 						<CircleHelp />
 					</ToolButton>
 				</div>
+				{layoutSnapshot && (
+					<div
+						data-workflow-popup=""
+						className="absolute bottom-16 left-16 z-20 flex gap-2 rounded border border-border bg-card p-2 shadow-md"
+					>
+						<Button
+							size="sm"
+							variant="ghost"
+							onClick={() => {
+								const positions = new Map(
+									layoutSnapshot.nodes.map((node) => [node.id, node.position]),
+								);
+								applyGraph(
+									{
+										...graphRef.current,
+										nodes: graphRef.current.nodes.map((node) => ({
+											...node,
+											position: positions.get(node.id) ?? node.position,
+										})),
+									},
+									"撤销整理",
+								);
+								setLayoutSnapshot(null);
+							}}
+						>
+							撤销整理
+						</Button>
+						<button aria-label="关闭撤销整理" onClick={() => setLayoutSnapshot(null)}>
+							<X className="size-4" />
+						</button>
+					</div>
+				)}
+				{zoomOpen && (
+					<div
+						data-workflow-popup=""
+						className="absolute bottom-16 left-52 z-30 w-48 space-y-1 rounded-lg border border-border bg-popover p-2 shadow-md"
+					>
+						<label className="flex items-center gap-2 text-sm">
+							缩放
+							<input
+								aria-label="缩放百分比"
+								type="number"
+								min={20}
+								max={800}
+								key={Math.round(viewport.zoom * 100)}
+								defaultValue={Math.round(viewport.zoom * 100)}
+								className="w-20 rounded border border-input bg-background p-1"
+								onBlur={(event) => setZoom(Number(event.target.value) / 100)}
+								onKeyDown={(event) => {
+									if (event.key === "Enter") {
+										setZoom(Number(event.currentTarget.value) / 100);
+										setZoomOpen(false);
+									}
+								}}
+							/>
+							%
+						</label>
+						{[0.5, 1, 2].map((zoom) => (
+							<MenuButton
+								key={zoom}
+								label={`${zoom * 100}%`}
+								onClick={() => {
+									setZoom(zoom);
+									setZoomOpen(false);
+								}}
+							/>
+						))}
+						<MenuButton
+							label="适应视图"
+							onClick={() => {
+								void flowRef.current?.fitView({ padding: 0.2, duration: 250 });
+								setZoomOpen(false);
+							}}
+						/>
+					</div>
+				)}
+				{searchOpen && (
+					<div
+						data-workflow-popup=""
+						className="absolute left-4 top-4 z-30 w-72 rounded-lg border border-border bg-popover p-2 shadow-md"
+					>
+						<input
+							autoFocus
+							aria-label="搜索节点"
+							placeholder="搜索节点名称或文本…"
+							value={search}
+							onChange={(event) => setSearch(event.target.value)}
+							className="w-full rounded border border-input bg-background p-2 text-sm"
+						/>
+						<div className="max-h-64 overflow-auto">
+							{nodes
+								.filter((node) =>
+									`${node.data.node.data.label} ${node.data.node.data.config?.prompt ?? ""}`
+										.toLowerCase()
+										.includes(search.toLowerCase()),
+								)
+								.map((node) => (
+									<MenuButton
+										key={node.id}
+										label={node.data.node.data.label}
+										onClick={() => {
+											setNodes((current) =>
+												current.map((item) => ({ ...item, selected: item.id === node.id })),
+											);
+											void flowRef.current?.fitView({
+												nodes: [{ id: node.id }],
+												padding: 0.5,
+												maxZoom: 1.2,
+												duration: 250,
+											});
+											setSearchOpen(false);
+										}}
+									/>
+								))}
+						</div>
+					</div>
+				)}
 				{uploading && (
 					<p role="status" className="absolute left-4 top-4 rounded bg-card p-2 text-sm">
 						正在上传素材…
+					</p>
+				)}
+				{taskResults.error && (
+					<p
+						role="alert"
+						className="absolute right-4 top-16 z-20 rounded border border-border bg-card p-2 text-sm"
+					>
+						暂时无法读取生成状态，将自动重试。
+						<Button size="sm" variant="ghost" onClick={() => void taskResults.mutate()}>
+							立即重试
+						</Button>
 					</p>
 				)}
 				{!nodes.length && (
@@ -819,6 +1353,26 @@ function WorkflowCanvasEditorInner({ workflow, onUpdate }: WorkflowCanvasEditorP
 						}}
 						canUndo={!!history.past.length}
 						canRedo={!!history.future.length}
+						selectionCount={selection().nodes.length}
+						onGroup={groupSelection}
+						onUngroup={() => ungroupSelection(contextMenu.nodeId)}
+						isGroup={
+							nodes.find((node) => node.id === contextMenu.nodeId)?.data.node.type === "canvasGroup"
+						}
+						onArrangeSelection={arrangeSelection}
+						onDeleteSelection={removeSelection}
+						compatibleTypes={
+							contextMenu.connection
+								? Object.keys(nodeLabels).filter(
+										(type) =>
+											!!connectionToNewNode(
+												graphRef.current,
+												contextMenu.connection!,
+												makeNode(type, contextMenu.position),
+											),
+									)
+								: undefined
+						}
 						onUndo={undo}
 						onRedo={redo}
 						onCopy={copy}
@@ -868,6 +1422,13 @@ function ToolButton({
 }
 
 function CanvasContextMenu({
+	onGroup,
+	onUngroup,
+	isGroup,
+	selectionCount,
+	onArrangeSelection,
+	onDeleteSelection,
+	compatibleTypes,
 	bounds,
 	canUndo,
 	canRedo,
@@ -883,12 +1444,19 @@ function CanvasContextMenu({
 	onOpenNodes,
 	onBack,
 }: {
+	onGroup: () => void;
+	onUngroup: () => void;
+	isGroup?: boolean;
+	selectionCount: number;
+	onArrangeSelection: (layout: SelectionLayout) => void;
+	onDeleteSelection: () => void;
+	compatibleTypes?: string[];
 	bounds: { width: number; height: number };
 	canUndo: boolean;
 	canRedo: boolean;
 	onUndo: () => void;
 	onRedo: () => void;
-	onCopy: (id: string) => void;
+	onCopy: (id?: string) => void;
 	onPaste: () => void;
 	onUpload: () => void;
 	menu: {
@@ -896,11 +1464,13 @@ function CanvasContextMenu({
 		y: number;
 		position: { x: number; y: number };
 		nodeId?: string;
+		selection?: boolean;
+		connection?: PendingConnection;
 		mode: "actions" | "nodes";
 	};
 	onAdd: (type: string) => void;
 	onDelete: (id: string) => void;
-	onDuplicate: (id: string) => void;
+	onDuplicate: (id?: string) => void;
 	onOpenNodes: () => void;
 	onBack: () => void;
 }) {
@@ -926,8 +1496,24 @@ function CanvasContextMenu({
 			}}
 			onClick={(event) => event.stopPropagation()}
 		>
-			{menu.nodeId ? (
+			{menu.selection ? (
 				<>
+					<MenuButton label="成组" onClick={onGroup} />
+					<MenuButton label="解组" onClick={onUngroup} />
+					<MenuButton label="复制选中节点" onClick={() => onCopy()} />
+					<MenuButton label="创建副本" onClick={() => onDuplicate()} />
+					{(["horizontal", "vertical", "grid"] as const).map((layout, index) => (
+						<MenuButton
+							key={layout}
+							label={["水平排列", "垂直排列", "网格排列"][index]}
+							onClick={() => onArrangeSelection(layout)}
+						/>
+					))}
+					<MenuButton label={`删除选中节点（${selectionCount}）`} onClick={onDeleteSelection} />
+				</>
+			) : menu.nodeId ? (
+				<>
+					{isGroup && <MenuButton label="解组" onClick={onUngroup} />}
 					<MenuButton label="复制节点" onClick={() => onCopy(menu.nodeId!)} />
 					<MenuButton label="创建副本" onClick={() => onDuplicate(menu.nodeId!)} />
 					<MenuButton label="删除节点" onClick={() => onDelete(menu.nodeId!)} />
@@ -947,9 +1533,17 @@ function CanvasContextMenu({
 				<>
 					<MenuButton label="返回操作菜单" onClick={onBack} />
 					<div className="border-t border-border" />
-					{types.map((type) => (
-						<MenuButton key={type} label={nodeLabels[type] ?? type} onClick={() => onAdd(type)} />
-					))}
+					{menu.connection && (
+						<p className="px-2 py-1 text-xs text-muted-foreground">选择兼容节点并连接</p>
+					)}
+					{compatibleTypes?.length === 0 && (
+						<p className="p-2 text-sm text-muted-foreground">没有兼容的节点类型</p>
+					)}
+					{types
+						.filter((type) => !compatibleTypes || compatibleTypes.includes(type))
+						.map((type) => (
+							<MenuButton key={type} label={nodeLabels[type] ?? type} onClick={() => onAdd(type)} />
+						))}
 				</>
 			)}
 		</div>

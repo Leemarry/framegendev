@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { arrangeWorkflowNodes, pasteWorkflowNodes } from "./workflow-canvas-editing";
+import {
+	arrangeWorkflowNodes,
+	pasteWorkflowNodes,
+	groupWorkflowNodes,
+	ungroupWorkflowNodes,
+	workflowAbsolutePosition,
+	workflowSelectionTree,
+	connectionToNewNode,
+	arrangeWorkflowSelection,
+} from "./workflow-canvas-editing";
 import { emptyWorkflowGraphV4, getDefaultHandles, type WorkflowGraph } from "./workflow-schema-v4";
 
 const graph: WorkflowGraph = {
@@ -17,6 +26,70 @@ const graph: WorkflowGraph = {
 };
 
 describe("canvas editing", () => {
+	it("preserves child world coordinates through grouping, copying and ungrouping", () => {
+		const grouped = groupWorkflowNodes(graph, ["a", "b"]);
+		const group = grouped.nodes[0];
+		expect(group.type).toBe("canvasGroup");
+		for (const id of ["a", "b"])
+			expect(
+				workflowAbsolutePosition(grouped.nodes.find((node) => node.id === id)!, grouped.nodes),
+			).toEqual(graph.nodes.find((node) => node.id === id)!.position);
+		const tree = workflowSelectionTree(grouped.nodes, [group.id]);
+		const copied = pasteWorkflowNodes(
+			grouped,
+			{ nodes: tree, edges: grouped.edges },
+			{ x: 600, y: 400 },
+		);
+		const clone = copied.nodes.slice(grouped.nodes.length);
+		expect(clone).toHaveLength(3);
+		expect(clone[1].parentId).toBe(clone[0].id);
+		expect(clone[1].position).toEqual(grouped.nodes.find((node) => node.id === "a")!.position);
+		const ungrouped = ungroupWorkflowNodes(grouped, [group.id]);
+		expect(ungrouped.nodes).toHaveLength(3);
+		expect(ungrouped.nodes.map((node) => node.position)).toEqual(
+			graph.nodes.map((node) => node.position),
+		);
+	});
+	it("arranges children in different groups in world coordinates", () => {
+		const grouped = groupWorkflowNodes(graph, ["a"]);
+		const arranged = arrangeWorkflowSelection(grouped, ["a", "c"], "vertical");
+		const a = arranged.nodes.find((node) => node.id === "a")!;
+		const c = arranged.nodes.find((node) => node.id === "c")!;
+		expect(workflowAbsolutePosition(a, arranged.nodes).x).toBe(c.position.x);
+		expect(c.position.y).toBeGreaterThan(workflowAbsolutePosition(a, arranged.nodes).y);
+	});
+	it("resolves both output and input drags, and rejects incompatible node types", () => {
+		const image = {
+			...graph.nodes[0],
+			id: "image",
+			type: "imageNode",
+			data: { label: "image", handles: getDefaultHandles("imageNode") },
+		};
+		const generator = {
+			...graph.nodes[1],
+			id: "generator",
+			type: "imageGeneration",
+			data: { label: "generate", handles: getDefaultHandles("imageGeneration") },
+		};
+		const canvas = { ...graph, nodes: [image, generator], edges: [] };
+		expect(
+			connectionToNewNode(
+				canvas,
+				{ nodeId: image.id, handleId: "output", type: "source" },
+				generator,
+			),
+		).toMatchObject({ source: image.id, target: generator.id, targetHandle: "in" });
+		expect(
+			connectionToNewNode(canvas, { nodeId: generator.id, handleId: "in", type: "target" }, image),
+		).toMatchObject({ source: image.id, target: generator.id });
+		expect(
+			connectionToNewNode(
+				canvas,
+				{ nodeId: image.id, handleId: "output", type: "source" },
+				{ ...generator, data: { ...generator.data, handles: getDefaultHandles("audioNode") } },
+			),
+		).toBeUndefined();
+	});
 	it("duplicates a selection with fresh internal links and independent node data", () => {
 		const next = pasteWorkflowNodes(
 			graph,

@@ -25,6 +25,7 @@ export interface NodeHandle {
 	type: "source" | "target"; // source=输出端口, target=输入端口
 	dataType: NodeDataType | NodeDataType[]; // 支持单类型或多类型
 	label?: string; // 端口显示名称
+	multiple?: boolean;
 }
 
 /**
@@ -39,6 +40,9 @@ export interface WorkflowNode {
 	id: string;
 	type: string; // 节点类型：videoGeneration, imageInpaint, videoTrim 等
 	position: { x: number; y: number };
+	parentId?: string;
+	width?: number;
+	height?: number;
 	data: {
 		label: string; // 节点显示名称
 		handles: NodeHandle[]; // 端口定义
@@ -56,6 +60,10 @@ export interface WorkflowNode {
 			};
 		};
 		status?: NodeStatus; // 节点状态
+		taskId?: string;
+		generationStartedAt?: string;
+		candidates?: Array<{ url: string; dataType: NodeDataType; assetId?: string }>;
+		selectedCandidate?: number;
 		error?: string; // 错误信息
 	};
 }
@@ -129,28 +137,51 @@ export const getDefaultHandles = (nodeType: string): NodeHandle[] => {
 			return [{ id: "output", type: "source", dataType: "AUDIO", label: "音频" }];
 
 		case "textNode":
-			return [{ id: "output", type: "source", dataType: "TEXT", label: "文本" }];
+			return [
+				{
+					id: "in",
+					type: "target",
+					dataType: ["TEXT", "STRING", "IMAGE", "VIDEO"],
+					label: "文本、图片、视频输入",
+					multiple: true,
+				},
+				{ id: "output", type: "source", dataType: "TEXT", label: "文本" },
+			];
 
 		case "videoGeneration":
 			return [
-				{ id: "text-input", type: "target", dataType: "TEXT", label: "提示词" },
-				{ id: "image-input", type: "target", dataType: "IMAGE", label: "参考图" },
-				{ id: "video-input", type: "target", dataType: "VIDEO", label: "参考视频" },
+				{
+					id: "in",
+					type: "target",
+					dataType: ["IMAGE", "VIDEO", "AUDIO", "TEXT"],
+					label: "图片、视频、音频、文本输入",
+					multiple: true,
+				},
 				{ id: "output", type: "source", dataType: "VIDEO", label: "生成视频" },
 			];
 
 		case "imageGeneration":
 			return [
-				{ id: "text-input", type: "target", dataType: "TEXT", label: "提示词" },
-				{ id: "image-input", type: "target", dataType: "IMAGE", label: "参考图" },
-				{ id: "output", type: "source", dataType: "IMAGE", label: "生成图像" },
+				{
+					id: "in",
+					type: "target",
+					dataType: ["IMAGE", "TEXT"],
+					label: "图片、文本输入",
+					multiple: true,
+				},
+				{ id: "image", type: "source", dataType: "IMAGE", label: "生成图像" },
 			];
 
 		case "audioGeneration":
 			return [
-				{ id: "text-input", type: "target", dataType: "TEXT", label: "提示词" },
-				{ id: "audio-input", type: "target", dataType: "AUDIO", label: "参考音频" },
-				{ id: "output", type: "source", dataType: "AUDIO", label: "生成音频" },
+				{
+					id: "in",
+					type: "target",
+					dataType: ["IMAGE", "AUDIO", "TEXT"],
+					label: "图片或音频限1个，文本不限",
+					multiple: true,
+				},
+				{ id: "audio", type: "source", dataType: "AUDIO", label: "生成音频" },
 			];
 
 		case "imageInpaint":

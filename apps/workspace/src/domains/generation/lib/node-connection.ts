@@ -115,9 +115,32 @@ export const validateConnection = (
 	}
 
 	// 5. 检查目标端口是否已被占用（一个输入端口只能连接一条边）
-	const targetPortOccupied = existingEdges.some(
-		(edge) => edge.target === targetNode.id && edge.targetHandle === targetHandleId,
-	);
+	if (
+		existingEdges.some(
+			(edge) =>
+				edge.source === sourceNode.id &&
+				edge.sourceHandle === sourceHandleId &&
+				edge.target === targetNode.id &&
+				edge.targetHandle === targetHandleId,
+		)
+	)
+		return { valid: false, reason: "连线已存在" };
+	if (
+		targetNode.type === "audioGeneration" &&
+		sourceTypes.some((type) => type === "IMAGE" || type === "AUDIO") &&
+		existingEdges.some(
+			(edge) =>
+				edge.target === targetNode.id &&
+				targetNode.data.handles.find((handle) => handle.id === edge.targetHandle)?.multiple &&
+				["IMAGE", "AUDIO"].includes(edge.dataType ?? ""),
+		)
+	)
+		return { valid: false, reason: "音频生成只能引用一份图片或音频" };
+	const targetPortOccupied =
+		!targetHandle.multiple &&
+		existingEdges.some(
+			(edge) => edge.target === targetNode.id && edge.targetHandle === targetHandleId,
+		);
 
 	if (targetPortOccupied) {
 		return { valid: false, reason: "目标端口已被占用" };

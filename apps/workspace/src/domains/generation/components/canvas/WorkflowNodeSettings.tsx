@@ -19,8 +19,16 @@ export function WorkflowNodeSettings({
 }) {
 	const catalog = useSWR(generationModelsKey, getGenerationModels);
 	const kind =
-		type === "videoGeneration" ? "video" : type === "audioGeneration" ? "audio" : "image";
-	const models = (catalog.data?.models ?? []).filter((model) => model.kind === kind);
+		type === "videoGeneration"
+			? "video"
+			: type === "audioGeneration"
+				? "audio"
+				: type === "textNode"
+					? "text"
+					: "image";
+	const models = catalog.data?.routes?.some((route) => route.kind === kind)
+		? catalog.data.routes.filter((route) => route.kind === kind)
+		: (catalog.data?.models ?? []).filter((model) => model.kind === kind);
 	const selected = models.find((model) => model.id === config.modelId);
 	const setParam = (name: string, value: unknown) =>
 		onChange({ ...config, params: { ...config.params, [name]: value } });
@@ -50,7 +58,14 @@ export function WorkflowNodeSettings({
 						<option value={config.modelId}>{config.modelId}（当前不可用）</option>
 					)}
 					{models.map((model) => (
-						<option key={model.id} value={model.id}>
+						<option
+							key={model.id}
+							value={model.id}
+							disabled={
+								("status" in model && model.status !== "available") ||
+								("configured" in model && model.configured === false)
+							}
+						>
 							{model.label} · {model.provider}
 						</option>
 					))}
@@ -116,7 +131,6 @@ export function WorkflowNodeSettings({
 					</label>
 				);
 			})}
-			<p className="text-xs text-muted-foreground">参数随画布保存，生成执行【待接入】。</p>
 		</>
 	);
 }
